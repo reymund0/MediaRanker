@@ -1,5 +1,6 @@
 using Scalar.AspNetCore;
 using Microsoft.EntityFrameworkCore;
+using MediaRankerServer.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,9 @@ builder.Services.AddDbContext<PostgreSQLContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
     options.UseSnakeCaseNamingConvention();
 });
+
+// Register services.
+builder.Services.AddScoped<IUserService, UserService>();
 
 var app = builder.Build();
 
