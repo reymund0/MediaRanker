@@ -1,0 +1,6 @@
+@MediaRankerServer_HostAddress = http://localhost:5157
+
+GET {{MediaRankerServer_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
