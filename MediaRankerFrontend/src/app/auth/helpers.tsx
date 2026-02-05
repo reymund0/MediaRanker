@@ -3,6 +3,7 @@ import {
   fetchAuthSession,
   getCurrentUser,
   signIn,
+  signOut,
   signUp,
   confirmSignUp,
   resendSignUpCode,
@@ -104,6 +105,18 @@ export async function handleResendCode(username: string): Promise<AuthResult> {
     return {
       success: false,
       error: err.message || "Failed to resend code. Please try again.",
+    };
+  }
+}
+
+export async function handleSignOut(): Promise<AuthResult> {
+  try {
+    await signOut();
+    return { success: true };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Failed to sign out. Please try again.",
     };
   }
 }

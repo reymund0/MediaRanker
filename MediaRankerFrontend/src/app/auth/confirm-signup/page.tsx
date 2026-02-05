@@ -1,41 +1,52 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Box,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  Link as MuiLink,
-} from "@mui/material";
-import Link from "next/link";
+import { Box, Card, CardContent, Typography, Alert } from "@mui/material";
+import { FormProvider, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { handleConfirmSignup, handleResendCode } from "../helpers";
+import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
+import { SecondaryButton } from "@/lib/components/inputs/button/secondary-button";
+import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
+import { NextLink } from "@/lib/components/navigation/next-link";
+
+const confirmSignupSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  code: z.string().min(1, "Confirmation code is required"),
+});
+
+type ConfirmSignupFormData = z.infer<typeof confirmSignupSchema>;
 
 export default function ConfirmSignup() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [username, setUsername] = useState("");
-  const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
 
+  const methods = useForm<ConfirmSignupFormData>({
+    resolver: zodResolver(confirmSignupSchema),
+    defaultValues: {
+      username: "",
+      code: "",
+    },
+  });
+
   useEffect(() => {
     const usernameParam = searchParams.get("username");
     if (usernameParam) {
-      setUsername(usernameParam);
+      methods.setValue("username", usernameParam);
     }
-  }, [searchParams]);
+  }, [searchParams, methods]);
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: ConfirmSignupFormData) => {
     setError("");
     setSuccess("");
     setLoading(true);
 
-    const result = await handleConfirmSignup(username, code);
+    const result = await handleConfirmSignup(data.username, data.code);
 
     if (result.success) {
       setSuccess("Account confirmed! Redirecting to login...");
@@ -49,6 +60,7 @@ export default function ConfirmSignup() {
   };
 
   const onResendCode = async () => {
+    const username = methods.getValues("username");
     setError("");
     setSuccess("");
     setResending(true);
@@ -65,100 +77,81 @@ export default function ConfirmSignup() {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        bgcolor: "#f5f5f5",
-      }}
-    >
+    <FormProvider {...methods}>
       <Box
-        component="form"
-        onSubmit={onSubmit}
         sx={{
-          bgcolor: "white",
-          p: 4,
-          borderRadius: 2,
-          boxShadow: 1,
-          width: "100%",
-          maxWidth: 400,
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        <Typography variant="h4" component="h1" gutterBottom align="center">
-          Confirm Signup
-        </Typography>
+        <Card sx={{ width: "100%", maxWidth: 400 }}>
+          <CardContent
+            component="form"
+            onSubmit={methods.handleSubmit(onSubmit)}
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
+            <Typography variant="h4" component="h1" gutterBottom align="center">
+              Confirm Signup
+            </Typography>
 
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ mb: 2 }}
-          align="center"
-        >
-          Enter the confirmation code sent to your email
-        </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mb: 2 }}
+              align="center"
+            >
+              Enter the confirmation code sent to your email
+            </Typography>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
 
-        {success && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            {success}
-          </Alert>
-        )}
+            {success && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                {success}
+              </Alert>
+            )}
 
-        <TextField
-          fullWidth
-          label="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-          margin="normal"
-          autoComplete="username"
-        />
+            <FormTextField<ConfirmSignupFormData>
+              name="username"
+              label="Username"
+              autoComplete="username"
+            />
 
-        <TextField
-          fullWidth
-          label="Confirmation Code"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          required
-          margin="normal"
-          autoComplete="off"
-          helperText="Check your email for the 6-digit code"
-        />
+            <FormTextField<ConfirmSignupFormData>
+              name="code"
+              label="Confirmation Code"
+              autoComplete="off"
+            />
 
-        <Button
-          type="submit"
-          fullWidth
-          variant="contained"
-          disabled={loading}
-          sx={{ mt: 3, mb: 2 }}
-        >
-          {loading ? "Confirming..." : "Confirm"}
-        </Button>
+            <PrimaryButton
+              type="submit"
+              fullWidth
+              disabled={loading}
+              sx={{ mt: 2 }}
+            >
+              {loading ? "Confirming..." : "Confirm"}
+            </PrimaryButton>
 
-        <Button
-          fullWidth
-          variant="outlined"
-          onClick={onResendCode}
-          disabled={resending || !username}
-          sx={{ mb: 2 }}
-        >
-          {resending ? "Resending..." : "Resend Code"}
-        </Button>
+            <SecondaryButton
+              fullWidth
+              onClick={onResendCode}
+              disabled={resending || !methods.getValues("username")}
+            >
+              {resending ? "Resending..." : "Resend Code"}
+            </SecondaryButton>
 
-        <Typography variant="body2" align="center">
-          Already confirmed?{" "}
-          <Link href="/auth/login" passHref legacyBehavior>
-            <MuiLink>Login</MuiLink>
-          </Link>
-        </Typography>
+            <Typography variant="body2" align="center">
+              Already confirmed? <NextLink href="/auth/login">Login</NextLink>
+            </Typography>
+          </CardContent>
+        </Card>
       </Box>
-    </Box>
+    </FormProvider>
   );
 }

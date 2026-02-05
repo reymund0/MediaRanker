@@ -1,47 +1,57 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Box,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  Link as MuiLink,
-} from "@mui/material";
-import Link from "next/link";
+import { Box, Card, CardContent, Typography, Alert } from "@mui/material";
+import { FormProvider, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { handleSignup } from "../helpers";
+import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
+import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
+import { NextLink } from "@/lib/components/navigation/next-link";
+
+const signupSchema = z
+  .object({
+    username: z.string().min(1, "Username is required"),
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().min(1, "Confirm password is required"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+type SignupFormData = z.infer<typeof signupSchema>;
 
 export default function Signup() {
   const router = useRouter();
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const methods = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      username: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
+  const onSubmit = async (data: SignupFormData) => {
     setError("");
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
-
     setLoading(true);
 
-    const result = await handleSignup({ username, email, password });
+    const result = await handleSignup({
+      username: data.username,
+      email: data.email,
+      password: data.password,
+    });
 
     if (result.success) {
       router.push(
-        `/auth/confirm-signup?username=${encodeURIComponent(username)}`,
+        `/auth/confirm-signup?username=${encodeURIComponent(data.username)}`,
       );
     } else {
       setError(result.error || "Signup failed");
@@ -50,99 +60,74 @@ export default function Signup() {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        bgcolor: "#f5f5f5",
-      }}
-    >
+    <FormProvider {...methods}>
       <Box
-        component="form"
-        onSubmit={onSubmit}
         sx={{
-          bgcolor: "white",
-          p: 4,
-          borderRadius: 2,
-          boxShadow: 1,
-          width: "100%",
-          maxWidth: 400,
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        <Typography variant="h4" component="h1" gutterBottom align="center">
-          Sign Up
-        </Typography>
+        <Card sx={{ width: "100%", maxWidth: 400 }}>
+          <CardContent
+            component="form"
+            onSubmit={methods.handleSubmit(onSubmit)}
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
+            <Typography variant="h4" component="h1" gutterBottom align="center">
+              Sign Up
+            </Typography>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
 
-        <TextField
-          fullWidth
-          label="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-          margin="normal"
-          autoComplete="username"
-          helperText="Choose a unique username"
-        />
+            <FormTextField<SignupFormData>
+              name="username"
+              label="Username"
+              autoComplete="username"
+            />
 
-        <TextField
-          fullWidth
-          label="Email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          margin="normal"
-          autoComplete="email"
-        />
+            <FormTextField<SignupFormData>
+              name="email"
+              label="Email"
+              type="email"
+              autoComplete="email"
+            />
 
-        <TextField
-          fullWidth
-          label="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          margin="normal"
-          autoComplete="new-password"
-          helperText="Must be at least 8 characters"
-        />
+            <FormTextField<SignupFormData>
+              name="password"
+              label="Password"
+              type="password"
+              autoComplete="new-password"
+            />
 
-        <TextField
-          fullWidth
-          label="Confirm Password"
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-          margin="normal"
-          autoComplete="new-password"
-        />
+            <FormTextField<SignupFormData>
+              name="confirmPassword"
+              label="Confirm Password"
+              type="password"
+              autoComplete="new-password"
+            />
 
-        <Button
-          type="submit"
-          fullWidth
-          variant="contained"
-          disabled={loading}
-          sx={{ mt: 3, mb: 2 }}
-        >
-          {loading ? "Signing up..." : "Sign Up"}
-        </Button>
+            <PrimaryButton
+              type="submit"
+              fullWidth
+              disabled={loading}
+              sx={{ mt: 2 }}
+            >
+              {loading ? "Signing up..." : "Sign Up"}
+            </PrimaryButton>
 
-        <Typography variant="body2" align="center">
-          Already have an account?{" "}
-          <Link href="/auth/login" passHref legacyBehavior>
-            <MuiLink>Login</MuiLink>
-          </Link>
-        </Typography>
+            <Typography variant="body2" align="center">
+              Already have an account?{" "}
+              <NextLink href="/auth/login">Login</NextLink>
+            </Typography>
+          </CardContent>
+        </Card>
       </Box>
-    </Box>
+    </FormProvider>
   );
 }

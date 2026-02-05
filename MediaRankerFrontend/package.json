@@ -12,12 +12,15 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@hookform/resolvers": "^5.2.2",
     "@mui/material": "^7.3.7",
     "aws-amplify": "^6.16.0",
     "next": "16.0.3",
     "prettier": "^3.8.1",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "react-hook-form": "^7.71.1",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^20.19.31",

@@ -3,28 +3,45 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Box,
-  TextField,
-  Button,
+  Card,
+  CardContent,
   Typography,
   Alert,
   Link as MuiLink,
 } from "@mui/material";
-import Link from "next/link";
+import { FormProvider, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { handleLogin } from "../helpers";
+import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
+import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
+import { NextLink } from "@/lib/components/navigation/next-link";
+
+const loginSchema = z.object({
+  usernameOrEmail: z.string().min(1, "Username or email is required"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function Login() {
   const router = useRouter();
-  const [usernameOrEmail, setUsernameOrEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const methods = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      usernameOrEmail: "",
+      password: "",
+    },
+  });
+
+  const onSubmit = async (data: LoginFormData) => {
     setError("");
     setLoading(true);
 
-    const result = await handleLogin({ usernameOrEmail, password });
+    const result = await handleLogin(data);
 
     if (result.success) {
       router.push("/home");
@@ -35,75 +52,60 @@ export default function Login() {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        bgcolor: "#f5f5f5",
-      }}
-    >
+    <FormProvider {...methods}>
       <Box
-        component="form"
-        onSubmit={onSubmit}
         sx={{
-          bgcolor: "white",
-          p: 4,
-          borderRadius: 2,
-          boxShadow: 1,
-          width: "100%",
-          maxWidth: 400,
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        <Typography variant="h4" component="h1" gutterBottom align="center">
-          Login
-        </Typography>
+        <Card sx={{ width: "100%", maxWidth: 400 }}>
+          <CardContent
+            component="form"
+            onSubmit={methods.handleSubmit(onSubmit)}
+            sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+          >
+            <Typography variant="h4" component="h1" gutterBottom align="center">
+              Login
+            </Typography>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
 
-        <TextField
-          fullWidth
-          label="Username or Email"
-          value={usernameOrEmail}
-          onChange={(e) => setUsernameOrEmail(e.target.value)}
-          required
-          margin="normal"
-          autoComplete="username"
-        />
+            <FormTextField<LoginFormData>
+              name="usernameOrEmail"
+              label="Username or Email"
+              autoComplete="username"
+            />
 
-        <TextField
-          fullWidth
-          label="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          margin="normal"
-          autoComplete="current-password"
-        />
+            <FormTextField<LoginFormData>
+              name="password"
+              label="Password"
+              type="password"
+              autoComplete="current-password"
+            />
 
-        <Button
-          type="submit"
-          fullWidth
-          variant="contained"
-          disabled={loading}
-          sx={{ mt: 3, mb: 2 }}
-        >
-          {loading ? "Logging in..." : "Login"}
-        </Button>
+            <PrimaryButton
+              type="submit"
+              fullWidth
+              disabled={loading}
+              sx={{ mt: 3, mb: 2 }}
+            >
+              {loading ? "Logging in..." : "Login"}
+            </PrimaryButton>
 
-        <Typography variant="body2" align="center">
-          Don't have an account?{" "}
-          <Link href="/auth/signup" passHref legacyBehavior>
-            <MuiLink>Sign up</MuiLink>
-          </Link>
-        </Typography>
+            <Typography variant="body2" align="center">
+              Don't have an account?{" "}
+              <NextLink href="/auth/signup">Sign up</NextLink>
+            </Typography>
+          </CardContent>
+        </Card>
       </Box>
-    </Box>
+    </FormProvider>
   );
 }

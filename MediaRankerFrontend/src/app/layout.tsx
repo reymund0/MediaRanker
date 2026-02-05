@@ -1,4 +1,4 @@
-import { AmplifyProvider } from "@/lib/amplifyProvider";
+import { AmplifyProvider } from "@/lib/amplify-provider";
 
 export default function RootLayout({
   children,
