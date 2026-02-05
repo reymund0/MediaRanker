@@ -1,5 +1,12 @@
 "use client";
-import { fetchAuthSession, getCurrentUser, signIn, signUp, confirmSignUp, resendSignUpCode } from "aws-amplify/auth";
+import {
+  fetchAuthSession,
+  getCurrentUser,
+  signIn,
+  signUp,
+  confirmSignUp,
+  resendSignUpCode,
+} from "aws-amplify/auth";
 
 export type AuthResult = {
   success: boolean;
@@ -7,7 +14,11 @@ export type AuthResult = {
   data?: any;
 };
 
-export async function handleSignup(form: { username: string; email: string; password: string }): Promise<AuthResult> {
+export async function handleSignup(form: {
+  username: string;
+  email: string;
+  password: string;
+}): Promise<AuthResult> {
   const { username, email, password } = form;
 
   try {
@@ -23,14 +34,17 @@ export async function handleSignup(form: { username: string; email: string; pass
 
     return { success: true, data: result };
   } catch (err: any) {
-    return { 
-      success: false, 
-      error: err.message || "Failed to sign up. Please try again." 
+    return {
+      success: false,
+      error: err.message || "Failed to sign up. Please try again.",
     };
   }
 }
 
-export async function handleLogin(form: { usernameOrEmail: string; password: string }): Promise<AuthResult> {
+export async function handleLogin(form: {
+  usernameOrEmail: string;
+  password: string;
+}): Promise<AuthResult> {
   try {
     const user = await signIn({
       username: form.usernameOrEmail,
@@ -39,9 +53,9 @@ export async function handleLogin(form: { usernameOrEmail: string; password: str
 
     return { success: true, data: user };
   } catch (err: any) {
-    return { 
-      success: false, 
-      error: err.message || "Failed to log in. Please check your credentials." 
+    return {
+      success: false,
+      error: err.message || "Failed to log in. Please check your credentials.",
     };
   }
 }
@@ -60,7 +74,10 @@ export async function getAccessToken(): Promise<string | undefined> {
   return session.tokens?.accessToken?.toString();
 }
 
-export async function handleConfirmSignup(username: string, code: string): Promise<AuthResult> {
+export async function handleConfirmSignup(
+  username: string,
+  code: string,
+): Promise<AuthResult> {
   try {
     await confirmSignUp({
       username,
@@ -69,9 +86,9 @@ export async function handleConfirmSignup(username: string, code: string): Promi
 
     return { success: true };
   } catch (err: any) {
-    return { 
-      success: false, 
-      error: err.message || "Failed to confirm signup. Please check your code." 
+    return {
+      success: false,
+      error: err.message || "Failed to confirm signup. Please check your code.",
     };
   }
 }
@@ -84,9 +101,9 @@ export async function handleResendCode(username: string): Promise<AuthResult> {
 
     return { success: true };
   } catch (err: any) {
-    return { 
-      success: false, 
-      error: err.message || "Failed to resend code. Please try again." 
+    return {
+      success: false,
+      error: err.message || "Failed to resend code. Please try again.",
     };
   }
 }
