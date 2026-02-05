@@ -7,7 +7,7 @@ import {
   CardContent,
   Typography,
   Alert,
-  Link as MuiLink,
+  Link,
 } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,7 +15,6 @@ import { z } from "zod";
 import { handleLogin } from "../helpers";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
-import { NextLink } from "@/lib/components/navigation/next-link";
 
 const loginSchema = z.object({
   usernameOrEmail: z.string().min(1, "Username or email is required"),
@@ -101,7 +100,7 @@ export default function Login() {
 
             <Typography variant="body2" align="center">
               Don't have an account?{" "}
-              <NextLink href="/auth/signup">Sign up</NextLink>
+              <Link href="/auth/signup">Sign up</Link>
             </Typography>
           </CardContent>
         </Card>

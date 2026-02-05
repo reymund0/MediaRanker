@@ -1,7 +1,7 @@
 "use client";
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Box, Card, CardContent, Typography, Alert } from "@mui/material";
+import { Box, Card, CardContent, Typography, Alert, Link } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,7 +9,6 @@ import { handleConfirmSignup, handleResendCode } from "../helpers";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { SecondaryButton } from "@/lib/components/inputs/button/secondary-button";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
-import { NextLink } from "@/lib/components/navigation/next-link";
 
 const confirmSignupSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -18,7 +17,7 @@ const confirmSignupSchema = z.object({
 
 type ConfirmSignupFormData = z.infer<typeof confirmSignupSchema>;
 
-export default function ConfirmSignup() {
+function ConfirmSignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState("");
@@ -147,11 +146,19 @@ export default function ConfirmSignup() {
             </SecondaryButton>
 
             <Typography variant="body2" align="center">
-              Already confirmed? <NextLink href="/auth/login">Login</NextLink>
+              Already confirmed? <Link href="/auth/login">Login</Link>
             </Typography>
           </CardContent>
         </Card>
       </Box>
     </FormProvider>
+  );
+}
+
+export default function ConfirmSignup() {
+  return (
+    <Suspense fallback={<Box sx={{ minHeight: "100vh" }} />}>
+      <ConfirmSignupForm />
+    </Suspense>
   );
 }

@@ -1,14 +1,13 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Card, CardContent, Typography, Alert } from "@mui/material";
+import { Box, Card, CardContent, Typography, Alert, Link } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { handleSignup } from "../helpers";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
-import { NextLink } from "@/lib/components/navigation/next-link";
 
 const signupSchema = z
   .object({
@@ -123,7 +122,7 @@ export default function Signup() {
 
             <Typography variant="body2" align="center">
               Already have an account?{" "}
-              <NextLink href="/auth/login">Login</NextLink>
+              <Link href="/auth/login">Login</Link>
             </Typography>
           </CardContent>
         </Card>
