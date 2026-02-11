@@ -1,14 +1,8 @@
 "use client";
 import { Amplify } from "aws-amplify";
-import { useEffect } from "react";
-
-let isConfigured = false;
+import { useEffect, useState } from "react";
 
 function configureAmplify() {
-  if (isConfigured) {
-    return;
-  }
-
   // We are using Cognito for authentication.
   Amplify.configure({
     Auth: {
@@ -21,13 +15,14 @@ function configureAmplify() {
       },
     },
   });
-  isConfigured = true;
 }
 
 export function AmplifyProvider({ children }: { children: React.ReactNode }) {
+  const [isConfigured, setIsConfigured] = useState(false);
   useEffect(() => {
     configureAmplify();
+    setIsConfigured(true);
   }, []);
 
-  return <>{children}</>;
+  return <>{isConfigured ? children : null}</>;
 }
