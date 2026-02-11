@@ -1,5 +1,6 @@
 "use client";
 import { AmplifyProvider } from "@/lib/amplify-provider";
+import { UserProvider } from "@/lib/hooks/user-context";
 import { ThemeProvider } from "@mui/material/styles";
 import theme from "./theme";
 
@@ -13,7 +14,9 @@ export default function RootLayout({
       <body>
         <ThemeProvider theme={theme}>
           <AmplifyProvider>
-            {children}
+            <UserProvider>
+              {children}
+            </UserProvider>
           </AmplifyProvider>
         </ThemeProvider>
       </body>
