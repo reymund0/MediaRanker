@@ -99,7 +99,7 @@ export default function Login() {
             </PrimaryButton>
 
             <Typography variant="body2" align="center">
-              Don't have an account?{" "}
+              {`Don't have an account? `}
               <Link href="/auth/signup">Sign up</Link>
             </Typography>
           </CardContent>

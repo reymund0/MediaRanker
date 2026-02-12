@@ -1,11 +1,18 @@
 using Scalar.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using MediaRankerServer.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    // Default to requiring authentication for all controllers.
+    options.Filters.Add(new AuthorizeFilter());
+});
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 // Configure DbContext.
@@ -14,6 +21,45 @@ builder.Services.AddDbContext<PostgreSQLContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
     options.UseSnakeCaseNamingConvention();
 });
+
+// Add CORS support.
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? new string[] { };
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
+// Register Cognito authentication middleware.
+var region = builder.Configuration["AWS:Region"];
+var userPoolId = builder.Configuration["AWS:CognitoUserPoolId"];
+var clientId = builder.Configuration["AWS:CognitoClientId"];
+var authority = $"https://cognito-idp.{region}.amazonaws.com/{userPoolId}";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = authority;
+        options.RequireHttpsMetadata = true; // IDK if I'll need this.
+
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = authority,
+
+            ValidateAudience = true,
+            ValidAudience = clientId,
+
+            ValidateLifetime = true,
+
+            ValidateIssuerSigningKey = true,
+            ClockSkew = TimeSpan.FromMinutes(5) // Adjust as needed for token expiration tolerance
+        };
+    });
 
 // Register services.
 builder.Services.AddScoped<IUserService, UserService>();
@@ -33,11 +79,15 @@ if (app.Environment.IsDevelopment())
         context.Response.Redirect("/scalar/v1");
         return Task.CompletedTask;
     });
+} else {
+    // Force HTTPS in any environment other than development.
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
-
+app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseCors("AllowFrontend");
 
 app.MapControllers();
 

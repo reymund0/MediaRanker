@@ -1,4 +1,5 @@
 "use client";
+import { EXPLICIT_ANY } from "@/lib/custom-types";
 import {
   fetchAuthSession,
   getCurrentUser,
@@ -7,19 +8,23 @@ import {
   signUp,
   confirmSignUp,
   resendSignUpCode,
+  SignUpOutput,
+  SignInOutput,
+  ConfirmSignUpOutput,
+  ResendSignUpCodeOutput,
 } from "aws-amplify/auth";
 
-export type AuthResult = {
+export type AuthResult<T> = {
   success: boolean;
   error?: string;
-  data?: any;
+  data?: T;
 };
 
 export async function handleSignup(form: {
   username: string;
   email: string;
   password: string;
-}): Promise<AuthResult> {
+}): Promise<AuthResult<SignUpOutput>> {
   const { username, email, password } = form;
 
   try {
@@ -34,7 +39,7 @@ export async function handleSignup(form: {
     });
 
     return { success: true, data: result };
-  } catch (err: any) {
+  } catch (err: EXPLICIT_ANY) {
     return {
       success: false,
       error: err.message || "Failed to sign up. Please try again.",
@@ -45,15 +50,15 @@ export async function handleSignup(form: {
 export async function handleLogin(form: {
   usernameOrEmail: string;
   password: string;
-}): Promise<AuthResult> {
+}): Promise<AuthResult<SignInOutput>> {
   try {
-    const user = await signIn({
+    const result = await signIn({
       username: form.usernameOrEmail,
       password: form.password,
     });
 
-    return { success: true, data: user };
-  } catch (err: any) {
+    return { success: true, data: result };
+  } catch (err: EXPLICIT_ANY) {
     return {
       success: false,
       error: err.message || "Failed to log in. Please check your credentials.",
@@ -78,15 +83,15 @@ export async function getAccessToken(): Promise<string | undefined> {
 export async function handleConfirmSignup(
   username: string,
   code: string,
-): Promise<AuthResult> {
+): Promise<AuthResult<ConfirmSignUpOutput>> {
   try {
-    await confirmSignUp({
+    const result = await confirmSignUp({
       username,
       confirmationCode: code,
     });
 
-    return { success: true };
-  } catch (err: any) {
+    return { success: true, data: result };
+  } catch (err: EXPLICIT_ANY) {
     return {
       success: false,
       error: err.message || "Failed to confirm signup. Please check your code.",
@@ -94,14 +99,14 @@ export async function handleConfirmSignup(
   }
 }
 
-export async function handleResendCode(username: string): Promise<AuthResult> {
+export async function handleResendCode(username: string): Promise<AuthResult<ResendSignUpCodeOutput>> {
   try {
-    await resendSignUpCode({
+    const result = await resendSignUpCode({
       username,
     });
 
-    return { success: true };
-  } catch (err: any) {
+    return { success: true, data: result };
+  } catch (err: EXPLICIT_ANY) {
     return {
       success: false,
       error: err.message || "Failed to resend code. Please try again.",
@@ -109,11 +114,11 @@ export async function handleResendCode(username: string): Promise<AuthResult> {
   }
 }
 
-export async function handleSignOut(): Promise<AuthResult> {
+export async function handleSignOut(): Promise<AuthResult<void>> {
   try {
     await signOut();
-    return { success: true };
-  } catch (err: any) {
+    return { success: true, data: undefined };
+  } catch (err: EXPLICIT_ANY) {
     return {
       success: false,
       error: err.message || "Failed to sign out. Please try again.",

@@ -56,3 +56,7 @@ obj/Debug/docker-*.Up2Date
 # Resharper
 _ReSharper*/
 *.DotSettings.user
+
+# Environment-specific settings (contain secrets)
+**/appsettings.Development.json
+**/appsettings.Production.json

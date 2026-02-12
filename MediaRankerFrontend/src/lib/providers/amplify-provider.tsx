@@ -17,11 +17,14 @@ function configureAmplify() {
   });
 }
 
+
 export function AmplifyProvider({ children }: { children: React.ReactNode }) {
   const [isConfigured, setIsConfigured] = useState(false);
   useEffect(() => {
-    configureAmplify();
-    setIsConfigured(true);
+    if (!isConfigured) {
+      setIsConfigured(true);
+      configureAmplify();
+    }
   }, []);
 
   return <>{isConfigured ? children : null}</>;
