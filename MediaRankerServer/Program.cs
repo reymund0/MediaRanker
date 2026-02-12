@@ -15,6 +15,18 @@ builder.Services.AddDbContext<PostgreSQLContext>(options =>
     options.UseSnakeCaseNamingConvention();
 });
 
+// Add CORS support.
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? new string[] { };
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 // Register services.
 builder.Services.AddScoped<IUserService, UserService>();
 
@@ -33,11 +45,14 @@ if (app.Environment.IsDevelopment())
         context.Response.Redirect("/scalar/v1");
         return Task.CompletedTask;
     });
+} else {
+    // Force HTTPS in any environment other than development.
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
-
 app.UseAuthorization();
+
+app.UseCors("AllowFrontend");
 
 app.MapControllers();
 
