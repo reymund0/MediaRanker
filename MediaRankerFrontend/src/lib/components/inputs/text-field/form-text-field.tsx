@@ -1,6 +1,5 @@
 import {
   Controller,
-  Control,
   FieldValues,
   Path,
   useFormContext,
