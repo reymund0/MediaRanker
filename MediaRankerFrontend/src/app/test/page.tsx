@@ -1,5 +1,5 @@
 "use client";
-import { useUser } from "@/lib/providers/user-context";
+import { useUser } from "@/lib/providers/user-provider";
 import { useMutation } from "@/lib/hooks/use-mutation";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 
