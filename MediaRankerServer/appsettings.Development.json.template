@@ -1,0 +1,21 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AWS": {
+    "Region": "<your-aws-region>",
+    "CognitoUserPoolId": "<your-cognito-user-pool-id>",
+    "CognitoClientId": "<your-cognito-client-id>"
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=mediarank;Username=<your-username>;Password=<your-password>;Timeout=15;Command Timeout=30"
+  },
+  "Cors": {
+    "AllowedOrigins": [
+      "http://localhost:3000"
+    ]
+  }
+}
