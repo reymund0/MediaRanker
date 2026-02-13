@@ -1,10 +1,15 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { getCurrentUser, AuthUser, fetchAuthSession, AuthSession } from "aws-amplify/auth";
+import {
+  getCurrentUser,
+  AuthUser,
+  fetchAuthSession,
+  AuthSession,
+} from "aws-amplify/auth";
 
 const AUTH_PATHS = ["/auth/login", "/auth/signup", "/auth/confirm-signup"];
-const PUBLIC_PATHS = [ ...AUTH_PATHS, "/test"];
+const PUBLIC_PATHS = [...AUTH_PATHS, "/test"];
 
 interface UserContextType {
   user: AuthUser | null;
@@ -47,7 +52,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
           router.replace("/auth/login");
         }
       }
-    }
+    };
 
     checkAuth();
   }, [pathname, router]);

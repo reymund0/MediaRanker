@@ -18,9 +18,7 @@ export default function RootLayout({
         <ThemeProvider theme={theme}>
           <QueryClientProvider client={queryClient}>
             <AmplifyProvider>
-              <UserProvider>
-                {children}
-              </UserProvider>
+              <UserProvider>{children}</UserProvider>
             </AmplifyProvider>
           </QueryClientProvider>
         </ThemeProvider>

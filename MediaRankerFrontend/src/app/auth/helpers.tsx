@@ -70,7 +70,7 @@ export async function isAuthenticated(): Promise<boolean> {
   try {
     await getCurrentUser();
     return true;
-  } catch (err) {
+  } catch {
     return false;
   }
 }
@@ -99,7 +99,9 @@ export async function handleConfirmSignup(
   }
 }
 
-export async function handleResendCode(username: string): Promise<AuthResult<ResendSignUpCodeOutput>> {
+export async function handleResendCode(
+  username: string,
+): Promise<AuthResult<ResendSignUpCodeOutput>> {
   try {
     const result = await resendSignUpCode({
       username,

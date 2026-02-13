@@ -1,4 +1,7 @@
-import { useMutation as useTanstackMutation, UseMutationOptions } from "@tanstack/react-query";
+import {
+  useMutation as useTanstackMutation,
+  UseMutationOptions,
+} from "@tanstack/react-query";
 import { useUser } from "../providers/user-provider";
 import { ApiResponse } from "../types/api-response";
 
@@ -12,9 +15,12 @@ export class ApiError extends Error {
   }
 }
 
-interface UseMutationOptionsType<T> extends Omit<UseMutationOptions<T, ApiError>, 'mutationFn'> {
+interface UseMutationOptionsType<T> extends Omit<
+  UseMutationOptions<T, ApiError>,
+  "mutationFn"
+> {
   route: string;
-  method: 'POST' | 'PUT' | 'DELETE';
+  method: "POST" | "PUT" | "DELETE";
   data?: Record<string, unknown>;
 }
 
@@ -24,21 +30,24 @@ export function useMutation<T = unknown>(options: UseMutationOptionsType<T>) {
 
   const mutation = useTanstackMutation<T, ApiError>({
     mutationFn: async () => httpMutation<T>(options, token),
-    ...options
+    ...options,
   });
 
   return mutation;
 }
 
-const httpMutation = async <T>(options: UseMutationOptionsType<T>, token: string | undefined): Promise<T> => {
+const httpMutation = async <T>(
+  options: UseMutationOptionsType<T>,
+  token: string | undefined,
+): Promise<T> => {
   const url = new URL(options.route, process.env.NEXT_PUBLIC_API_URL);
   const response = await fetch(url.toString(), {
     method: options.method,
     headers: {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` })
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
-    body: options.data ? JSON.stringify(options.data) : undefined
+    body: options.data ? JSON.stringify(options.data) : undefined,
   });
 
   const body: ApiResponse<T> = await response.json().catch(() => ({

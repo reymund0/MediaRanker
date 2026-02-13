@@ -19,10 +19,13 @@ export default function Test() {
 
   return (
     <div>
-      Test page signed in as {user ? `(${user.username})` : "(not authenticated)"}
+      Test page signed in as{" "}
+      {user ? `(${user.username})` : "(not authenticated)"}
       <br />
       <br />
-      <PrimaryButton onClick={() => helloWorldMutation.mutate()}>Test Button</PrimaryButton>
+      <PrimaryButton onClick={() => helloWorldMutation.mutate()}>
+        Test Button
+      </PrimaryButton>
     </div>
   );
 }
