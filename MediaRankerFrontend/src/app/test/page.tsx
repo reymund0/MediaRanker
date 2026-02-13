@@ -1,21 +1,19 @@
 "use client";
 import { useUser } from "@/lib/providers/user-provider";
-import { useMutation } from "@/lib/hooks/use-mutation";
+import { useMutation, ApiError } from "@/lib/hooks/use-mutation";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 
 export default function Test() {
   const { user } = useUser();
   console.log(user);
-  const helloWorldMutation = useMutation({
+  const helloWorldMutation = useMutation<string>({
     route: "/api/test/helloWorld",
     method: "POST",
     onSuccess: (data) => {
-      console.log("Success!");
-      console.log(data);
+      console.log("Success!", data);
     },
-    onError: (error) => {
-      console.log("Error!");
-      console.log(error);
+    onError: (error: ApiError) => {
+      console.log("Error!", error.message, error.errors);
     },
   });
 

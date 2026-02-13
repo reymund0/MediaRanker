@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using MediaRankerServer.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MediaRankerServer.Controllers
@@ -10,7 +11,7 @@ namespace MediaRankerServer.Controllers
         [HttpPost("helloWorld")]
         public IActionResult HelloWorld()
         {
-            return Ok("Hello, World!");
+            return Ok(ApiResponse<string>.Ok("Hello, World!"));
         }
     }
 }

@@ -1,26 +1,36 @@
 import { useMutation as useTanstackMutation, UseMutationOptions } from "@tanstack/react-query";
 import { useUser } from "../providers/user-provider";
+import { ApiResponse } from "../types/api-response";
 
+export class ApiError extends Error {
+  errors?: Record<string, string[]>;
 
-interface UseMutationOptionsType extends Omit<UseMutationOptions, 'mutationFn'> {
+  constructor(message: string, errors?: Record<string, string[]>) {
+    super(message);
+    this.name = "ApiError";
+    this.errors = errors;
+  }
+}
+
+interface UseMutationOptionsType<T> extends Omit<UseMutationOptions<T, ApiError>, 'mutationFn'> {
   route: string;
   method: 'POST' | 'PUT' | 'DELETE';
   data?: Record<string, unknown>;
 }
 
-export function useMutation(options: UseMutationOptionsType) {
+export function useMutation<T = unknown>(options: UseMutationOptionsType<T>) {
   const user = useUser();
   const token = user.session?.tokens?.idToken?.toString();
 
-  const mutation = useTanstackMutation({
-    mutationFn: async () => httpMutation(options, token),
+  const mutation = useTanstackMutation<T, ApiError>({
+    mutationFn: async () => httpMutation<T>(options, token),
     ...options
   });
 
   return mutation;
 }
 
-const httpMutation = async (options: UseMutationOptionsType, token: string | undefined) => {
+const httpMutation = async <T>(options: UseMutationOptionsType<T>, token: string | undefined): Promise<T> => {
   const url = new URL(options.route, process.env.NEXT_PUBLIC_API_URL);
   const response = await fetch(url.toString(), {
     method: options.method,
@@ -30,6 +40,19 @@ const httpMutation = async (options: UseMutationOptionsType, token: string | und
     },
     body: options.data ? JSON.stringify(options.data) : undefined
   });
-  // TODO: need to determine agreed upon error handling strategy and DTOs (ie JSON/string/anything!?).
-  return response;
+
+  const body: ApiResponse<T> = await response.json().catch(() => ({
+    success: false as const,
+    message: `Request failed with status ${response.status}`,
+  }));
+
+  if (!body.success) {
+    throw new ApiError(body.message, body.errors);
+  }
+
+  if (!response.ok) {
+    throw new ApiError(`Request failed with status ${response.status}`);
+  }
+
+  return body.data;
 };
