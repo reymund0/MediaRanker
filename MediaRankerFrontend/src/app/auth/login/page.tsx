@@ -1,13 +1,14 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Card, CardContent, Typography, Alert, Link } from "@mui/material";
+import { Box, Card, CardContent, Typography, Link } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { handleLogin } from "../helpers";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
+import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 
 const loginSchema = z.object({
   usernameOrEmail: z.string().min(1, "Username or email is required"),
@@ -18,7 +19,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function Login() {
   const router = useRouter();
-  const [error, setError] = useState("");
+  const { showError, closeAlert } = useAlert();
   const [loading, setLoading] = useState(false);
 
   const methods = useForm<LoginFormData>({
@@ -30,7 +31,7 @@ export default function Login() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    setError("");
+    closeAlert();
     setLoading(true);
 
     const result = await handleLogin(data);
@@ -38,7 +39,7 @@ export default function Login() {
     if (result.success) {
       router.push("/home");
     } else {
-      setError(result.error || "Login failed");
+      showError(result.error || "Login failed");
       setLoading(false);
     }
   };
@@ -62,12 +63,6 @@ export default function Login() {
             <Typography variant="h4" component="h1" gutterBottom align="center">
               Login
             </Typography>
-
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-              </Alert>
-            )}
 
             <FormTextField<LoginFormData>
               name="usernameOrEmail"

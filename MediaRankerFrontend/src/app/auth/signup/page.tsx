@@ -1,13 +1,14 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Card, CardContent, Typography, Alert, Link } from "@mui/material";
+import { Box, Card, CardContent, Typography, Link } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { handleSignup } from "../helpers";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
+import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 
 const signupSchema = z
   .object({
@@ -25,7 +26,7 @@ type SignupFormData = z.infer<typeof signupSchema>;
 
 export default function Signup() {
   const router = useRouter();
-  const [error, setError] = useState("");
+  const { showError, closeAlert } = useAlert();
   const [loading, setLoading] = useState(false);
 
   const methods = useForm<SignupFormData>({
@@ -39,7 +40,7 @@ export default function Signup() {
   });
 
   const onSubmit = async (data: SignupFormData) => {
-    setError("");
+    closeAlert();
     setLoading(true);
 
     const result = await handleSignup({
@@ -53,7 +54,7 @@ export default function Signup() {
         `/auth/confirm-signup?username=${encodeURIComponent(data.username)}`,
       );
     } else {
-      setError(result.error || "Signup failed");
+      showError(result.error || "Signup failed");
       setLoading(false);
     }
   };
@@ -77,12 +78,6 @@ export default function Signup() {
             <Typography variant="h4" component="h1" gutterBottom align="center">
               Sign Up
             </Typography>
-
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-              </Alert>
-            )}
 
             <FormTextField<SignupFormData>
               name="username"

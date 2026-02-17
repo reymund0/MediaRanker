@@ -1,21 +1,30 @@
 "use client";
 import { useUser } from "@/lib/auth/user-provider";
-import { useMutation, ApiError } from "@/lib/api/use-mutation";
+import { useMutation } from "@/lib/api/use-mutation";
+import { ApiError } from "@/lib/api/types";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
+import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 
 export default function Test() {
   const { user } = useUser();
-  console.log(user);
+  const { showInfo, showSuccess, showError, closeAlert } = useAlert();
+
   const helloWorldMutation = useMutation<string>({
     route: "/api/test/helloWorld",
     method: "POST",
     onSuccess: (data) => {
-      console.log("Success!", data);
+      showSuccess(`Success! ${data}`);
     },
     onError: (error: ApiError) => {
-      console.log("Error!", error.message, error.errors);
+      showError(error.message || "Request failed");
     },
   });
+
+  const onTestClick = () => {
+    closeAlert();
+    showInfo("Calling /api/test/helloWorld...");
+    helloWorldMutation.mutate();
+  };
 
   return (
     <div>
@@ -23,7 +32,10 @@ export default function Test() {
       {user ? `(${user.username})` : "(not authenticated)"}
       <br />
       <br />
-      <PrimaryButton onClick={() => helloWorldMutation.mutate()}>
+      <PrimaryButton
+        onClick={onTestClick}
+        disabled={helloWorldMutation.isPending}
+      >
         Test Button
       </PrimaryButton>
     </div>

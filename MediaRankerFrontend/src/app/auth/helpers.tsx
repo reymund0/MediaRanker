@@ -93,7 +93,8 @@ export async function handleConfirmSignup(
   } catch (err: EXPLICIT_ANY) {
     return {
       success: false,
-      error: err?.message || "Failed to confirm signup. Please check your code.",
+      error:
+        err?.message || "Failed to confirm signup. Please check your code.",
     };
   }
 }

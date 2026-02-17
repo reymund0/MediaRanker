@@ -1,6 +1,7 @@
 "use client";
 import { AmplifyProvider } from "@/lib/auth/amplify-provider";
 import { UserProvider } from "@/lib/auth/user-provider";
+import { AlertProvider } from "@/lib/components/feedback/alert/alert-provider";
 import { ThemeProvider } from "@mui/material/styles";
 import theme from "./theme";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -18,7 +19,9 @@ export default function RootLayout({
         <ThemeProvider theme={theme}>
           <QueryClientProvider client={queryClient}>
             <AmplifyProvider>
-              <UserProvider>{children}</UserProvider>
+              <AlertProvider>
+                <UserProvider>{children}</UserProvider>
+              </AlertProvider>
             </AmplifyProvider>
           </QueryClientProvider>
         </ThemeProvider>
