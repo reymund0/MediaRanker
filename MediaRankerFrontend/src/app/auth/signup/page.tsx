@@ -121,8 +121,7 @@ export default function Signup() {
             </PrimaryButton>
 
             <Typography variant="body2" align="center">
-              Already have an account?{" "}
-              <Link href="/auth/login">Login</Link>
+              Already have an account? <Link href="/auth/login">Login</Link>
             </Typography>
           </CardContent>
         </Card>

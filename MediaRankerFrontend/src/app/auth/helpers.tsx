@@ -1,5 +1,4 @@
 "use client";
-import { EXPLICIT_ANY } from "@/lib/custom-types";
 import {
   fetchAuthSession,
   getCurrentUser,
@@ -42,7 +41,7 @@ export async function handleSignup(form: {
   } catch (err: EXPLICIT_ANY) {
     return {
       success: false,
-      error: err.message || "Failed to sign up. Please try again.",
+      error: err?.message || "Failed to sign up. Please try again.",
     };
   }
 }
@@ -61,7 +60,7 @@ export async function handleLogin(form: {
   } catch (err: EXPLICIT_ANY) {
     return {
       success: false,
-      error: err.message || "Failed to log in. Please check your credentials.",
+      error: err?.message || "Failed to log in. Please check your credentials.",
     };
   }
 }
@@ -70,7 +69,7 @@ export async function isAuthenticated(): Promise<boolean> {
   try {
     await getCurrentUser();
     return true;
-  } catch (err) {
+  } catch {
     return false;
   }
 }
@@ -94,12 +93,14 @@ export async function handleConfirmSignup(
   } catch (err: EXPLICIT_ANY) {
     return {
       success: false,
-      error: err.message || "Failed to confirm signup. Please check your code.",
+      error: err?.message || "Failed to confirm signup. Please check your code.",
     };
   }
 }
 
-export async function handleResendCode(username: string): Promise<AuthResult<ResendSignUpCodeOutput>> {
+export async function handleResendCode(
+  username: string,
+): Promise<AuthResult<ResendSignUpCodeOutput>> {
   try {
     const result = await resendSignUpCode({
       username,
@@ -109,7 +110,7 @@ export async function handleResendCode(username: string): Promise<AuthResult<Res
   } catch (err: EXPLICIT_ANY) {
     return {
       success: false,
-      error: err.message || "Failed to resend code. Please try again.",
+      error: err?.message || "Failed to resend code. Please try again.",
     };
   }
 }
@@ -121,7 +122,7 @@ export async function handleSignOut(): Promise<AuthResult<void>> {
   } catch (err: EXPLICIT_ANY) {
     return {
       success: false,
-      error: err.message || "Failed to sign out. Please try again.",
+      error: err?.message || "Failed to sign out. Please try again.",
     };
   }
 }

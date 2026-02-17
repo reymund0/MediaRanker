@@ -10,7 +10,5 @@ export const LinkBehavior = React.forwardRef<
 >(function LinkBehavior(props, ref) {
   const { href, ...other } = props;
 
-  return (
-    <NextLink ref={ref} href={href} {...other} />
-  );
+  return <NextLink ref={ref} href={href} {...other} />;
 });
