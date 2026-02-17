@@ -1,6 +1,6 @@
 "use client";
-import { useUser } from "@/lib/providers/user-provider";
-import { useMutation, ApiError } from "@/lib/hooks/use-mutation";
+import { useUser } from "@/lib/auth/user-provider";
+import { useMutation, ApiError } from "@/lib/api/use-mutation";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 
 export default function Test() {

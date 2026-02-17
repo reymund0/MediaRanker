@@ -10,3 +10,13 @@ export type ApiErrorResponse = {
 };
 
 export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
+
+export class ApiError extends Error {
+  errors?: Record<string, string[]>;
+
+  constructor(message: string, errors?: Record<string, string[]>) {
+    super(message);
+    this.name = "ApiError";
+    this.errors = errors;
+  }
+}

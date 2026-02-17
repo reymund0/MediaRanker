@@ -2,20 +2,10 @@ import {
   useMutation as useTanstackMutation,
   UseMutationOptions,
 } from "@tanstack/react-query";
-import { useUser } from "../providers/user-provider";
-import { ApiResponse } from "../types/api-response";
+import { useUser } from "../auth/user-provider";
+import { ApiResponse, ApiError } from "./types";
 
-export class ApiError extends Error {
-  errors?: Record<string, string[]>;
-
-  constructor(message: string, errors?: Record<string, string[]>) {
-    super(message);
-    this.name = "ApiError";
-    this.errors = errors;
-  }
-}
-
-interface UseMutationOptionsType<T> extends Omit<
+export interface UseMutationOptionsType<T> extends Omit<
   UseMutationOptions<T, ApiError>,
   "mutationFn"
 > {
