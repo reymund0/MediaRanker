@@ -19,7 +19,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function Login() {
   const router = useRouter();
-  const { showError, closeAlert } = useAlert();
+  const { showError, showSuccess, closeAlert } = useAlert();
   const [loading, setLoading] = useState(false);
 
   const methods = useForm<LoginFormData>({
@@ -37,7 +37,10 @@ export default function Login() {
     const result = await handleLogin(data);
 
     if (result.success) {
-      router.push("/home");
+      showSuccess("Login successful! Redirecting to home...");
+      setTimeout(() => {
+        router.push("/home");
+      }, 2000);
     } else {
       showError(result.error || "Login failed");
       setLoading(false);

@@ -26,7 +26,7 @@ type SignupFormData = z.infer<typeof signupSchema>;
 
 export default function Signup() {
   const router = useRouter();
-  const { showError, closeAlert } = useAlert();
+  const { showError, showSuccess, closeAlert } = useAlert();
   const [loading, setLoading] = useState(false);
 
   const methods = useForm<SignupFormData>({
@@ -50,9 +50,12 @@ export default function Signup() {
     });
 
     if (result.success) {
-      router.push(
-        `/auth/confirm-signup?username=${encodeURIComponent(data.username)}`,
-      );
+      showSuccess("Signup successful! Redirecting to confirmation...");
+      setTimeout(() => {
+        router.push(
+          `/auth/confirm-signup?username=${encodeURIComponent(data.username)}`,
+        );
+      }, 2000);
     } else {
       showError(result.error || "Signup failed");
       setLoading(false);
