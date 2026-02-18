@@ -1,7 +1,7 @@
 "use client";
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Box, Card, CardContent, Typography, Alert, Link } from "@mui/material";
+import { Box, Card, CardContent, Typography, Link } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,6 +9,7 @@ import { handleConfirmSignup, handleResendCode } from "../helpers";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { SecondaryButton } from "@/lib/components/inputs/button/secondary-button";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
+import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 
 const confirmSignupSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -20,8 +21,7 @@ type ConfirmSignupFormData = z.infer<typeof confirmSignupSchema>;
 function ConfirmSignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const { showError, showSuccess, closeAlert } = useAlert();
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
 
@@ -41,35 +41,33 @@ function ConfirmSignupForm() {
   }, [searchParams, methods]);
 
   const onSubmit = async (data: ConfirmSignupFormData) => {
-    setError("");
-    setSuccess("");
+    closeAlert();
     setLoading(true);
 
     const result = await handleConfirmSignup(data.username, data.code);
 
     if (result.success) {
-      setSuccess("Account confirmed! Redirecting to login...");
+      showSuccess("Account confirmed! Redirecting to login...");
       setTimeout(() => {
         router.push("/auth/login");
       }, 2000);
     } else {
-      setError(result.error || "Confirmation failed");
+      showError(result.error || "Confirmation failed");
       setLoading(false);
     }
   };
 
   const onResendCode = async () => {
     const username = methods.getValues("username");
-    setError("");
-    setSuccess("");
+    closeAlert();
     setResending(true);
 
     const result = await handleResendCode(username);
 
     if (result.success) {
-      setSuccess("Confirmation code resent! Check your email.");
+      showSuccess("Confirmation code resent! Check your email.");
     } else {
-      setError(result.error || "Failed to resend code");
+      showError(result.error || "Failed to resend code");
     }
 
     setResending(false);
@@ -103,18 +101,6 @@ function ConfirmSignupForm() {
             >
               Enter the confirmation code sent to your email
             </Typography>
-
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-              </Alert>
-            )}
-
-            {success && (
-              <Alert severity="success" sx={{ mb: 2 }}>
-                {success}
-              </Alert>
-            )}
 
             <FormTextField<ConfirmSignupFormData>
               name="username"
