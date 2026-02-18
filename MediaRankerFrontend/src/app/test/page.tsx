@@ -26,6 +26,8 @@ export default function Test() {
     helloWorldMutation.mutate();
   };
 
+  console.log("user", user);
+
   return (
     <div>
       Test page signed in as{" "}
