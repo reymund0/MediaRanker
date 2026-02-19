@@ -15,12 +15,7 @@ import {
 import { useRouter } from "next/navigation";
 import { MouseEvent, useState } from "react";
 
-type UserDropdownProps = {
-  textColor: string;
-  hoverBackgroundColor: string;
-};
-
-export function UserDropdown({ textColor, hoverBackgroundColor }: UserDropdownProps) {
+export function UserDropdown() {
   const router = useRouter();
   const { showError, closeAlert } = useAlert();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -63,9 +58,9 @@ export function UserDropdown({ textColor, hoverBackgroundColor }: UserDropdownPr
         aria-expanded={isMenuOpen ? "true" : undefined}
         aria-haspopup="menu"
         sx={{
-          color: textColor,
+          color: "primary.contrastText",
           "&:hover": {
-            backgroundColor: hoverBackgroundColor,
+            backgroundColor: "action.hover",
           },
         }}
       >

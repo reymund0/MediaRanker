@@ -6,6 +6,7 @@ import {
   Box,
   Button,
   Toolbar,
+  Typography,
 } from "@mui/material";
 import { usePathname } from "next/navigation";
 
@@ -19,33 +20,32 @@ const NAV_LINKS: NavLink[] = [
   { label: "Test", href: "/test" },
 ];
 
-const NAV_BG = "#5B2A86";
-const NAV_TEXT = "#F8F3FF";
-const NAV_HOVER_BG = "#E3B23C";
-const NAV_ACTIVE_TEXT = "#FFD166";
-
 export function AppNavbar() {
   const pathname = usePathname();
 
   return (
-    <AppBar
-      position="static"
-      elevation={0}
-      sx={{
-        backgroundColor: NAV_BG,
-        borderBottom: "1px solid rgba(248, 243, 255, 0.18)",
-      }}
-    >
+    <AppBar position="static" elevation={0}>
       <Toolbar
         sx={{
-          minHeight: { xs: 64, sm: 72 },
+          minHeight: { xs: 48, sm: 52 },
           px: { xs: 1, sm: 2 },
           display: "grid",
-          gridTemplateColumns: "48px 1fr 48px",
+          gridTemplateColumns: "auto 1fr 48px",
           alignItems: "center",
+          columnGap: 1,
         }}
       >
-        <Box />
+        <Typography
+          variant="h6"
+          component="span"
+          sx={{
+            fontWeight: 700,
+            color: "primary.contrastText",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Media Ranker
+        </Typography>
 
         <Box sx={{ display: "flex", justifyContent: "center", gap: { xs: 1, sm: 2 } }}>
           {NAV_LINKS.map((link) => {
@@ -63,10 +63,10 @@ export function AppNavbar() {
                   py: { xs: 0.75, sm: 1 },
                   fontSize: { xs: "1.05rem", sm: "1.2rem" },
                   fontWeight: isActive ? 700 : 600,
-                  color: isActive ? NAV_ACTIVE_TEXT : NAV_TEXT,
+                  color: isActive ? "secondary.light" : "primary.contrastText",
                   transition: "background-color 120ms ease, color 120ms ease",
                   "&:hover": {
-                    backgroundColor: NAV_HOVER_BG,
+                    backgroundColor: isActive ? "action.selected" : "action.hover",
                   },
                 }}
               >
@@ -76,7 +76,7 @@ export function AppNavbar() {
           })}
         </Box>
 
-        <UserDropdown textColor={NAV_TEXT} hoverBackgroundColor={NAV_HOVER_BG} />
+        <UserDropdown />
       </Toolbar>
     </AppBar>
   );

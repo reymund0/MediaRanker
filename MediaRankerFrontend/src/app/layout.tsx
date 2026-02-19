@@ -3,6 +3,7 @@ import "@/lib/auth/amplify-config";
 import { UserProvider } from "@/lib/auth/user-provider";
 import { AlertProvider } from "@/lib/components/feedback/alert/alert-provider";
 import { BaseLayout } from "@/lib/components/layout/base-layout";
+import { CssBaseline } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import theme from "./theme";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -18,6 +19,7 @@ export default function RootLayout({
     <html lang="en">
       <body style={{ margin: 0 }}>
         <ThemeProvider theme={theme}>
+          <CssBaseline />
           <QueryClientProvider client={queryClient}>
             <AlertProvider>
               <UserProvider>

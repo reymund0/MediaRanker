@@ -19,11 +19,13 @@ export function BaseLayout({ children }: BaseLayoutProps) {
         minHeight: "100dvh",
         display: "flex",
         flexDirection: "column",
-        backgroundColor: "#f5f5f5",
+        backgroundColor: "background.default",
       }}
     >
       {showNavbar ? <AppNavbar /> : null}
-      <Box sx={{ flex: 1, minHeight: 0 }}>{children}</Box>
+      <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        {children}
+      </Box>
     </Box>
   );
 }

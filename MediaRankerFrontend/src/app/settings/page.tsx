@@ -6,7 +6,7 @@ export default function SettingsPage() {
   return (
     <Box
       sx={{
-        minHeight: "calc(100vh - 72px)",
+        flex: 1,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -15,9 +15,11 @@ export default function SettingsPage() {
     >
       <Box
         sx={{
-          backgroundColor: "white",
+          backgroundColor: "background.paper",
           borderRadius: 2,
           boxShadow: 1,
+          border: "1px solid",
+          borderColor: "divider",
           p: { xs: 3, sm: 4 },
           textAlign: "center",
         }}
