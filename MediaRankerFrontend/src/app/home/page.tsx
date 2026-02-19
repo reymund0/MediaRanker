@@ -21,19 +21,21 @@ export default function Home() {
   return (
     <Box
       sx={{
-        minHeight: "100vh",
+        flex: 1,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        bgcolor: "#f5f5f5",
+        bgcolor: "background.default",
       }}
     >
       <Box
         sx={{
-          bgcolor: "white",
+          bgcolor: "background.paper",
           p: 4,
           borderRadius: 2,
           boxShadow: 1,
+          border: "1px solid",
+          borderColor: "divider",
           textAlign: "center",
         }}
       >
