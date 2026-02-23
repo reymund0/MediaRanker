@@ -1,6 +1,5 @@
 using Scalar.AspNetCore;
 using Microsoft.EntityFrameworkCore;
-using MediaRankerServer.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
@@ -62,7 +61,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 // Register services.
-builder.Services.AddScoped<IUserService, UserService>();
+// TODO Add services.
 
 var app = builder.Build();
 
