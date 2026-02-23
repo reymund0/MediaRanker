@@ -208,3 +208,41 @@ AI editor guidance:
   - Frontend obtains Cognito tokens via Amplify.
   - Backend validates JWTs via JwtBearer + Cognito authority.
 - Default endpoints should remain authenticated. Use `[AllowAnonymous]` intentionally.
+
+---
+
+## Current Frontend Conventions (keep consistent)
+
+### Theme and styling
+- Theme is centralized in `MediaRankerFrontend/src/app/theme.ts` and currently uses `palette.mode = "dark"`.
+- Primary accent is anchored on `#7C3AED`; avoid hardcoded one-off color values in components when a theme token exists.
+- MUI link integration is centralized via `LinkBehavior` (`MuiLink.component` + `MuiButtonBase.LinkComponent`).
+
+### Global layout and navigation
+- App composition in `src/app/layout.tsx` wraps content in this order:
+  - `ThemeProvider` → `CssBaseline` → `QueryClientProvider` → `AlertProvider` → `UserProvider` → `BaseLayout`
+- Navbar visibility is controlled in `src/lib/components/layout/base-layout.tsx`:
+  - Hide navbar on `/auth/*` routes.
+  - Show navbar on non-auth routes.
+- Current top-level nav links in `AppNavbar` are:
+  - `/home`
+  - `/test`
+- User menu includes:
+  - `/settings` route (currently a placeholder page)
+  - Logout action
+
+### Alert architecture (standardized)
+- Use `useAlert()` from `src/lib/components/feedback/alert/alert-provider.tsx` for page/component alerts.
+- Alert rendering is centralized at app level via `AlertProvider` with a single active alert at a time.
+- `BaseAlert` behavior:
+  - Default auto-dismiss by severity: success `3000ms`, info/warning `5000ms`, error `7000ms`
+  - `persist` disables auto-dismiss
+  - `autoHideDurationMs` overrides defaults
+- Prefer provider-based alerts over local inline alert state for new UI work.
+
+### Existing pages already aligned with provider alerts
+- `auth/confirm-signup`
+- `auth/login`
+- `auth/signup`
+- `home`
+- `test`
