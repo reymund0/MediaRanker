@@ -43,9 +43,9 @@ public class RankedMediaScore
 
             builder.HasOne(rms => rms.TemplateField)
                 .WithMany(tf => tf.RankedMediaScores)
-                .HasForeignKey(rms => rms.TemplateFieldId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(rms => rms.TemplateFieldId);
 
+            // Indexes
             builder.HasIndex(rms => rms.TemplateFieldId)
                 .HasDatabaseName("ix_ranked_media_scores_field");
         }

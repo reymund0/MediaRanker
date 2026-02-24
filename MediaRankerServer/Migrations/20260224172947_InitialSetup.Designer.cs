@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MediaRankerServer.Migrations
 {
     [DbContext(typeof(PostgreSQLContext))]
-    [Migration("20260224154912_InitialSetup")]
+    [Migration("20260224172947_InitialSetup")]
     partial class InitialSetup
     {
         /// <inheritdoc />

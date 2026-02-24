@@ -55,13 +55,11 @@ public class Template
             // Relationships
             builder.HasMany(t => t.Fields)
                 .WithOne(f => f.Template)
-                .HasForeignKey(f => f.TemplateId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(f => f.TemplateId);
 
             builder.HasMany(t => t.RankedMedia)
                 .WithOne(rm => rm.Template)
-                .HasForeignKey(rm => rm.TemplateId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(rm => rm.TemplateId);
 
             // Indexes
             builder.HasIndex(t => t.UserId)
@@ -74,7 +72,7 @@ public class Template
             // Partial unique index for system templates (name unique among system templates)
             builder.HasIndex(t => t.Name)
                 .HasDatabaseName("uq_templates_system_name")
-                .HasFilter($"user_id = '{SeedIds.SystemUserId}'");
+                .HasFilter($"user_id = '{SeedUtils.SystemUserId}'");
         }
     }
 }

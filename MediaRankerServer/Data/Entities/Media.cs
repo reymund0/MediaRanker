@@ -53,6 +53,12 @@ public class Media
                 .HasDefaultValueSql("NOW()")
                 .IsRequired();
 
+            // Relationships
+            builder.HasMany(m => m.RankedMedia)
+                .WithOne(rm => rm.Media)
+                .HasForeignKey(rm => rm.MediaId);
+
+            // Indexes
             builder.HasIndex(m => new { m.MediaType })
                 .HasDatabaseName("ix_media_media_type");
 

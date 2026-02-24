@@ -86,8 +86,7 @@ public class RankedMedia
 
             builder.HasOne(rm => rm.Template)
                 .WithMany(t => t.RankedMedia)
-                .HasForeignKey(rm => rm.TemplateId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(rm => rm.TemplateId);
 
             builder.HasMany(rm => rm.Scores)
                 .WithOne(s => s.RankedMedia)

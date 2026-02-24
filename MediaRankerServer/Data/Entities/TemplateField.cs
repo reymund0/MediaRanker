@@ -51,8 +51,7 @@ public class TemplateField
 
             builder.HasMany(tf => tf.RankedMediaScores)
                 .WithOne(rms => rms.TemplateField)
-                .HasForeignKey(rms => rms.TemplateFieldId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(rms => rms.TemplateFieldId);
 
             // Indexes & unique constraints
             builder.HasIndex(tf => tf.TemplateId)
