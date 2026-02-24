@@ -1,6 +1,6 @@
 using Scalar.AspNetCore;
+using MediaRankerServer.Data.Entities;
 using Microsoft.EntityFrameworkCore;
-using MediaRankerServer.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
@@ -18,12 +18,18 @@ builder.Services.AddOpenApi();
 // Configure DbContext.
 builder.Services.AddDbContext<PostgreSQLContext>(options =>
 {
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        npgsqlOptions => {
+            npgsqlOptions.MapEnum<MediaType>("media_type");
+        }
+    );
+
     options.UseSnakeCaseNamingConvention();
 });
 
 // Add CORS support.
-var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? new string[] { };
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -62,7 +68,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 // Register services.
-builder.Services.AddScoped<IUserService, UserService>();
+// TODO Add services.
 
 var app = builder.Build();
 

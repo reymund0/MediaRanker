@@ -5,12 +5,17 @@ public class PostgreSQLContext : DbContext
 {
     public PostgreSQLContext(DbContextOptions<PostgreSQLContext> options) : base(options) { }
 
-    public DbSet<User> Users { get; set; } = null!;
+
+    public DbSet<Media> Media => Set<Media>();
+    public DbSet<Template> Templates => Set<Template>();
+    public DbSet<TemplateField> TemplateFields => Set<TemplateField>();
+    public DbSet<RankedMedia> RankedMedia => Set<RankedMedia>();
+    public DbSet<RankedMediaScore> RankedMediaScores => Set<RankedMediaScore>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<User>().HasData(
-            new User { Id = 1, Username = "admin", Email = "admin@admin.com", Password = "password" }
-        );
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(PostgreSQLContext).Assembly);
     }
 }
