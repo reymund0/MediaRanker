@@ -8,7 +8,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MediaRankerServer.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialReset : Migration
+    public partial class InitialSetup : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -22,7 +22,6 @@ namespace MediaRankerServer.Migrations
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
                     title = table.Column<string>(type: "text", nullable: false),
                     media_type = table.Column<MediaType>(type: "media_type", nullable: false),
                     release_date = table.Column<DateOnly>(type: "date", nullable: false),
@@ -40,17 +39,15 @@ namespace MediaRankerServer.Migrations
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    user_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    user_id = table.Column<string>(type: "text", nullable: false),
                     name = table.Column<string>(type: "text", nullable: false),
                     description = table.Column<string>(type: "text", nullable: true),
-                    is_system = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()"),
                     updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_templates", x => x.id);
-                    table.CheckConstraint("ck_templates_system_user_id", "(is_system = TRUE AND user_id IS NULL) OR (is_system = FALSE AND user_id IS NOT NULL)");
                 });
 
             migrationBuilder.CreateTable(
@@ -59,7 +56,7 @@ namespace MediaRankerServer.Migrations
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    user_id = table.Column<string>(type: "text", nullable: false),
                     media_id = table.Column<long>(type: "bigint", nullable: false),
                     template_id = table.Column<long>(type: "bigint", nullable: false),
                     overall_score = table.Column<short>(type: "smallint", nullable: false),
@@ -136,24 +133,19 @@ namespace MediaRankerServer.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "ix_media_user_id",
+                name: "ix_media_media_type",
                 table: "media",
-                column: "user_id");
+                column: "media_type");
 
             migrationBuilder.CreateIndex(
-                name: "ix_media_user_media_type",
+                name: "ix_media_release_date",
                 table: "media",
-                columns: new[] { "user_id", "media_type" });
+                column: "release_date");
 
             migrationBuilder.CreateIndex(
-                name: "ix_media_user_release_date",
+                name: "uq_media_title_type_release_date",
                 table: "media",
-                columns: new[] { "user_id", "release_date" });
-
-            migrationBuilder.CreateIndex(
-                name: "uq_media_user_title_type_release_date",
-                table: "media",
-                columns: new[] { "user_id", "title", "media_type", "release_date" },
+                columns: new[] { "title", "media_type", "release_date" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -213,7 +205,7 @@ namespace MediaRankerServer.Migrations
                 name: "uq_templates_system_name",
                 table: "templates",
                 column: "name",
-                filter: "is_system = TRUE");
+                filter: "user_id = 'system'");
 
             migrationBuilder.CreateIndex(
                 name: "uq_templates_user_name",

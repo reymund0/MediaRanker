@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MediaRankerServer.Migrations
 {
     [DbContext(typeof(PostgreSQLContext))]
-    [Migration("20260223185938_InitialReset")]
-    partial class InitialReset
+    [Migration("20260224154912_InitialSetup")]
+    partial class InitialSetup
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -60,25 +60,18 @@ namespace MediaRankerServer.Migrations
                         .HasColumnName("updated_at")
                         .HasDefaultValueSql("NOW()");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
                     b.HasKey("Id")
                         .HasName("pk_media");
 
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("ix_media_user_id");
+                    b.HasIndex("MediaType")
+                        .HasDatabaseName("ix_media_media_type");
 
-                    b.HasIndex("UserId", "MediaType")
-                        .HasDatabaseName("ix_media_user_media_type");
+                    b.HasIndex("ReleaseDate")
+                        .HasDatabaseName("ix_media_release_date");
 
-                    b.HasIndex("UserId", "ReleaseDate")
-                        .HasDatabaseName("ix_media_user_release_date");
-
-                    b.HasIndex("UserId", "Title", "MediaType", "ReleaseDate")
+                    b.HasIndex("Title", "MediaType", "ReleaseDate")
                         .IsUnique()
-                        .HasDatabaseName("uq_media_user_title_type_release_date");
+                        .HasDatabaseName("uq_media_title_type_release_date");
 
                     b.ToTable("media", (string)null);
                 });
@@ -128,8 +121,9 @@ namespace MediaRankerServer.Migrations
                         .HasColumnName("updated_at")
                         .HasDefaultValueSql("NOW()");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
                         .HasColumnName("user_id");
 
                     b.HasKey("Id")
@@ -202,12 +196,6 @@ namespace MediaRankerServer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
-                    b.Property<bool>("IsSystem")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("is_system");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -219,8 +207,9 @@ namespace MediaRankerServer.Migrations
                         .HasColumnName("updated_at")
                         .HasDefaultValueSql("NOW()");
 
-                    b.Property<Guid?>("UserId")
-                        .HasColumnType("uuid")
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
                         .HasColumnName("user_id");
 
                     b.HasKey("Id")
@@ -228,7 +217,7 @@ namespace MediaRankerServer.Migrations
 
                     b.HasIndex("Name")
                         .HasDatabaseName("uq_templates_system_name")
-                        .HasFilter("is_system = TRUE");
+                        .HasFilter("user_id = 'system'");
 
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_templates_user_id");
@@ -237,10 +226,7 @@ namespace MediaRankerServer.Migrations
                         .IsUnique()
                         .HasDatabaseName("uq_templates_user_name");
 
-                    b.ToTable("templates", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_templates_system_user_id", "(is_system = TRUE AND user_id IS NULL) OR (is_system = FALSE AND user_id IS NOT NULL)");
-                        });
+                    b.ToTable("templates", (string)null);
                 });
 
             modelBuilder.Entity("MediaRankerServer.Data.Entities.TemplateField", b =>

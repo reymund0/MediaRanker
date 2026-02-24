@@ -8,7 +8,7 @@ namespace MediaRankerServer.Data.Entities;
 public class RankedMedia
 {
     public long Id { get; set; }
-    public Guid UserId { get; set; }
+    public string UserId { get; set; } = null!;
 
     public long MediaId { get; set; }
     public long TemplateId { get; set; }
@@ -24,7 +24,7 @@ public class RankedMedia
 
     public Media Media { get; set; } = null!;
     public Template Template { get; set; } = null!;
-    public ICollection<RankedMediaScore> Scores { get; set; } = new List<RankedMediaScore>();
+    public ICollection<RankedMediaScore> Scores { get; set; } = [];
 
     public class Configuration : IEntityTypeConfiguration<RankedMedia>
     {

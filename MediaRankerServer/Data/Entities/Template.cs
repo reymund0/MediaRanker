@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using MediaRankerServer.Data.Seeds;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -8,29 +9,22 @@ namespace MediaRankerServer.Data.Entities;
 public class Template
 {
     public long Id { get; set; }
-    public Guid? UserId { get; set; }
+    public string UserId { get; set; } = null!;
 
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
-    public bool IsSystem { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
-    public ICollection<TemplateField> Fields { get; set; } = new List<TemplateField>();
-    public ICollection<RankedMedia> RankedMedia { get; set; } = new List<RankedMedia>();
+    public ICollection<TemplateField> Fields { get; set; } = [];
+    public ICollection<RankedMedia> RankedMedia { get; set; } = [];
 
     public class Configuration : IEntityTypeConfiguration<Template>
     {
         public void Configure(EntityTypeBuilder<Template> builder)
         {
-            builder.ToTable("templates", tableBuilder =>
-            {
-                tableBuilder.HasCheckConstraint(
-                    "ck_templates_system_user_id",
-                    "(is_system = TRUE AND user_id IS NULL) OR (is_system = FALSE AND user_id IS NOT NULL)"
-                );
-            });
+            builder.ToTable("templates");
 
             builder.HasKey(t => t.Id);
 
@@ -38,7 +32,8 @@ public class Template
                 .HasColumnName("id");
 
             builder.Property(t => t.UserId)
-                .HasColumnName("user_id");
+                .HasColumnName("user_id")
+                .IsRequired();
 
             builder.Property(t => t.Name)
                 .HasColumnName("name")
@@ -46,11 +41,6 @@ public class Template
 
             builder.Property(t => t.Description)
                 .HasColumnName("description");
-
-            builder.Property(t => t.IsSystem)
-                .HasColumnName("is_system")
-                .HasDefaultValue(false)
-                .IsRequired();
 
             builder.Property(t => t.CreatedAt)
                 .HasColumnName("created_at")
@@ -84,7 +74,7 @@ public class Template
             // Partial unique index for system templates (name unique among system templates)
             builder.HasIndex(t => t.Name)
                 .HasDatabaseName("uq_templates_system_name")
-                .HasFilter("is_system = TRUE");
+                .HasFilter($"user_id = '{SeedIds.SystemUserId}'");
         }
     }
 }

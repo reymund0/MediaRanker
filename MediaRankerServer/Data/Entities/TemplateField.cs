@@ -9,12 +9,12 @@ public class TemplateField
     public long Id { get; set; }
     public long TemplateId { get; set; }
 
-    public string Name { get; set; } = null!;        // internal name
-    public string DisplayName { get; set; } = null!; // label in UI
+    public string Name { get; set; } = null!;
+    public string DisplayName { get; set; } = null!;
     public int Position { get; set; }
 
     public Template Template { get; set; } = null!;
-    public ICollection<RankedMediaScore> RankedMediaScores { get; set; } = new List<RankedMediaScore>();
+    public ICollection<RankedMediaScore> RankedMediaScores { get; set; } = [];
 
     public class Configuration : IEntityTypeConfiguration<TemplateField>
     {

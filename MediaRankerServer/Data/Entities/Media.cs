@@ -8,7 +8,6 @@ namespace MediaRankerServer.Data.Entities;
 public class Media
 {
     public long Id { get; set; }
-    public Guid UserId { get; set; }
 
     public string Title { get; set; } = null!;
     public MediaType MediaType { get; set; }
@@ -17,7 +16,7 @@ public class Media
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
-    public ICollection<RankedMedia> RankedMedia { get; set; } = new List<RankedMedia>();
+    public ICollection<RankedMedia> RankedMedia { get; set; } = [];
 
     public class Configuration : IEntityTypeConfiguration<Media>
     {
@@ -29,10 +28,6 @@ public class Media
 
             builder.Property(m => m.Id)
                 .HasColumnName("id");
-
-            builder.Property(m => m.UserId)
-                .HasColumnName("user_id")
-                .IsRequired();
 
             builder.Property(m => m.Title)
                 .HasColumnName("title")
@@ -58,18 +53,16 @@ public class Media
                 .HasDefaultValueSql("NOW()")
                 .IsRequired();
 
-            builder.HasIndex(m => m.UserId)
-                .HasDatabaseName("ix_media_user_id");
+            builder.HasIndex(m => new { m.MediaType })
+                .HasDatabaseName("ix_media_media_type");
 
-            builder.HasIndex(m => new { m.UserId, m.MediaType })
-                .HasDatabaseName("ix_media_user_media_type");
+            builder.HasIndex(m => new { m.ReleaseDate })
+                .HasDatabaseName("ix_media_release_date");
 
-            builder.HasIndex(m => new { m.UserId, m.ReleaseDate })
-                .HasDatabaseName("ix_media_user_release_date");
-
-            builder.HasIndex(m => new { m.UserId, m.Title, m.MediaType, m.ReleaseDate })
+            // Helps prevent duplicate media entries.
+            builder.HasIndex(m => new { m.Title, m.MediaType, m.ReleaseDate })
                 .IsUnique()
-                .HasDatabaseName("uq_media_user_title_type_release_date");
+                .HasDatabaseName("uq_media_title_type_release_date");
         }
     }
 }
