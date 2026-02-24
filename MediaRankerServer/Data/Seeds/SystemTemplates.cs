@@ -1,4 +1,3 @@
-using System;
 using MediaRankerServer.Data.Entities;
 using MediaRankerServer.Data.Seeds;
 
