@@ -11,7 +11,22 @@ namespace MediaRankerServer.Controllers
         [HttpPost("helloWorld")]
         public IActionResult HelloWorld()
         {
-            return Ok(ApiResponse<string>.Ok("Hello, World!"));
+            return Ok(new { message = "Hello, World!" });
+        }
+
+        [HttpPost("domainError")]
+        public IActionResult DomainError()
+        {
+            throw new DomainException(
+                "Simulated domain exception from test endpoint.",
+                "test_domain_error"
+            );
+        }
+
+        [HttpPost("unexpectedError")]
+        public IActionResult UnexpectedError()
+        {
+            throw new InvalidOperationException("Simulated unexpected exception from test endpoint.");
         }
     }
 }

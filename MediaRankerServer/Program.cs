@@ -1,18 +1,75 @@
 using Scalar.AspNetCore;
 using MediaRankerServer.Data.Entities;
+using MediaRankerServer.Models;
 using MediaRankerServer.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, services, loggerConfiguration) =>
+{
+    loggerConfiguration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext()
+        .WriteTo.Console()
+        .WriteTo.File(
+            path: "logs/app-log-.txt",
+            rollingInterval: RollingInterval.Day,
+            retainedFileCountLimit: 31,
+            shared: true
+        );
+});
 
 // Add services to the container.
 builder.Services.AddControllers(options =>
 {
     // Default to requiring authentication for all controllers.
     options.Filters.Add(new AuthorizeFilter());
+});
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = context =>
+    {
+        var httpContext = context.HttpContext;
+        var problemDetails = context.ProblemDetails;
+        var exception = context.Exception
+            ?? httpContext.Features.Get<IExceptionHandlerFeature>()?.Error;
+        var baseException = exception?.GetBaseException();
+
+        problemDetails.Instance = httpContext.Request.Path;
+
+        if (baseException is DomainException domainException)
+        {
+            problemDetails.Status = StatusCodes.Status400BadRequest;
+            problemDetails.Type = domainException.Type;
+            problemDetails.Title = "Domain error";
+            problemDetails.Detail = domainException.Message;
+            return;
+        }
+
+        var errorId = Guid.NewGuid().ToString();
+        var logger = httpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+
+        problemDetails.Status = StatusCodes.Status500InternalServerError;
+        problemDetails.Type = "unexpected_error";
+        problemDetails.Title = "Unexpected error occurred";
+        problemDetails.Detail = $"Unexpected error occurred. Report this error ID: {errorId}";
+        problemDetails.Extensions["errorId"] = errorId;
+
+        logger.LogError(
+            exception,
+            "Unhandled exception. ErrorId: {ErrorId}, TraceId: {TraceId}",
+            errorId,
+            httpContext.TraceIdentifier
+        );
+    };
 });
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -75,6 +132,7 @@ builder.Services.AddScoped<ITemplatesService, TemplatesService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseExceptionHandler();
 if (app.Environment.IsDevelopment())
 {
     // Map OpenAPI endpoint (optional, but good practice for development)

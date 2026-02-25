@@ -1,5 +1,6 @@
 using MediaRankerServer.Data.Entities;
 using MediaRankerServer.Data.Seeds;
+using MediaRankerServer.Models;
 using MediaRankerServer.Models.Templates;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,7 +32,7 @@ public class TemplatesService(PostgreSQLContext dbContext) : ITemplatesService
 
         if (nameTaken)
         {
-            throw new InvalidOperationException("Template name already exists for this user.");
+            throw new DomainException("Template name already exists for this user.", "template_name_conflict");
         }
 
         var template = new Template
@@ -55,7 +56,7 @@ public class TemplatesService(PostgreSQLContext dbContext) : ITemplatesService
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return await GetTemplateByIdAsync(template.Id, cancellationToken)
-            ?? throw new InvalidOperationException("Template created but could not be loaded.");
+            ?? throw new DomainException("Template created but could not be loaded.", "template_load_failed");
     }
 
     public async Task<TemplateDto> UpdateTemplateAsync(string userId, long templateId, TemplateUpsertRequest request, CancellationToken cancellationToken = default)
@@ -65,16 +66,16 @@ public class TemplatesService(PostgreSQLContext dbContext) : ITemplatesService
         var template = await dbContext.Templates
             .Include(t => t.Fields)
             .FirstOrDefaultAsync(t => t.Id == templateId, cancellationToken)
-            ?? throw new KeyNotFoundException("Template not found.");
+            ?? throw new DomainException("Template not found.", "template_not_found");
 
         if (template.UserId == SeedUtils.SystemUserId)
         {
-            throw new UnauthorizedAccessException("System templates cannot be modified.");
+            throw new DomainException("System templates cannot be modified.", "template_forbidden");
         }
 
         if (template.UserId != userId)
         {
-            throw new UnauthorizedAccessException("You do not have access to this template.");
+            throw new DomainException("You do not have access to this template.", "template_forbidden");
         }
 
         var normalizedName = request.Name.Trim();
@@ -85,7 +86,7 @@ public class TemplatesService(PostgreSQLContext dbContext) : ITemplatesService
 
         if (nameTaken)
         {
-            throw new InvalidOperationException("Template name already exists for this user.");
+            throw new DomainException("Template name already exists for this user.", "template_name_conflict");
         }
 
         template.Name = normalizedName;
@@ -116,7 +117,7 @@ public class TemplatesService(PostgreSQLContext dbContext) : ITemplatesService
             {
                 if (!existingById.TryGetValue(fieldRequest.Id.Value, out var existingField))
                 {
-                    throw new InvalidOperationException($"Template field id {fieldRequest.Id.Value} was not found on this template.");
+                    throw new DomainException($"Template field id {fieldRequest.Id.Value} was not found on this template.", "template_field_invalid");
                 }
 
                 existingField.Name = fieldRequest.Name.Trim();
@@ -136,44 +137,43 @@ public class TemplatesService(PostgreSQLContext dbContext) : ITemplatesService
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return await GetTemplateByIdAsync(template.Id, cancellationToken)
-            ?? throw new InvalidOperationException("Template updated but could not be loaded.");
+            ?? throw new DomainException("Template updated but could not be loaded.", "template_load_failed");
     }
 
-    public async Task<bool> DeleteTemplateAsync(string userId, long templateId, CancellationToken cancellationToken = default)
+    public async Task DeleteTemplateAsync(string userId, long templateId, CancellationToken cancellationToken = default)
     {
         var template = await dbContext.Templates
             .FirstOrDefaultAsync(t => t.Id == templateId, cancellationToken);
 
         if (template is null)
         {
-            return false;
+            throw new DomainException("Template not found.", "template_not_found");
         }
 
         if (template.UserId == SeedUtils.SystemUserId)
         {
-            throw new UnauthorizedAccessException("System templates cannot be deleted.");
+            throw new DomainException("System templates cannot be deleted.", "template_forbidden");
         }
 
         if (template.UserId != userId)
         {
-            throw new UnauthorizedAccessException("You do not have access to this template.");
+            throw new DomainException("You do not have access to this template.", "template_forbidden");
         }
 
         dbContext.Templates.Remove(template);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return true;
     }
 
     private static void ValidateTemplateRequest(TemplateUpsertRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            throw new InvalidOperationException("Template name is required.");
+            throw new DomainException("Template name is required.", "template_validation_error");
         }
 
         if (request.Fields is null || request.Fields.Count == 0)
         {
-            throw new InvalidOperationException("Template must include at least one field.");
+            throw new DomainException("Template must include at least one field.", "template_validation_error");
         }
 
         var duplicateFieldNames = request.Fields
@@ -184,13 +184,13 @@ public class TemplatesService(PostgreSQLContext dbContext) : ITemplatesService
 
         if (duplicateFieldNames.Count > 0)
         {
-            throw new InvalidOperationException("Template field names must be non-empty and unique.");
+            throw new DomainException("Template field names must be non-empty and unique.", "template_validation_error");
         }
 
         var invalidDisplayNames = request.Fields.Any(f => string.IsNullOrWhiteSpace(f.DisplayName));
         if (invalidDisplayNames)
         {
-            throw new InvalidOperationException("Template field display names are required.");
+            throw new DomainException("Template field display names are required.", "template_validation_error");
         }
 
         var duplicatePositions = request.Fields
@@ -201,7 +201,7 @@ public class TemplatesService(PostgreSQLContext dbContext) : ITemplatesService
 
         if (duplicatePositions.Count > 0)
         {
-            throw new InvalidOperationException("Template field positions must be unique.");
+            throw new DomainException("Template field positions must be unique.", "template_validation_error");
         }
     }
 
