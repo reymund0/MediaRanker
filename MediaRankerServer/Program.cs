@@ -1,5 +1,6 @@
 using Scalar.AspNetCore;
 using MediaRankerServer.Data.Entities;
+using MediaRankerServer.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -63,12 +64,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
 
             ValidateIssuerSigningKey = true,
-            ClockSkew = TimeSpan.FromMinutes(5) // Adjust as needed for token expiration tolerance
+            ClockSkew = TimeSpan.FromMinutes(5), // Adjust as needed for token expiration tolerance
+            NameClaimType = "sub"
         };
     });
 
 // Register services.
-// TODO Add services.
+builder.Services.AddScoped<ITemplatesService, TemplatesService>();
 
 var app = builder.Build();
 
