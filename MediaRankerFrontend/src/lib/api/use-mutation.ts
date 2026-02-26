@@ -40,7 +40,7 @@ const httpMutation = async <T>(
     body: options.data ? JSON.stringify(options.data) : undefined,
   });
 
-  const body = await response.json();
+  const body = await parseJsonSafe(response);
 
   if (!response.ok) {
     const problemDetails = normalizeProblemDetails(body, response);
@@ -74,4 +74,12 @@ const normalizeProblemDetails = (
     title: response.statusText || "Request failed",
     detail: undefined,
   } satisfies ProblemDetails;
+};
+
+const parseJsonSafe = async (response: Response): Promise<unknown> => {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
 };
