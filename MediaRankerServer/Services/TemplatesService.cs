@@ -17,7 +17,7 @@ public class TemplatesService(PostgreSQLContext dbContext) : ITemplatesService
             .OrderBy(t => t.Name)
             .ToListAsync(cancellationToken);
 
-        return [..templates.Select(MapTemplate)];
+        return [..templates.Select(TemplateMapper.Map)];
     }
 
     public async Task<TemplateDto> CreateTemplateAsync(string userId, TemplateUpsertRequest request, CancellationToken cancellationToken = default)
@@ -213,29 +213,6 @@ public class TemplatesService(PostgreSQLContext dbContext) : ITemplatesService
             .Where(t => t.Id == templateId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        return template is null ? null : MapTemplate(template);
-    }
-
-    private static TemplateDto MapTemplate(Template template)
-    {
-        return new TemplateDto
-        {
-            Id = template.Id,
-            UserId = template.UserId,
-            Name = template.Name,
-            Description = template.Description,
-            CreatedAt = template.CreatedAt,
-            UpdatedAt = template.UpdatedAt,
-            Fields =
-            [
-                .. template.Fields.Select(field => new TemplateFieldDto
-                {
-                    Id = field.Id,
-                    Name = field.Name,
-                    DisplayName = field.DisplayName,
-                    Position = field.Position
-                })
-            ]
-        };
+        return template is null ? null : TemplateMapper.Map(template);
     }
 }
