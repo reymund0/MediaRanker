@@ -3,10 +3,10 @@ import {
   UseMutationOptions,
 } from "@tanstack/react-query";
 import { useUser } from "../auth/user-provider";
-import { ApiResponse, ApiError } from "./types";
+import { ProblemDetails } from "./types";
 
 export interface UseMutationOptionsType<T> extends Omit<
-  UseMutationOptions<T, ApiError>,
+  UseMutationOptions<T>,
   "mutationFn"
 > {
   route: string;
@@ -18,7 +18,7 @@ export function useMutation<T = unknown>(options: UseMutationOptionsType<T>) {
   const user = useUser();
   const token = user.session?.tokens?.idToken?.toString();
 
-  const mutation = useTanstackMutation<T, ApiError>({
+  const mutation = useTanstackMutation<T>({
     mutationFn: async () => httpMutation<T>(options, token),
     ...options,
   });
@@ -40,18 +40,38 @@ const httpMutation = async <T>(
     body: options.data ? JSON.stringify(options.data) : undefined,
   });
 
-  const body: ApiResponse<T> = await response.json().catch(() => ({
-    success: false as const,
-    message: `Request failed with status ${response.status}`,
-  }));
-
-  if (!body.success) {
-    throw new ApiError(body.message, body.errors);
-  }
+  const body = await response.json();
 
   if (!response.ok) {
-    throw new ApiError(`Request failed with status ${response.status}`);
+    const problemDetails = normalizeProblemDetails(body, response);
+    console.error("API ProblemDetails", {
+      problemDetails,
+      route: options.route,
+      method: options.method,
+      body: options.data ?? null,
+    });
+    const message = problemDetails.detail || "Request failed";
+    throw new Error(message);
   }
 
-  return body.data;
+  return body as T;
+};
+
+const normalizeProblemDetails = (
+  body: unknown,
+  response: Response,
+): ProblemDetails => {
+  if (body && typeof body === "object") {
+    return {
+      status: response.status,
+      ...(body as Record<string, unknown>),
+    } as ProblemDetails;
+  }
+
+  // Handle generic HTTP errors (non-problem details).
+  return {
+    status: response.status,
+    title: response.statusText || "Request failed",
+    detail: undefined,
+  } satisfies ProblemDetails;
 };
