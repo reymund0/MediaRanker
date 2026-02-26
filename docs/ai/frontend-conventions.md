@@ -42,3 +42,8 @@ This document contains non-always-on frontend details for MediaRanker.
   - error: `7000ms`
 - `persist` disables auto-dismiss.
 - `autoHideDurationMs` overrides defaults.
+
+## API error handling
+
+- `use-mutation.ts` parses non-OK responses as RFC 7807 ProblemDetails, logs the full object (plus route/method/body), and throws `Error` with only the `detail` field for UI display.
+- Callers should rely on `error.message` for user-friendly text and avoid re-parsing the payload.

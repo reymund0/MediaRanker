@@ -72,5 +72,6 @@ Do not edit build artifacts:
 Use these when a task needs deeper context:
 
 - `docs/ai/backend-seeding.md`
+- `docs/ai/backend-conventions.md`
 - `docs/ai/frontend-conventions.md`
 - `docs/ai/dev-commands.md`
