@@ -1,6 +1,9 @@
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Scalar.AspNetCore;
 using MediaRankerServer.Data.Entities;
 using MediaRankerServer.Models;
+using MediaRankerServer.Models.Templates;
 using MediaRankerServer.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -33,6 +36,8 @@ builder.Services.AddControllers(options =>
     // Default to requiring authentication for all controllers.
     options.Filters.Add(new AuthorizeFilter());
 });
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<TemplateUpsertRequestValidator>();
 builder.Services.AddProblemDetails(options =>
 {
     options.CustomizeProblemDetails = context =>

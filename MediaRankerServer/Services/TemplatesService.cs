@@ -1,3 +1,4 @@
+using FluentValidation;
 using MediaRankerServer.Data.Entities;
 using MediaRankerServer.Data.Seeds;
 using MediaRankerServer.Models;
@@ -6,7 +7,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MediaRankerServer.Services;
 
-public class TemplatesService(PostgreSQLContext dbContext) : ITemplatesService
+public class TemplatesService(
+    PostgreSQLContext dbContext,
+    IValidator<TemplateUpsertRequest> templateUpsertRequestValidator
+) : ITemplatesService
 {
     public async Task<List<TemplateDto>> GetAllVisibleTemplatesAsync(string userId, CancellationToken cancellationToken = default)
     {
@@ -22,7 +26,7 @@ public class TemplatesService(PostgreSQLContext dbContext) : ITemplatesService
 
     public async Task<TemplateDto> CreateTemplateAsync(string userId, TemplateUpsertRequest request, CancellationToken cancellationToken = default)
     {
-        ValidateTemplateRequest(request);
+        ValidateTemplateRequestOrThrow(request);
 
         var normalizedName = request.Name.Trim();
         var nameTaken = await dbContext.Templates.AnyAsync(
@@ -61,7 +65,7 @@ public class TemplatesService(PostgreSQLContext dbContext) : ITemplatesService
 
     public async Task<TemplateDto> UpdateTemplateAsync(string userId, long templateId, TemplateUpsertRequest request, CancellationToken cancellationToken = default)
     {
-        ValidateTemplateRequest(request);
+        ValidateTemplateRequestOrThrow(request);
 
         var template = await dbContext.Templates
             .Include(t => t.Fields)
@@ -142,13 +146,9 @@ public class TemplatesService(PostgreSQLContext dbContext) : ITemplatesService
 
     public async Task DeleteTemplateAsync(string userId, long templateId, CancellationToken cancellationToken = default)
     {
-        var template = await dbContext.Templates
-            .FirstOrDefaultAsync(t => t.Id == templateId, cancellationToken);
-
-        if (template is null)
-        {
-            throw new DomainException("Template not found.", "template_not_found");
-        }
+        var template = (await dbContext.Templates
+            .FirstOrDefaultAsync(t => t.Id == templateId, cancellationToken))
+            ?? throw new DomainException("Template not found.", "template_not_found");
 
         if (template.UserId == SeedUtils.SystemUserId)
         {
@@ -164,44 +164,12 @@ public class TemplatesService(PostgreSQLContext dbContext) : ITemplatesService
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private static void ValidateTemplateRequest(TemplateUpsertRequest request)
+    private void ValidateTemplateRequestOrThrow(TemplateUpsertRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Name))
+        var validationResult = templateUpsertRequestValidator.Validate(request);
+        if (!validationResult.IsValid)
         {
-            throw new DomainException("Template name is required.", "template_validation_error");
-        }
-
-        if (request.Fields is null || request.Fields.Count == 0)
-        {
-            throw new DomainException("Template must include at least one field.", "template_validation_error");
-        }
-
-        var duplicateFieldNames = request.Fields
-            .GroupBy(f => f.Name.Trim(), StringComparer.OrdinalIgnoreCase)
-            .Where(g => g.Key.Length == 0 || g.Count() > 1)
-            .Select(g => g.Key)
-            .ToList();
-
-        if (duplicateFieldNames.Count > 0)
-        {
-            throw new DomainException("Template field names must be non-empty and unique.", "template_validation_error");
-        }
-
-        var invalidDisplayNames = request.Fields.Any(f => string.IsNullOrWhiteSpace(f.DisplayName));
-        if (invalidDisplayNames)
-        {
-            throw new DomainException("Template field display names are required.", "template_validation_error");
-        }
-
-        var duplicatePositions = request.Fields
-            .GroupBy(f => f.Position)
-            .Where(g => g.Count() > 1)
-            .Select(g => g.Key)
-            .ToList();
-
-        if (duplicatePositions.Count > 0)
-        {
-            throw new DomainException("Template field positions must be unique.", "template_validation_error");
+            throw new DomainException(validationResult.Errors[0].ErrorMessage, "template_validation_error");
         }
     }
 
