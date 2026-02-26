@@ -41,11 +41,10 @@ builder.Services.AddProblemDetails(options =>
         var problemDetails = context.ProblemDetails;
         var exception = context.Exception
             ?? httpContext.Features.Get<IExceptionHandlerFeature>()?.Error;
-        var baseException = exception?.GetBaseException();
 
         problemDetails.Instance = httpContext.Request.Path;
 
-        if (baseException is DomainException domainException)
+        if (exception is DomainException domainException)
         {
             problemDetails.Status = StatusCodes.Status400BadRequest;
             problemDetails.Type = domainException.Type;
@@ -60,7 +59,7 @@ builder.Services.AddProblemDetails(options =>
         problemDetails.Status = StatusCodes.Status500InternalServerError;
         problemDetails.Type = "unexpected_error";
         problemDetails.Title = "Unexpected error occurred";
-        problemDetails.Detail = $"Unexpected error occurred. Report this error ID: {errorId}";
+        problemDetails.Detail = $"Unexpected error occurred. Report this error code to your IT department: {errorId}";
         problemDetails.Extensions["errorId"] = errorId;
 
         logger.LogError(
