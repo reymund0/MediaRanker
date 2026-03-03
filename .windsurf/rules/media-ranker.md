@@ -58,6 +58,7 @@ Do not edit build artifacts:
 
 - Theme is centralized and currently dark mode.
 - Prefer theme tokens over one-off hardcoded colors.
+- Custom components follow a Base/Form pattern (MUI-based wrappers): create/extend Base components for shared behavior and Form variants for controlled form usage. See `docs/ai/frontend-conventions.md` for more details.
 - Navbar behavior:
   - Hide on `/auth/*`
   - Show on non-auth routes
@@ -71,5 +72,6 @@ Do not edit build artifacts:
 Use these when a task needs deeper context:
 
 - `docs/ai/backend-seeding.md`
+- `docs/ai/backend-conventions.md`
 - `docs/ai/frontend-conventions.md`
 - `docs/ai/dev-commands.md`

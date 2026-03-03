@@ -19,6 +19,7 @@ obj/
 # Build artifacts and caches
 **/*.cache
 *.log
+MediaRankerServer/logs/
 *.tlog
 *.pidb
 *.svclog

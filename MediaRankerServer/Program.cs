@@ -1,11 +1,31 @@
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Scalar.AspNetCore;
 using MediaRankerServer.Data.Entities;
+using MediaRankerServer.Extensions;
+using MediaRankerServer.Models.Templates;
+using MediaRankerServer.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, services, loggerConfiguration) =>
+{
+    loggerConfiguration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext()
+        .WriteTo.Console()
+        .WriteTo.File(
+            path: "logs/app-log-.txt",
+            rollingInterval: RollingInterval.Day,
+            retainedFileCountLimit: 31,
+            shared: true
+        );
+});
 
 // Add services to the container.
 builder.Services.AddControllers(options =>
@@ -13,6 +33,9 @@ builder.Services.AddControllers(options =>
     // Default to requiring authentication for all controllers.
     options.Filters.Add(new AuthorizeFilter());
 });
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<TemplateUpsertRequestValidator>();
+builder.Services.AddProblemDetailsHandling();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 // Configure DbContext.
@@ -63,16 +86,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
 
             ValidateIssuerSigningKey = true,
-            ClockSkew = TimeSpan.FromMinutes(5) // Adjust as needed for token expiration tolerance
+            ClockSkew = TimeSpan.FromMinutes(5), // Adjust as needed for token expiration tolerance
+            NameClaimType = "sub"
         };
     });
 
 // Register services.
-// TODO Add services.
+builder.Services.AddScoped<ITemplatesService, TemplatesService>();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseExceptionHandler();
 if (app.Environment.IsDevelopment())
 {
     // Map OpenAPI endpoint (optional, but good practice for development)
