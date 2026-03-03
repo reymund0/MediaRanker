@@ -204,6 +204,12 @@ export default function TemplatesPage() {
               }))
             }
             fields={draft.fields}
+            onFieldChange={(index, value) =>
+              setDraft((prev) => ({
+                ...prev,
+                fields: prev.fields.map((field, fieldIndex) => (fieldIndex === index ? value : field)),
+              }))
+            }
             onFieldsReorder={(nextFields) =>
               setDraft((prev) => ({
                 ...prev,
