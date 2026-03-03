@@ -1,7 +1,6 @@
-import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import { Chip, IconButton, Stack, TextField, Typography } from "@mui/material";
+import { Chip, IconButton, Stack, Typography } from "@mui/material";
 import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 
 export type TemplateRow = {
@@ -20,21 +19,13 @@ export type TemplateDraft = {
 };
 
 type BuildTemplateColumnsParams = {
-  editingRowId: string | null;
-  draft: TemplateDraft;
-  onDraftChange: (updates: Partial<TemplateDraft>) => void;
-  startEditing: (row: TemplateRow) => void;
-  cancelEditing: () => void;
-  removeRow: (row: TemplateRow) => void;
+  onEditClick: (row: TemplateRow) => void;
+  onDeleteClick: (row: TemplateRow) => void;
 };
 
 export function buildTemplateColumns({
-  editingRowId,
-  draft,
-  onDraftChange,
-  startEditing,
-  cancelEditing,
-  removeRow,
+  onEditClick,
+  onDeleteClick,
 }: BuildTemplateColumnsParams): GridColDef<TemplateRow>[] {
   return [
     {
@@ -44,20 +35,6 @@ export function buildTemplateColumns({
       minWidth: 220,
       sortable: false,
       renderCell: (params: GridRenderCellParams<TemplateRow, string>) => {
-        const isEditing = params.row.id === editingRowId;
-
-        if (isEditing) {
-          return (
-            <TextField
-              size="small"
-              fullWidth
-              value={draft.name}
-              placeholder="Template name"
-              onChange={(event) => onDraftChange({ name: event.target.value })}
-            />
-          );
-        }
-
         return (
           <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
             <Typography noWrap>{params.value}</Typography>
@@ -72,23 +49,9 @@ export function buildTemplateColumns({
       flex: 1.5,
       minWidth: 320,
       sortable: false,
-      renderCell: (params: GridRenderCellParams<TemplateRow, string>) => {
-        const isEditing = params.row.id === editingRowId;
-
-        if (isEditing) {
-          return (
-            <TextField
-              size="small"
-              fullWidth
-              value={draft.description}
-              placeholder="Template description"
-              onChange={(event) => onDraftChange({ description: event.target.value })}
-            />
-          );
-        }
-
-        return <Typography noWrap color="text.secondary">{params.value || "-"}</Typography>;
-      },
+      renderCell: (params: GridRenderCellParams<TemplateRow, string>) => (
+        <Typography noWrap color="text.secondary">{params.value || "-"}</Typography>
+      ),
     },
     {
       field: "updatedAt",
@@ -107,7 +70,6 @@ export function buildTemplateColumns({
       filterable: false,
       disableColumnMenu: true,
       renderCell: (params: GridRenderCellParams<TemplateRow>) => {
-        const isEditing = params.row.id === editingRowId;
         const isSystem = params.row.isSystem;
 
         return (
@@ -116,21 +78,15 @@ export function buildTemplateColumns({
               size="small"
               color="primary"
               disabled={isSystem}
-              onClick={() => {
-                if (isEditing) {
-                  cancelEditing();
-                } else {
-                  startEditing(params.row);
-                }
-              }}
+              onClick={() => onEditClick(params.row)}
             >
-              {isEditing ? <CloseIcon fontSize="small" /> : <EditOutlinedIcon fontSize="small" />}
+              <EditOutlinedIcon fontSize="small" />
             </IconButton>
             <IconButton
               size="small"
               color="error"
               disabled={isSystem}
-              onClick={() => removeRow(params.row)}
+              onClick={() => onDeleteClick(params.row)}
             >
               <DeleteOutlineIcon fontSize="small" />
             </IconButton>

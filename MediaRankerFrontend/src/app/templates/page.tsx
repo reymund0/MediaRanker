@@ -11,12 +11,10 @@ import {
 } from "@mui/material";
 import {
   GridColDef,
-  GridRowId,
-  GridRowClassNameParams,
 } from "@mui/x-data-grid";
 import { useMemo, useState } from "react";
 import { BaseDataGrid } from "@/lib/components/data-grid/base-data-grid";
-import { TemplateDetailPanel } from "./detail-panel";
+import { TemplateEditModal } from "./template-edit-modal";
 import { buildTemplateColumns, TemplateDraft, TemplateRow } from "./grid-utils";
 
 type EditDraft = TemplateDraft & {
@@ -42,18 +40,9 @@ const INITIAL_ROWS: TemplateRow[] = [
   },
 ];
 
-function reorderItems(items: string[], fromIndex: number, toIndex: number) {
-  const next = [...items];
-  const [moved] = next.splice(fromIndex, 1);
-  next.splice(toIndex, 0, moved);
-  return next;
-}
-
 export default function TemplatesPage() {
   const [rows, setRows] = useState<TemplateRow[]>(INITIAL_ROWS);
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
-  const [expandedRowIds, setExpandedRowIds] = useState<GridRowId[]>([]);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [draft, setDraft] = useState<EditDraft>({
     name: "",
     description: "",
@@ -65,13 +54,12 @@ export default function TemplatesPage() {
     [rows, editingRowId],
   );
 
-  const startEditing = (row: TemplateRow) => {
+  const onEditClick = (row: TemplateRow) => {
     if (row.isSystem) {
       return;
     }
 
     setEditingRowId(row.id);
-    setExpandedRowIds((prev) => (prev.includes(row.id) ? prev : [...prev, row.id]));
     setDraft({
       name: row.name,
       description: row.description,
@@ -88,9 +76,7 @@ export default function TemplatesPage() {
       setRows((prev) => prev.filter((row) => row.id !== editingRow.id));
     }
 
-    setExpandedRowIds((prev) => prev.filter((rowId) => rowId !== editingRow.id));
     setEditingRowId(null);
-    setDragIndex(null);
     setDraft({ name: "", description: "", fields: [] });
   };
 
@@ -119,9 +105,7 @@ export default function TemplatesPage() {
       ),
     );
 
-    setExpandedRowIds((prev) => prev.filter((rowId) => rowId !== editingRow.id));
     setEditingRowId(null);
-    setDragIndex(null);
     setDraft({ name: "", description: "", fields: [] });
   };
 
@@ -139,8 +123,6 @@ export default function TemplatesPage() {
 
     setRows((prev) => [newRow, ...prev]);
     setEditingRowId(id);
-    setExpandedRowIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-    setDragIndex(null);
     setDraft({
       name: "",
       description: "",
@@ -148,28 +130,18 @@ export default function TemplatesPage() {
     });
   };
 
-  const removeRow = (row: TemplateRow) => {
+  const onDeleteClick = (row: TemplateRow) => {
     setRows((prev) => prev.filter((candidate) => candidate.id !== row.id));
-    setExpandedRowIds((prev) => prev.filter((rowId) => rowId !== row.id));
 
     if (editingRowId === row.id) {
       setEditingRowId(null);
-      setDragIndex(null);
       setDraft({ name: "", description: "", fields: [] });
     }
   };
 
   const columns: GridColDef<TemplateRow>[] = buildTemplateColumns({
-    editingRowId,
-    draft: { name: draft.name, description: draft.description },
-    onDraftChange: (updates) =>
-      setDraft((prev) => ({
-        ...prev,
-        ...updates,
-      })),
-    startEditing,
-    cancelEditing,
-    removeRow,
+    onEditClick,
+    onDeleteClick,
   });
 
   return (
@@ -212,52 +184,36 @@ export default function TemplatesPage() {
               rowHeight={64}
               rows={rows}
               columns={columns}
-              expandedRowIds={expandedRowIds}
-              onExpandedRowIdsChange={setExpandedRowIds}
-              getDetailPanelContent={(row) =>
-                row.id === editingRowId ? (
-                  <TemplateDetailPanel
-                    fields={draft.fields}
-                    dragIndex={dragIndex}
-                    onDragStart={setDragIndex}
-                    onDragEnd={() => setDragIndex(null)}
-                    onDropAtIndex={(index) => {
-                      if (dragIndex === null) {
-                        return;
-                      }
-
-                      setDraft((prev) => ({
-                        ...prev,
-                        fields: reorderItems(prev.fields, dragIndex, index),
-                      }));
-                      setDragIndex(null);
-                    }}
-                    onSubmit={submitEditing}
-                    onCancel={cancelEditing}
-                    submitDisabled={draft.name.trim().length === 0}
-                  />
-                ) : null
-              }
-              getRowClassName={(params: GridRowClassNameParams<TemplateRow>) =>
-                params.row.id === editingRowId ? "template-row--editing" : ""
-              }
-              sx={{
-                border: 0,
-                "& .MuiDataGrid-columnHeaders": {
-                  backgroundColor: "background.default",
-                  borderBottom: "1px solid",
-                  borderColor: "divider",
-                },
-                "& .MuiDataGrid-cell": {
-                  borderBottomColor: "divider",
-                  alignItems: "center",
-                },
-                "& .template-row--editing": {
-                  backgroundColor: "action.hover",
-                },
-              }}
             />
           </Box>
+
+          <TemplateEditModal
+            open={Boolean(editingRowId)}
+            name={draft.name}
+            description={draft.description}
+            onNameChange={(value) =>
+              setDraft((prev) => ({
+                ...prev,
+                name: value,
+              }))
+            }
+            onDescriptionChange={(value) =>
+              setDraft((prev) => ({
+                ...prev,
+                description: value,
+              }))
+            }
+            fields={draft.fields}
+            onFieldsReorder={(nextFields) =>
+              setDraft((prev) => ({
+                ...prev,
+                fields: nextFields,
+              }))
+            }
+            onSubmit={submitEditing}
+            onCancel={cancelEditing}
+            submitDisabled={draft.name.trim().length === 0}
+          />
         </CardContent>
       </Card>
     </Box>
