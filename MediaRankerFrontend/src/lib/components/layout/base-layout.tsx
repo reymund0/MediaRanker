@@ -23,7 +23,9 @@ export function BaseLayout({ children }: BaseLayoutProps) {
       }}
     >
       {showNavbar ? <AppNavbar /> : null}
-      <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+      <Box
+        sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+      >
         {children}
       </Box>
     </Box>

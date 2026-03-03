@@ -36,9 +36,16 @@ export function buildTemplateColumns({
       sortable: false,
       renderCell: (params: GridRenderCellParams<TemplateRow, string>) => {
         return (
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{ minWidth: 0 }}
+          >
             <Typography noWrap>{params.value}</Typography>
-            {params.row.isSystem ? <Chip label="System" size="small" variant="outlined" /> : null}
+            {params.row.isSystem ? (
+              <Chip label="System" size="small" variant="outlined" />
+            ) : null}
           </Stack>
         );
       },
@@ -50,7 +57,9 @@ export function buildTemplateColumns({
       minWidth: 320,
       sortable: false,
       renderCell: (params: GridRenderCellParams<TemplateRow, string>) => (
-        <Typography noWrap color="text.secondary">{params.value || "-"}</Typography>
+        <Typography noWrap color="text.secondary">
+          {params.value || "-"}
+        </Typography>
       ),
     },
     {

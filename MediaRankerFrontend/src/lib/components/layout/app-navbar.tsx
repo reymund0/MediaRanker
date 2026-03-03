@@ -1,13 +1,7 @@
 "use client";
 
 import { UserDropdown } from "@/lib/components/layout/user-dropdown";
-import {
-  AppBar,
-  Box,
-  Button,
-  Toolbar,
-  Typography,
-} from "@mui/material";
+import { AppBar, Box, Button, Toolbar, Typography } from "@mui/material";
 import { usePathname } from "next/navigation";
 
 type NavLink = {
@@ -48,7 +42,13 @@ export function AppNavbar() {
           Media Ranker
         </Typography>
 
-        <Box sx={{ display: "flex", justifyContent: "center", gap: { xs: 1, sm: 2 } }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            gap: { xs: 1, sm: 2 },
+          }}
+        >
           {NAV_LINKS.map((link) => {
             const isActive = pathname === link.href;
 
@@ -67,7 +67,9 @@ export function AppNavbar() {
                   color: isActive ? "secondary.light" : "primary.contrastText",
                   transition: "background-color 120ms ease, color 120ms ease",
                   "&:hover": {
-                    backgroundColor: isActive ? "action.selected" : "action.hover",
+                    backgroundColor: isActive
+                      ? "action.selected"
+                      : "action.hover",
                   },
                 }}
               >

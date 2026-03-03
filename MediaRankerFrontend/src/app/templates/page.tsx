@@ -9,17 +9,14 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import {
-  GridColDef,
-} from "@mui/x-data-grid";
+import { GridColDef } from "@mui/x-data-grid";
 import { useMemo, useState } from "react";
 import { BaseDataGrid } from "@/lib/components/data-grid/base-data-grid";
-import { TemplateEditModal } from "./template-edit-modal";
-import { buildTemplateColumns, TemplateDraft, TemplateRow } from "./grid-utils";
-
-type EditDraft = TemplateDraft & {
-  fields: string[];
-};
+import {
+  TemplateEditModal,
+  TemplateEditSubmitData,
+} from "./template-edit-modal";
+import { buildTemplateColumns, TemplateRow } from "./grid-utils";
 
 const INITIAL_ROWS: TemplateRow[] = [
   {
@@ -43,11 +40,6 @@ const INITIAL_ROWS: TemplateRow[] = [
 export default function TemplatesPage() {
   const [rows, setRows] = useState<TemplateRow[]>(INITIAL_ROWS);
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<EditDraft>({
-    name: "",
-    description: "",
-    fields: [],
-  });
 
   const editingRow = useMemo(
     () => rows.find((row) => row.id === editingRowId) ?? null,
@@ -60,11 +52,6 @@ export default function TemplatesPage() {
     }
 
     setEditingRowId(row.id);
-    setDraft({
-      name: row.name,
-      description: row.description,
-      fields: [...row.fields],
-    });
   };
 
   const cancelEditing = () => {
@@ -77,27 +64,25 @@ export default function TemplatesPage() {
     }
 
     setEditingRowId(null);
-    setDraft({ name: "", description: "", fields: [] });
   };
 
-  const submitEditing = () => {
-    if (!editingRow) {
-      return;
-    }
-
+  const submitEditing = (data: TemplateEditSubmitData) => {
     const now = new Date();
     const formattedUpdatedAt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
       now.getDate(),
-    ).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    ).padStart(
+      2,
+      "0",
+    )} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
     setRows((prev) =>
       prev.map((row) =>
-        row.id === editingRow.id
+        row.id === data.id
           ? {
               ...row,
-              name: draft.name.trim(),
-              description: draft.description.trim(),
-              fields: [...draft.fields],
+              name: data.name,
+              description: data.description,
+              fields: [...data.fields],
               updatedAt: formattedUpdatedAt,
               isTemporary: false,
             }
@@ -105,8 +90,9 @@ export default function TemplatesPage() {
       ),
     );
 
+    // this is where refresh grid goes
+
     setEditingRowId(null);
-    setDraft({ name: "", description: "", fields: [] });
   };
 
   const addTemplate = () => {
@@ -123,11 +109,6 @@ export default function TemplatesPage() {
 
     setRows((prev) => [newRow, ...prev]);
     setEditingRowId(id);
-    setDraft({
-      name: "",
-      description: "",
-      fields: [...newRow.fields],
-    });
   };
 
   const onDeleteClick = (row: TemplateRow) => {
@@ -135,7 +116,6 @@ export default function TemplatesPage() {
 
     if (editingRowId === row.id) {
       setEditingRowId(null);
-      setDraft({ name: "", description: "", fields: [] });
     }
   };
 
@@ -164,7 +144,11 @@ export default function TemplatesPage() {
               </Typography>
             </Box>
 
-            <Button variant="contained" startIcon={<AddIcon />} onClick={addTemplate}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={addTemplate}
+            >
               Add Template +
             </Button>
           </Stack>
@@ -189,36 +173,18 @@ export default function TemplatesPage() {
 
           <TemplateEditModal
             open={Boolean(editingRowId)}
-            name={draft.name}
-            description={draft.description}
-            onNameChange={(value) =>
-              setDraft((prev) => ({
-                ...prev,
-                name: value,
-              }))
+            row={
+              editingRow
+                ? {
+                    id: editingRow.id,
+                    name: editingRow.name,
+                    description: editingRow.description,
+                    fields: editingRow.fields,
+                  }
+                : null
             }
-            onDescriptionChange={(value) =>
-              setDraft((prev) => ({
-                ...prev,
-                description: value,
-              }))
-            }
-            fields={draft.fields}
-            onFieldChange={(index, value) =>
-              setDraft((prev) => ({
-                ...prev,
-                fields: prev.fields.map((field, fieldIndex) => (fieldIndex === index ? value : field)),
-              }))
-            }
-            onFieldsReorder={(nextFields) =>
-              setDraft((prev) => ({
-                ...prev,
-                fields: nextFields,
-              }))
-            }
-            onSubmit={submitEditing}
-            onCancel={cancelEditing}
-            submitDisabled={draft.name.trim().length === 0}
+            onSubmitClick={submitEditing}
+            onCancelClick={cancelEditing}
           />
         </CardContent>
       </Card>

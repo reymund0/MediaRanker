@@ -64,7 +64,9 @@ export default function Test() {
       <br />
       <br />
       <PrimaryButton
-        onClick={() => callEndpoint(domainErrorMutation, "/api/test/domainError")}
+        onClick={() =>
+          callEndpoint(domainErrorMutation, "/api/test/domainError")
+        }
         disabled={domainErrorMutation.isPending}
       >
         Trigger Domain Error

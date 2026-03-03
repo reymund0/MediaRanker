@@ -23,9 +23,7 @@ export default function RootLayout({
           <QueryClientProvider client={queryClient}>
             <AlertProvider>
               <UserProvider>
-                <BaseLayout>
-                  {children}
-                </BaseLayout>
+                <BaseLayout>{children}</BaseLayout>
               </UserProvider>
             </AlertProvider>
           </QueryClientProvider>

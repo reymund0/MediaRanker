@@ -1,17 +1,8 @@
-import {
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  List,
-  ListItem,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { IconButton, List, ListItem, Stack, Typography } from "@mui/material";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import { useFieldArray, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   closestCenter,
   DndContext,
@@ -23,36 +14,59 @@ import {
 } from "@dnd-kit/core";
 import {
   SortableContext,
-  arrayMove,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useEffect } from "react";
+import { FormDialog } from "@/lib/components/feedback/dialog/form-dialog";
+import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
+
+const templateEditSchema = z.object({
+  id: z.string().min(1, "Template id is required"),
+  name: z.string().trim().min(1, "Template name is required"),
+  description: z.string(),
+  fields: z
+    .array(
+      z.object({
+        value: z.string().trim().min(1, "Field name is required"),
+      }),
+    )
+    .min(1, "At least one field is required"),
+});
+
+type TemplateEditFormValues = z.infer<typeof templateEditSchema>;
+
+export type TemplateEditRowData = {
+  id: string;
+  name: string;
+  description: string;
+  fields: string[];
+};
+
+export type TemplateEditSubmitData = {
+  id: string;
+  name: string;
+  description: string;
+  fields: string[];
+};
 
 type TemplateEditModalProps = {
   open: boolean;
-  name: string;
-  description: string;
-  onNameChange: (value: string) => void;
-  onDescriptionChange: (value: string) => void;
-  fields: string[];
-  onFieldChange: (index: number, value: string) => void;
-  onFieldsReorder: (nextFields: string[]) => void;
-  onSubmit: () => void;
-  onCancel: () => void;
-  submitDisabled: boolean;
+  row: TemplateEditRowData | null;
+  onSubmitClick: (data: TemplateEditSubmitData) => void;
+  onCancelClick: () => void;
 };
 
 type SortableFieldItemProps = {
   id: string;
   index: number;
-  value: string;
-  onFieldChange: (index: number, value: string) => void;
 };
 
-function SortableFieldItem({ id, index, value, onFieldChange }: SortableFieldItemProps) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+function SortableFieldItem({ id, index }: SortableFieldItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id });
 
   return (
     <ListItem
@@ -72,12 +86,10 @@ function SortableFieldItem({ id, index, value, onFieldChange }: SortableFieldIte
         transition,
       }}
     >
-      <TextField
-        fullWidth
-        size="small"
-        value={value}
-        onChange={(event) => onFieldChange(index, event.target.value)}
+      <FormTextField<TemplateEditFormValues>
+        name={`fields.${index}.value`}
         placeholder={`Field ${index + 1}`}
+        size="small"
         sx={{ pr: 4 }}
       />
     </ListItem>
@@ -86,17 +98,41 @@ function SortableFieldItem({ id, index, value, onFieldChange }: SortableFieldIte
 
 export function TemplateEditModal({
   open,
-  name,
-  description,
-  onNameChange,
-  onDescriptionChange,
-  fields,
-  onFieldChange,
-  onFieldsReorder,
-  onSubmit,
-  onCancel,
-  submitDisabled,
+  row,
+  onSubmitClick,
+  onCancelClick,
 }: TemplateEditModalProps) {
+  const methods = useForm<TemplateEditFormValues>({
+    resolver: zodResolver(templateEditSchema),
+    defaultValues: {
+      id: "",
+      name: "",
+      description: "",
+      fields: [],
+    },
+    mode: "onChange",
+  });
+
+  const { control, handleSubmit, reset } = methods;
+
+  const { fields, move } = useFieldArray({
+    control,
+    name: "fields",
+  });
+
+  useEffect(() => {
+    if (!row) {
+      return;
+    }
+
+    reset({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      fields: row.fields.map((field) => ({ value: field })),
+    });
+  }, [row, reset]);
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -104,7 +140,7 @@ export function TemplateEditModal({
     }),
   );
 
-  const fieldIds = fields.map((_, index) => String(index));
+  const fieldIds = fields.map((field) => field.id);
 
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -120,33 +156,49 @@ export function TemplateEditModal({
       return;
     }
 
-    onFieldsReorder(arrayMove(fields, oldIndex, newIndex));
+    move(oldIndex, newIndex);
+  };
+
+  const onSubmit = (data: TemplateEditFormValues) => {
+    onSubmitClick({
+      id: data.id,
+      name: data.name.trim(),
+      description: data.description.trim(),
+      fields: data.fields.map((field) => field.value.trim()),
+    });
   };
 
   return (
-    <Dialog open={open} onClose={onCancel} fullWidth maxWidth="md">
-      <DialogTitle>Edit Template</DialogTitle>
-      <DialogContent>
+    <FormDialog<TemplateEditFormValues>
+      open={open}
+      title="Edit Template"
+      methods={methods}
+      content={
         <Stack spacing={2} sx={{ mt: 0.5 }}>
-          <TextField
+          <FormTextField<TemplateEditFormValues>
+            name="name"
             label="Template name"
-            value={name}
-            onChange={(event) => onNameChange(event.target.value)}
-            fullWidth
           />
-          <TextField
+          <FormTextField<TemplateEditFormValues>
+            name="description"
             label="Template description"
-            value={description}
-            onChange={(event) => onDescriptionChange(event.target.value)}
-            fullWidth
             multiline
             minRows={2}
           />
 
-          <Typography variant="subtitle1">Template Fields (drag to reorder)</Typography>
+          <Typography variant="subtitle1">
+            Template Fields (drag to reorder)
+          </Typography>
 
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-            <SortableContext items={fieldIds} strategy={verticalListSortingStrategy}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={onDragEnd}
+          >
+            <SortableContext
+              items={fieldIds}
+              strategy={verticalListSortingStrategy}
+            >
               <List
                 dense
                 sx={{
@@ -160,26 +212,18 @@ export function TemplateEditModal({
               >
                 {fields.map((field, index) => (
                   <SortableFieldItem
-                    key={`${index}-${field}`}
-                    id={String(index)}
+                    key={field.id}
+                    id={field.id}
                     index={index}
-                    value={field}
-                    onFieldChange={onFieldChange}
                   />
                 ))}
               </List>
             </SortableContext>
           </DndContext>
         </Stack>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button variant="outlined" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button variant="contained" onClick={onSubmit} disabled={submitDisabled}>
-          Submit
-        </Button>
-      </DialogActions>
-    </Dialog>
+      }
+      onCancel={onCancelClick}
+      onSubmit={handleSubmit(onSubmit)}
+    />
   );
 }
