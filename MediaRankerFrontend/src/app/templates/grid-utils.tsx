@@ -10,7 +10,7 @@ export type TemplateRow = {
   updatedAt: string;
   isSystem: boolean;
   isTemporary?: boolean;
-  fields: string[];
+  templateFields: string[];
 };
 
 export type TemplateDraft = {

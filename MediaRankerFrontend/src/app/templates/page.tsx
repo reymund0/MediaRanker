@@ -25,7 +25,7 @@ const INITIAL_ROWS: TemplateRow[] = [
     description: "Base review template seeded by the system.",
     updatedAt: "2026-03-01 09:10",
     isSystem: true,
-    fields: ["Title", "Rating", "Summary", "Would Recommend"],
+    templateFields: ["Title", "Rating", "Summary", "Would Recommend"],
   },
   {
     id: "user-1",
@@ -33,7 +33,7 @@ const INITIAL_ROWS: TemplateRow[] = [
     description: "Template focused on episode pacing and art quality.",
     updatedAt: "2026-03-02 13:45",
     isSystem: false,
-    fields: ["Series", "Episode", "Animation", "Pacing", "Overall Score"],
+    templateFields: ["Series", "Episode", "Animation", "Pacing", "Overall Score"],
   },
 ];
 
@@ -82,7 +82,7 @@ export default function TemplatesPage() {
               ...row,
               name: data.name,
               description: data.description,
-              fields: [...data.fields],
+              templateFields: [...data.templateFields],
               updatedAt: formattedUpdatedAt,
               isTemporary: false,
             }
@@ -104,7 +104,7 @@ export default function TemplatesPage() {
       updatedAt: "-",
       isSystem: false,
       isTemporary: true,
-      fields: ["Field 1", "Field 2", "Field 3"],
+      templateFields: ["Field 1", "Field 2", "Field 3"],
     };
 
     setRows((prev) => [newRow, ...prev]);
@@ -179,7 +179,7 @@ export default function TemplatesPage() {
                     id: editingRow.id,
                     name: editingRow.name,
                     description: editingRow.description,
-                    fields: editingRow.fields,
+                    templateFields: editingRow.templateFields,
                   }
                 : null
             }
