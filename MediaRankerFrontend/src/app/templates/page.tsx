@@ -1,20 +1,11 @@
 "use client";
 
 import AddIcon from "@mui/icons-material/Add";
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
 import { GridColDef } from "@mui/x-data-grid";
 import { useEffect, useMemo, useState } from "react";
 import { BaseDataGrid } from "@/lib/components/data-grid/base-data-grid";
-import {
-  TemplateEditModal,
-} from "./template-edit-modal";
+import { TemplateEditModal } from "./template-edit-modal";
 import { buildTemplateColumns, TemplateRow } from "./grid-utils";
 import { TemplateDto, TemplateUpsertRequest } from "./contracts";
 import { useQuery } from "@/lib/api/use-query";
@@ -30,29 +21,43 @@ export default function TemplatesPage() {
 
   const [rows, setRows] = useState<TemplateRow[]>([]);
   const [deleteRowId, setDeleteRowId] = useState<number | undefined>(undefined);
-  const [editingRowId, setEditingRowId] = useState<number | undefined>(undefined);
+  const [editingRowId, setEditingRowId] = useState<number | undefined>(
+    undefined,
+  );
   const editingRow = useMemo(
     () => rows.find((row) => row.id === editingRowId) ?? undefined,
     [rows, editingRowId],
   );
 
-  const { data: templates, isLoading, isError } = useQuery<TemplateDto[]>({
+  const {
+    data: templates,
+    isLoading,
+    isError,
+  } = useQuery<TemplateDto[]>({
     route: "/api/templates",
     queryKey: ["templates"],
     enabled: !!userId,
   });
 
   useEffect(() => {
-    if (templates) {
-      // Sort fields by position (API might not return them in order).
-      setRows(templates.map((template) => ({
-        ...template,
-        fields: template.fields.sort((a, b) => a.position - b.position),
-      })));
-    }
+    const updateRows = async () => {
+      if (templates) {
+        // Sort fields by position (API might not return them in order).
+        setRows(
+          templates.map((template) => ({
+            ...template,
+            fields: template.fields.sort((a, b) => a.position - b.position),
+          })),
+        );
+      }
+    };
+    updateRows();
   }, [templates]);
 
-  const { mutate: upsertTemplate } = useMutation<TemplateUpsertRequest, TemplateDto>({
+  const { mutate: upsertTemplate } = useMutation<
+    TemplateUpsertRequest,
+    TemplateDto
+  >({
     route: "/api/templates",
     method: "POST",
   });
@@ -61,7 +66,6 @@ export default function TemplatesPage() {
     route: (id) => `/api/templates/${id}`,
     method: "DELETE",
   });
-
 
   const onEditClick = (row: TemplateRow) => {
     setEditingRowId(row.id);
@@ -87,11 +91,15 @@ export default function TemplatesPage() {
         // Update the in-edit row with the response.
         setRows((prev) =>
           prev.map((row) =>
-            row.id !== editingRowId ? row : {
-              ...response,
-              fields: response.fields.sort((a, b) => a.position - b.position),
-            }
-          )
+            row.id !== editingRowId
+              ? row
+              : {
+                  ...response,
+                  fields: response.fields.sort(
+                    (a, b) => a.position - b.position,
+                  ),
+                },
+          ),
         );
 
         setEditingRowId(undefined);
@@ -100,7 +108,6 @@ export default function TemplatesPage() {
         showError(error.message);
       },
     });
-
   };
 
   const addTemplate = () => {
@@ -122,14 +129,14 @@ export default function TemplatesPage() {
   const onDeleteClick = (row: TemplateRow) => {
     setDeleteRowId(row.id);
   };
-  
+
   const onDeleteConfirm = async (rowId: number) => {
-   // If somehow the delete icon was pressed on a new row that hasn't been saved yet.
+    // If somehow the delete icon was pressed on a new row that hasn't been saved yet.
     if (rowId === 0) {
       setRows((prev) => prev.filter((candidate) => candidate.id !== rowId));
       return;
     }
-    
+
     deleteTemplate(rowId, {
       onSuccess: () => {
         showSuccess("Template deleted successfully");
@@ -167,10 +174,7 @@ export default function TemplatesPage() {
               </Typography>
             </Box>
 
-            <PrimaryButton
-              startIcon={<AddIcon />}
-              onClick={addTemplate}
-            >
+            <PrimaryButton startIcon={<AddIcon />} onClick={addTemplate}>
               Add Template
             </PrimaryButton>
           </Stack>
@@ -209,7 +213,9 @@ export default function TemplatesPage() {
               confirmLabel="Delete"
               confirmLoading={false}
             >
-              {"Are you sure you want to delete " + rows.find((r) => r.id === deleteRowId)?.name + " template?"}
+              {"Are you sure you want to delete " +
+                rows.find((r) => r.id === deleteRowId)?.name +
+                " template?"}
             </BaseDialog>
           )}
         </CardContent>

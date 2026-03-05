@@ -14,7 +14,7 @@ export class ProblemDetailsError extends Error implements ProblemDetails {
   public detail?: string;
   public instance?: string;
   // Index signature to support extension members
-  [key: string]: any;
+  [key: string]: unknown;
 
   constructor(problemDetails: ProblemDetails) {
     // Call the parent Error constructor with the detail or title as the message

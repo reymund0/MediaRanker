@@ -1,18 +1,28 @@
-import { closestCenter, DndContext, DragEndEvent, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities"
+import {
+  closestCenter,
+  DndContext,
+  DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { IconButton, List, ListItem } from "@mui/material";
-import { useEffect, useState } from "react";
 import { useFieldArray, useFormContext } from "react-hook-form";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
-
-
 export interface FormDnDListProps {
-  name: string,
-  onItemRemove?: (index: number) => void,
-  itemContent: (index: number) => React.ReactNode
+  name: string;
+  onItemRemove?: (index: number) => void;
+  itemContent: (index: number) => React.ReactNode;
 }
 
 export function FormDnDList(props: FormDnDListProps) {
@@ -21,7 +31,7 @@ export function FormDnDList(props: FormDnDListProps) {
   const { fields, move } = useFieldArray({
     control,
     name: props.name,
-    keyName: "dndId"
+    keyName: "dndId",
   });
 
   const dndFieldIds = fields.map((field) => field.dndId);
@@ -48,7 +58,7 @@ export function FormDnDList(props: FormDnDListProps) {
     }
 
     move(oldIndex, newIndex);
-  }
+  };
 
   return (
     <DndContext
@@ -58,7 +68,8 @@ export function FormDnDList(props: FormDnDListProps) {
     >
       <SortableContext
         items={dndFieldIds}
-        strategy={verticalListSortingStrategy}>
+        strategy={verticalListSortingStrategy}
+      >
         <List
           dense
           sx={{
@@ -69,29 +80,27 @@ export function FormDnDList(props: FormDnDListProps) {
             overflow: "hidden",
             backgroundColor: "background.paper",
           }}
-        >{
-            fields.map((field, index) => (
-              <SortableItem
-                key={field.dndId}
-                id={field.dndId}
-                index={index}
-                itemContent={props.itemContent}
-                onRemove={props.onItemRemove}
-              />
-            ))}
+        >
+          {fields.map((field, index) => (
+            <SortableItem
+              key={field.dndId}
+              id={field.dndId}
+              index={index}
+              itemContent={props.itemContent}
+              onRemove={props.onItemRemove}
+            />
+          ))}
         </List>
-
       </SortableContext>
-
     </DndContext>
-  )
+  );
 }
 
 interface SortableItemProps {
-  id: string,
-  index: number,
-  itemContent: (index: number) => React.ReactNode
-  onRemove?: (index: number) => void
+  id: string;
+  index: number;
+  itemContent: (index: number) => React.ReactNode;
+  onRemove?: (index: number) => void;
 }
 
 function SortableItem(props: SortableItemProps) {
@@ -101,15 +110,17 @@ function SortableItem(props: SortableItemProps) {
   return (
     <ListItem
       ref={setNodeRef}
-      secondaryAction={props.onRemove ? (
-        <IconButton
-          size="small"
-          color="error"
-          onClick={() => props.onRemove?.(props.index)}
-        >
-          <DeleteOutlineIcon fontSize="small" />
-        </IconButton>
-      ) : null}
+      secondaryAction={
+        props.onRemove ? (
+          <IconButton
+            size="small"
+            color="error"
+            onClick={() => props.onRemove?.(props.index)}
+          >
+            <DeleteOutlineIcon fontSize="small" />
+          </IconButton>
+        ) : null
+      }
       sx={{
         borderBottom: "1px solid",
         borderColor: "divider",
@@ -125,5 +136,5 @@ function SortableItem(props: SortableItemProps) {
       </IconButton>
       {props.itemContent(props.index)}
     </ListItem>
-  )
+  );
 }

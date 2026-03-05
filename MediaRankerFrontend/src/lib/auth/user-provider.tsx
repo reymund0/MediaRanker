@@ -60,7 +60,14 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   }, [pathname, router]);
 
   return (
-    <UserContext.Provider value={{ userId: user?.userId, username: user?.username, sessionToken: session?.tokens?.idToken?.toString(), isAuthenticated: !!user }}>
+    <UserContext.Provider
+      value={{
+        userId: user?.userId,
+        username: user?.username,
+        sessionToken: session?.tokens?.idToken?.toString(),
+        isAuthenticated: !!user,
+      }}
+    >
       {children}
     </UserContext.Provider>
   );

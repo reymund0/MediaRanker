@@ -52,7 +52,9 @@ export default function Test() {
   return (
     <div>
       Test page signed in as{" "}
-      {userContext.username ? `(${userContext.username})` : "(not authenticated)"}
+      {userContext.username
+        ? `(${userContext.username})`
+        : "(not authenticated)"}
       <br />
       <br />
       <PrimaryButton

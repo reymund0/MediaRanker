@@ -2,7 +2,6 @@ import { Box, Stack, Typography } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useEffect } from "react";
 import { FormDialog } from "@/lib/components/feedback/dialog/form-dialog";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
 import { FormDnDList } from "@/lib/components/data-display/form-dnd-list";
@@ -53,7 +52,7 @@ export function TemplateEditModal({
     mode: "onChange",
   });
 
-  const { handleSubmit, setValue, getValues, watch } = methods;
+  const { handleSubmit, setValue, getValues } = methods;
 
   const onSubmitClick = (data: TemplateEditFormValues) => {
     onSubmit({
@@ -80,9 +79,6 @@ export function TemplateEditModal({
     setValue("fields", newFields, { shouldValidate: true, shouldDirty: true });
   };
 
-  const templateFields = watch("fields");
-  console.log("templateFields", templateFields);
-
   return (
     <FormDialog<TemplateEditFormValues>
       open={open}
@@ -92,37 +88,37 @@ export function TemplateEditModal({
       methods={methods}
     >
       <Stack spacing={2} sx={{ mt: 1 }}>
-          <FormTextField<TemplateEditFormValues>
-            name="name"
-            label="Template name"
-          />
-          <FormTextField<TemplateEditFormValues>
-            name="description"
-            label="Template description"
-            multiline
-            minRows={2}
-          />
+        <FormTextField<TemplateEditFormValues>
+          name="name"
+          label="Template name"
+        />
+        <FormTextField<TemplateEditFormValues>
+          name="description"
+          label="Template description"
+          multiline
+          minRows={2}
+        />
 
-          <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Typography variant="subtitle1">
-              Template Fields (drag to reorder)
-            </Typography>
-            <PrimaryButton onClick={handleAddField}>Add Field</PrimaryButton>
-          </Box>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Typography variant="subtitle1">
+            Template Fields (drag to reorder)
+          </Typography>
+          <PrimaryButton onClick={handleAddField}>Add Field</PrimaryButton>
+        </Box>
 
-          <FormDnDList
-            name="fields"
-            onItemRemove={handleRemoveField}
-            itemContent={(index) => (
-              <FormTextField<TemplateEditFormValues>
-                name={`fields.${index}.name`}
-                placeholder={`Field ${index + 1}`}
-                size="small"
-                sx={{ pr: 4 }}
-              />
-            )}
-          />
-        </Stack>
+        <FormDnDList
+          name="fields"
+          onItemRemove={handleRemoveField}
+          itemContent={(index) => (
+            <FormTextField<TemplateEditFormValues>
+              name={`fields.${index}.name`}
+              placeholder={`Field ${index + 1}`}
+              size="small"
+              sx={{ pr: 4 }}
+            />
+          )}
+        />
+      </Stack>
     </FormDialog>
   );
 }

@@ -15,19 +15,29 @@ export interface UseMutationOptionsType<TRequest, TResponse> extends Omit<
   data?: TRequest;
 }
 
-export const useMutation = <TRequest = unknown, TResponse = unknown>(options: UseMutationOptionsType<TRequest, TResponse>) => {
+export const useMutation = <TRequest = unknown, TResponse = unknown>(
+  options: UseMutationOptionsType<TRequest, TResponse>,
+) => {
   const user = useUser();
   const token = user.sessionToken;
 
-  const mutation = useTanstackMutation<TResponse, ProblemDetailsError, TRequest>({
+  const mutation = useTanstackMutation<
+    TResponse,
+    ProblemDetailsError,
+    TRequest
+  >({
     mutationFn: async (data) => {
-      const route = typeof options.route === "function" ? options.route(data) : options.route;
-      return httpRequest<TRequest, TResponse>({ ...options, route, data }, token);
+      const route =
+        typeof options.route === "function"
+          ? options.route(data)
+          : options.route;
+      return httpRequest<TRequest, TResponse>(
+        { ...options, route, data },
+        token,
+      );
     },
     ...options,
   });
 
   return mutation;
-}
-
-
+};

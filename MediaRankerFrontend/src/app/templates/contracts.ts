@@ -1,5 +1,3 @@
-// I need some contracts in here.
-
 // DTOS
 
 export interface TemplateFieldDto {

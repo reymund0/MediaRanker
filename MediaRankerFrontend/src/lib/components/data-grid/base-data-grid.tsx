@@ -1,7 +1,12 @@
 import { Box, Typography, styled } from "@mui/material";
-import { DataGrid, DataGridProps, GridOverlay, GridValidRowModel } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  DataGridProps,
+  GridOverlay,
+  GridValidRowModel,
+} from "@mui/x-data-grid";
 
-const StyledGridOverlay = styled(GridOverlay)(({ theme }) => ({
+const StyledGridOverlay = styled(GridOverlay)(() => ({
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
@@ -17,7 +22,9 @@ function ErrorOverlay() {
   );
 }
 
-interface BaseDataGridProps<R extends GridValidRowModel> extends DataGridProps<R> {
+interface BaseDataGridProps<
+  R extends GridValidRowModel,
+> extends DataGridProps<R> {
   error?: boolean;
 }
 

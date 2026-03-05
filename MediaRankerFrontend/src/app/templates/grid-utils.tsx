@@ -63,7 +63,9 @@ export function buildTemplateColumns({
       flex: 1,
       minWidth: 150,
       sortable: false,
-      renderCell: (params: GridRenderCellParams<TemplateRow, TemplateFieldRow[]>) => (
+      renderCell: (
+        params: GridRenderCellParams<TemplateRow, TemplateFieldRow[]>,
+      ) => (
         <Typography
           color="text.secondary"
           variant="body2"

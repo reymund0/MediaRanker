@@ -35,7 +35,7 @@ export const httpRequest = async <TRequest, TResponse>(
   }
 
   return body as TResponse;
-}
+};
 
 const normalizeProblemDetails = (
   body: unknown,
