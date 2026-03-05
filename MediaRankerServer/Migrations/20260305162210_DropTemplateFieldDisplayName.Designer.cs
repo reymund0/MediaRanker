@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MediaRankerServer.Migrations
 {
     [DbContext(typeof(PostgreSQLContext))]
-    [Migration("20260304232554_DropTemplateFieldDisplayName")]
+    [Migration("20260305162210_DropTemplateFieldDisplayName")]
     partial class DropTemplateFieldDisplayName
     {
         /// <inheritdoc />
@@ -215,7 +215,7 @@ namespace MediaRankerServer.Migrations
                     b.HasKey("Id")
                         .HasName("pk_templates");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("Id")
                         .HasDatabaseName("uq_templates_is_system")
                         .HasFilter("id < 0");
 
@@ -256,14 +256,6 @@ namespace MediaRankerServer.Migrations
 
                     b.HasIndex("TemplateId")
                         .HasDatabaseName("ix_template_fields_template_id");
-
-                    b.HasIndex("TemplateId", "Name")
-                        .IsUnique()
-                        .HasDatabaseName("uq_template_fields_template_name");
-
-                    b.HasIndex("TemplateId", "Position")
-                        .IsUnique()
-                        .HasDatabaseName("uq_template_fields_template_position");
 
                     b.ToTable("template_fields", (string)null);
                 });

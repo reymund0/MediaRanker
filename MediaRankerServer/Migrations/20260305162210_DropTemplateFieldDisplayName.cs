@@ -14,6 +14,14 @@ namespace MediaRankerServer.Migrations
                 name: "uq_templates_system_name",
                 table: "templates");
 
+            migrationBuilder.DropIndex(
+                name: "uq_template_fields_template_name",
+                table: "template_fields");
+
+            migrationBuilder.DropIndex(
+                name: "uq_template_fields_template_position",
+                table: "template_fields");
+
             migrationBuilder.DropColumn(
                 name: "display_name",
                 table: "template_fields");
@@ -21,7 +29,7 @@ namespace MediaRankerServer.Migrations
             migrationBuilder.CreateIndex(
                 name: "uq_templates_is_system",
                 table: "templates",
-                column: "name",
+                column: "id",
                 filter: "id < 0");
         }
 
@@ -44,6 +52,18 @@ namespace MediaRankerServer.Migrations
                 table: "templates",
                 column: "name",
                 filter: "user_id = 'system'");
+
+            migrationBuilder.CreateIndex(
+                name: "uq_template_fields_template_name",
+                table: "template_fields",
+                columns: new[] { "template_id", "name" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "uq_template_fields_template_position",
+                table: "template_fields",
+                columns: new[] { "template_id", "position" },
+                unique: true);
         }
     }
 }

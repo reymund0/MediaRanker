@@ -14,8 +14,8 @@ export interface TemplateDto {
   userId: string;
   name: string;
   description: string | null;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
   fields: TemplateFieldDto[];
 }
 

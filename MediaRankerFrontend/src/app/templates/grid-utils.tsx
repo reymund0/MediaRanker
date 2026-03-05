@@ -2,6 +2,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { Chip, IconButton, Stack, Typography } from "@mui/material";
 import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import { format } from "date-fns";
 import { TemplateDto, TemplateFieldDto } from "./contracts";
 
 export type TemplateRow = Omit<TemplateDto, "id"> & {
@@ -25,7 +26,7 @@ export function buildTemplateColumns({
     {
       field: "name",
       headerName: "Name",
-      flex: 1,
+      flex: 2,
       minWidth: 220,
       sortable: false,
       renderCell: (params: GridRenderCellParams<TemplateRow, string>) => {
@@ -47,7 +48,7 @@ export function buildTemplateColumns({
     {
       field: "description",
       headerName: "Description",
-      flex: 1.5,
+      flex: 5,
       minWidth: 320,
       sortable: false,
       renderCell: (params: GridRenderCellParams<TemplateRow, string>) => (
@@ -57,12 +58,31 @@ export function buildTemplateColumns({
       ),
     },
     {
-      field: "updatedAt",
-      headerName: "UpdatedAt",
-      width: 170,
+      field: "fields",
+      headerName: "Fields",
+      flex: 1,
+      minWidth: 150,
       sortable: false,
-      renderCell: (params: GridRenderCellParams<TemplateRow, string>) => (
-        <Typography color="text.secondary">{params.value || "-"}</Typography>
+      renderCell: (params: GridRenderCellParams<TemplateRow, TemplateFieldRow[]>) => (
+        <Typography
+          color="text.secondary"
+          variant="body2"
+          sx={{ wordBreak: "break-word" }}
+        >
+          {params.value?.map((field) => field.name).join(", ") || "-"}
+        </Typography>
+      ),
+    },
+    {
+      field: "updatedAt",
+      headerName: "Updated At",
+      flex: 1,
+      minWidth: 170,
+      sortable: false,
+      renderCell: (params: GridRenderCellParams<TemplateRow, Date>) => (
+        <Typography color="text.secondary">
+          {params.value ? format(params.value, "PPp") : "-"}
+        </Typography>
       ),
     },
     {

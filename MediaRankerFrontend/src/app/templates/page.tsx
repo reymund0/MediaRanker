@@ -44,7 +44,11 @@ export default function TemplatesPage() {
 
   useEffect(() => {
     if (templates) {
-      setRows(templates);
+      // Sort fields by position (API might not return them in order).
+      setRows(templates.map((template) => ({
+        ...template,
+        fields: template.fields.sort((a, b) => a.position - b.position),
+      })));
     }
   }, [templates]);
 
@@ -78,7 +82,10 @@ export default function TemplatesPage() {
         // Update the in-edit row with the response.
         setRows((prev) =>
           prev.map((row) =>
-            row.id === editingRowId ? response : row
+            row.id !== editingRowId ? row : {
+              ...response,
+              fields: response.fields.sort((a, b) => a.position - b.position),
+            }
           )
         );
       },
@@ -97,8 +104,8 @@ export default function TemplatesPage() {
       userId: userId!,
       name: "",
       description: null,
-      createdAt: "-",
-      updatedAt: "-",
+      createdAt: new Date(),
+      updatedAt: new Date(),
       fields: [],
     };
 
@@ -160,7 +167,6 @@ export default function TemplatesPage() {
               hideFooter
               loading={isLoading}
               error={isError}
-              rowHeight={64}
               rows={rows}
               columns={columns}
             />

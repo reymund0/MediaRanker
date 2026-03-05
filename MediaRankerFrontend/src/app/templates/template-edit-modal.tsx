@@ -45,9 +45,9 @@ export function TemplateEditModal({
       id: row.id,
       name: row.name,
       description: row.description || undefined,
-      fields: row.fields.map((templateField) => ({ 
-        id: templateField.id, 
-        name: templateField.name 
+      fields: row.fields.map((templateField) => ({
+        id: templateField.id,
+        name: templateField.name,
       })),
     },
     mode: "onChange",

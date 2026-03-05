@@ -69,7 +69,7 @@ public class Template
                 .HasDatabaseName("uq_templates_user_name");
 
             // Partial unique index for system templates (name unique among system templates)
-            builder.HasIndex(t => t.Name)
+            builder.HasIndex(t => t.Id)
                 .HasDatabaseName("uq_templates_is_system")
                 .HasFilter("id < 0");
         }

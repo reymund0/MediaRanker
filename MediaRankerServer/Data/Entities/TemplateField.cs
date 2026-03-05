@@ -47,17 +47,9 @@ public class TemplateField
                 .WithOne(rms => rms.TemplateField)
                 .HasForeignKey(rms => rms.TemplateFieldId);
 
-            // Indexes & unique constraints
+            // Indexes
             builder.HasIndex(tf => tf.TemplateId)
                 .HasDatabaseName("ix_template_fields_template_id");
-
-            builder.HasIndex(tf => new { tf.TemplateId, tf.Name })
-                .IsUnique()
-                .HasDatabaseName("uq_template_fields_template_name");
-
-            builder.HasIndex(tf => new { tf.TemplateId, tf.Position })
-                .IsUnique()
-                .HasDatabaseName("uq_template_fields_template_position");
         }
     }
 }

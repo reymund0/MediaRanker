@@ -35,6 +35,7 @@ export function BaseDataGrid<R extends GridValidRowModel>(
           ...props.slots,
         }}
         {...rest}
+        getRowHeight={() => "auto"}
         sx={{
           border: 0,
           "& .MuiDataGrid-columnHeaders": {
@@ -44,7 +45,9 @@ export function BaseDataGrid<R extends GridValidRowModel>(
           },
           "& .MuiDataGrid-cell": {
             borderBottomColor: "divider",
+            display: "flex",
             alignItems: "center",
+            py: 1,
           },
           ...props.sx,
         }}
