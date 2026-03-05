@@ -10,7 +10,7 @@ export interface UseMutationOptionsType<TRequest, TResponse> extends Omit<
   UseMutationOptions<TResponse, ProblemDetailsError, TRequest>,
   "mutationFn"
 > {
-  route: string;
+  route: string | ((data: TRequest) => string);
   method: "POST" | "PUT" | "DELETE";
   data?: TRequest;
 }
@@ -20,8 +20,10 @@ export const useMutation = <TRequest = unknown, TResponse = unknown>(options: Us
   const token = user.sessionToken;
 
   const mutation = useTanstackMutation<TResponse, ProblemDetailsError, TRequest>({
-    mutationFn: async (data) =>
-      httpRequest<TRequest, TResponse>({ ...options, data }, token),
+    mutationFn: async (data) => {
+      const route = typeof options.route === "function" ? options.route(data) : options.route;
+      return httpRequest<TRequest, TResponse>({ ...options, route, data }, token);
+    },
     ...options,
   });
 

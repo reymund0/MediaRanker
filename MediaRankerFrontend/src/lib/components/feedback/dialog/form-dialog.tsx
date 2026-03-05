@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@mui/material";
 import { FieldValues, FormProvider, UseFormReturn } from "react-hook-form";
+import { BaseDialog } from "./base-dialog";
 
 export type FormDialogProps<T extends FieldValues> = {
   open: boolean;
@@ -28,23 +29,17 @@ export function FormDialog<T extends FieldValues>({
   const { isSubmitting, isValid, isDirty } = formState;
   return (
     <FormProvider {...methods}>
-      <Dialog open={open} onClose={onCancel} fullWidth maxWidth="md">
-        <DialogTitle>{title}</DialogTitle>
-        <DialogContent>{children}</DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button variant="outlined" onClick={onCancel} disabled={isSubmitting}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={onSubmit}
-            disabled={!isValid || !isDirty}
-            loading={isSubmitting}
-          >
-            Submit
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <BaseDialog
+        open={open}
+        title={title}
+        onClose={onCancel}
+        onConfirm={onSubmit}
+        confirmDisabled={!isValid || !isDirty}
+        confirmLabel="Submit"
+        confirmLoading={isSubmitting}
+      >
+        {children}
+      </BaseDialog>
     </FormProvider>
   );
 }

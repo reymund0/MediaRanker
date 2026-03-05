@@ -22,19 +22,19 @@ import { useUser } from "@/lib/auth/user-provider";
 import { useMutation } from "@/lib/api/use-mutation";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
+import { BaseDialog } from "@/lib/components/feedback/dialog/base-dialog";
 
 export default function TemplatesPage() {
   const { showSuccess, showError } = useAlert();
   const { userId } = useUser();
 
   const [rows, setRows] = useState<TemplateRow[]>([]);
+  const [deleteRowId, setDeleteRowId] = useState<number | undefined>(undefined);
   const [editingRowId, setEditingRowId] = useState<number | undefined>(undefined);
   const editingRow = useMemo(
     () => rows.find((row) => row.id === editingRowId) ?? undefined,
     [rows, editingRowId],
   );
-
-  console.log("editingRow", editingRow);
 
   const { data: templates, isLoading, isError } = useQuery<TemplateDto[]>({
     route: "/api/templates",
@@ -57,6 +57,11 @@ export default function TemplatesPage() {
     method: "POST",
   });
 
+  const { mutate: deleteTemplate } = useMutation<number, void>({
+    route: (id) => `/api/templates/${id}`,
+    method: "DELETE",
+  });
+
 
   const onEditClick = (row: TemplateRow) => {
     setEditingRowId(row.id);
@@ -75,8 +80,8 @@ export default function TemplatesPage() {
     setEditingRowId(undefined);
   };
 
-  const submitEditing = (data: TemplateUpsertRequest) => {
-    upsertTemplate(data, {
+  const submitEditing = async (data: TemplateUpsertRequest) => {
+    await upsertTemplate(data, {
       onSuccess: (response) => {
         showSuccess("Template saved successfully");
         // Update the in-edit row with the response.
@@ -88,13 +93,14 @@ export default function TemplatesPage() {
             }
           )
         );
+
+        setEditingRowId(undefined);
       },
       onError: (error) => {
         showError(error.message);
       },
     });
 
-    setEditingRowId(undefined);
   };
 
   const addTemplate = () => {
@@ -114,11 +120,26 @@ export default function TemplatesPage() {
   };
 
   const onDeleteClick = (row: TemplateRow) => {
-    setRows((prev) => prev.filter((candidate) => candidate.id !== row.id));
-
-    if (editingRowId === row.id) {
-      setEditingRowId(undefined);
+    setDeleteRowId(row.id);
+  };
+  
+  const onDeleteConfirm = async (rowId: number) => {
+   // If somehow the delete icon was pressed on a new row that hasn't been saved yet.
+    if (rowId === 0) {
+      setRows((prev) => prev.filter((candidate) => candidate.id !== rowId));
+      return;
     }
+    
+    deleteTemplate(rowId, {
+      onSuccess: () => {
+        showSuccess("Template deleted successfully");
+        setRows((prev) => prev.filter((candidate) => candidate.id !== rowId));
+        setDeleteRowId(undefined);
+      },
+      onError: (error) => {
+        showError(error.message);
+      },
+    });
   };
 
   const columns: GridColDef<TemplateRow>[] = buildTemplateColumns({
@@ -178,6 +199,18 @@ export default function TemplatesPage() {
               onSubmit={submitEditing}
               onCancel={cancelEditing}
             />
+          )}
+          {deleteRowId && (
+            <BaseDialog
+              open={true}
+              onConfirm={() => onDeleteConfirm(deleteRowId)}
+              onClose={() => setDeleteRowId(undefined)}
+              title="Delete Template"
+              confirmLabel="Delete"
+              confirmLoading={false}
+            >
+              {"Are you sure you want to delete " + rows.find((r) => r.id === deleteRowId)?.name + " template?"}
+            </BaseDialog>
           )}
         </CardContent>
       </Card>
