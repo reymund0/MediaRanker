@@ -5,19 +5,18 @@ This document contains non-always-on details for how MediaRanker handles system 
 ## Source of Truth
 
 - Seed helpers are under `MediaRankerServer/Data/Seeds`.
-- Current helpers include:
-  - `SystemTemplates`
-  - `SeedUtils`
+- Current seed artifact:
+  - `SeedSystemTemplates.sql`
 
 ## Seed Identity Rules
 
 - Seed IDs are static constants.
 - Seed IDs use negative numeric values to avoid collision with DB-generated positive IDs.
-- System-owned rows use `SeedUtils.SystemUserId = "system"`.
+- System-owned identity values should be kept in seed artifacts/migrations, not scattered across domain services.
 
 ## Migration Pattern
 
-- Seed migrations call helper methods/constants (for example `SystemTemplates.GenerateSeeds()`).
+- Seed migrations should reference seed artifacts/constants rather than duplicating large literal payloads inline.
 - Avoid copying literal IDs and values directly into migrations.
 - Keep `Up` and `Down` deterministic.
 
