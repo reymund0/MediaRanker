@@ -8,9 +8,12 @@ import { FormDnDList } from "@/lib/components/data-display/form-dnd-list";
 import { TemplateUpsertRequest } from "./contracts";
 import { TemplateRow } from "./grid-utils";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
+import { MediaTypeDto } from "./contracts";
+import { FormSelect } from "@/lib/components/inputs/select/form-select";
 
 const templateEditSchema = z.object({
   id: z.number().optional(),
+  mediaTypeId: z.number(),
   name: z.string().trim().min(1, "Template name is required"),
   description: z.string().optional(),
   fields: z
@@ -28,6 +31,7 @@ type TemplateEditFormValues = z.infer<typeof templateEditSchema>;
 type TemplateEditModalProps = {
   open: boolean;
   row: TemplateRow;
+  mediaTypes: MediaTypeDto[];
   onSubmit: (data: TemplateUpsertRequest) => void;
   onCancel: () => void;
 };
@@ -35,6 +39,7 @@ type TemplateEditModalProps = {
 export function TemplateEditModal({
   open,
   row,
+  mediaTypes,
   onSubmit,
   onCancel,
 }: TemplateEditModalProps) {
@@ -42,6 +47,7 @@ export function TemplateEditModal({
     resolver: zodResolver(templateEditSchema),
     defaultValues: {
       id: row.id,
+      mediaTypeId: row.mediaType.id,
       name: row.name,
       description: row.description || undefined,
       fields: row.fields.map((templateField) => ({
@@ -57,6 +63,7 @@ export function TemplateEditModal({
   const onSubmitClick = (data: TemplateEditFormValues) => {
     onSubmit({
       id: data.id || null,
+      mediaTypeId: data.mediaTypeId,
       name: data.name.trim(),
       description: data.description?.trim() || null,
       fields: data.fields.map((templateField, index) => ({
@@ -97,6 +104,15 @@ export function TemplateEditModal({
           label="Template description"
           multiline
           minRows={2}
+        />
+
+        <FormSelect<TemplateEditFormValues>
+          name="mediaTypeId"
+          label="Media type"
+          items={mediaTypes.map((mediaType) => ({
+            id: mediaType.id,
+            label: mediaType.name,
+          }))}
         />
 
         <Box display="flex" justifyContent="space-between" alignItems="center">

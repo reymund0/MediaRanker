@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+using MediaRankerServer.Modules.Media.Services;
 
 namespace MediaRankerServer.Modules.Media;
 
@@ -6,7 +6,8 @@ public static class MediaModule
 {
     public static IServiceCollection AddMediaModule(this IServiceCollection services)
     {
-        // Placeholder for future Media services
+        services.AddScoped<IMediaService, MediaService>();
+
         return services;
     }
 }

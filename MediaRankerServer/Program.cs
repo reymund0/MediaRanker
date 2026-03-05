@@ -48,11 +48,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddDbContext<PostgreSQLContext>(options =>
 {
     options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        npgsqlOptions => {
-            npgsqlOptions.MapEnum<MediaType>("media_type");
-        }
-    );
+        builder.Configuration.GetConnectionString("DefaultConnection"));
 
     options.UseSnakeCaseNamingConvention();
 });

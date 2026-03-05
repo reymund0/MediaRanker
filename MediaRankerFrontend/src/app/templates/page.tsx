@@ -14,10 +14,18 @@ import { useMutation } from "@/lib/api/use-mutation";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { BaseDialog } from "@/lib/components/feedback/dialog/base-dialog";
+import { MediaTypeDto } from "./contracts";
 
 export default function TemplatesPage() {
   const { showSuccess, showError } = useAlert();
   const { userId } = useUser();
+
+  const { data: mediaTypes, isError: isMediaTypesError, isLoading: isMediaTypesLoading } = useQuery<MediaTypeDto[]>({
+    route: "/api/mediaTypes",
+    queryKey: ["mediaTypes"],
+    enabled: !!userId,
+  });
+
 
   const [rows, setRows] = useState<TemplateRow[]>([]);
   const [deleteRowId, setDeleteRowId] = useState<number | undefined>(undefined);
@@ -31,8 +39,8 @@ export default function TemplatesPage() {
 
   const {
     data: templates,
-    isLoading,
-    isError,
+    isLoading: isTemplatesLoading,
+    isError: isTemplatesError,
   } = useQuery<TemplateDto[]>({
     route: "/api/templates",
     queryKey: ["templates"],
@@ -113,6 +121,7 @@ export default function TemplatesPage() {
   const addTemplate = () => {
     const newRow: TemplateRow = {
       id: 0,
+      mediaType: mediaTypes?.[0] ?? { id: 0, name: "" },
       isSystem: false,
       userId: userId!,
       name: "",
@@ -190,8 +199,8 @@ export default function TemplatesPage() {
             <BaseDataGrid
               disableRowSelectionOnClick
               hideFooter
-              loading={isLoading}
-              error={isError}
+              loading={isTemplatesLoading || isMediaTypesLoading}
+              error={isTemplatesError || isMediaTypesError}
               rows={rows}
               columns={columns}
             />
@@ -202,6 +211,7 @@ export default function TemplatesPage() {
               row={editingRow}
               onSubmit={submitEditing}
               onCancel={cancelEditing}
+              mediaTypes={mediaTypes || []}
             />
           )}
           {deleteRowId && (

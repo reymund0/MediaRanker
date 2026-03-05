@@ -10,7 +10,8 @@ public class Media
     public long Id { get; set; }
 
     public string Title { get; set; } = null!;
-    public MediaType MediaType { get; set; }
+    public long MediaTypeId { get; set; }
+    public MediaType MediaType { get; set; } = null!;
     public DateOnly ReleaseDate { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
@@ -33,9 +34,8 @@ public class Media
                 .HasColumnName("title")
                 .IsRequired();
 
-            builder.Property(m => m.MediaType)
-                .HasColumnName("media_type")
-                .HasColumnType("media_type")
+            builder.Property(m => m.MediaTypeId)
+                .HasColumnName("media_type_id")
                 .IsRequired();
 
             builder.Property(m => m.ReleaseDate)
@@ -54,19 +54,23 @@ public class Media
                 .IsRequired();
 
             // Relationships
+            builder.HasOne(m => m.MediaType)
+                .WithMany()
+                .HasForeignKey(m => m.MediaTypeId);
+
             builder.HasMany(m => m.RankedMedia)
                 .WithOne(rm => rm.Media)
                 .HasForeignKey(rm => rm.MediaId);
 
             // Indexes
-            builder.HasIndex(m => new { m.MediaType })
-                .HasDatabaseName("ix_media_media_type");
+            builder.HasIndex(m => m.MediaTypeId)
+                .HasDatabaseName("ix_media_media_type_id");
 
-            builder.HasIndex(m => new { m.ReleaseDate })
+            builder.HasIndex(m => m.ReleaseDate)
                 .HasDatabaseName("ix_media_release_date");
 
             // Helps prevent duplicate media entries.
-            builder.HasIndex(m => new { m.Title, m.MediaType, m.ReleaseDate })
+            builder.HasIndex(m => new { m.Title, m.MediaTypeId, m.ReleaseDate })
                 .IsUnique()
                 .HasDatabaseName("uq_media_title_type_release_date");
         }

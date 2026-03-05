@@ -1,5 +1,10 @@
 // DTOS
 
+export interface MediaTypeDto {
+  id: number;
+  name: string;
+}
+
 export interface TemplateFieldDto {
   id: number;
   name: string;
@@ -15,6 +20,7 @@ export interface TemplateDto {
   createdAt: Date;
   updatedAt: Date;
   fields: TemplateFieldDto[];
+  mediaType: MediaTypeDto;
 }
 
 // API Request Contracts
@@ -27,6 +33,7 @@ export interface TemplateFieldUpsertRequest {
 
 export interface TemplateUpsertRequest {
   id: number | null;
+  mediaTypeId: number;
   name: string;
   description: string | null;
   fields: TemplateFieldUpsertRequest[];

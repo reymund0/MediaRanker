@@ -1,11 +1,19 @@
 using FluentValidation;
+using MediaRankerServer.Shared.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace MediaRankerServer.Modules.Templates.Contracts;
 
 public class TemplateUpsertRequestValidator : AbstractValidator<TemplateUpsertRequest>
 {
-    public TemplateUpsertRequestValidator()
+    public TemplateUpsertRequestValidator(PostgreSQLContext dbContext)
     {
+        RuleFor(request => request.MediaTypeId)
+            .NotEmpty()
+            .WithMessage("Media type is required.")
+            .Must(id => dbContext.MediaTypes.Any(mt => mt.Id == id))
+            .WithMessage("Selected media type does not exist.");
+
         RuleFor(request => request.Name)
             .Must(name => !string.IsNullOrWhiteSpace(name))
             .WithMessage("Template name is required.");

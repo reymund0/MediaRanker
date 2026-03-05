@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { FieldValues, FormProvider, UseFormReturn } from "react-hook-form";
+import { FieldValues, FormProvider, UseFormReturn, useFormState } from "react-hook-form";
 import { BaseDialog } from "./base-dialog";
 
 export type FormDialogProps<T extends FieldValues> = {
@@ -18,8 +18,8 @@ export function FormDialog<T extends FieldValues>({
   methods,
   children,
 }: FormDialogProps<T> & { children: ReactNode }) {
-  const { formState } = methods;
-  const { isSubmitting, isValid, isDirty } = formState;
+  const { control } = methods;
+  const { isSubmitting, isValid, isDirty } = useFormState({ control });
   return (
     <FormProvider {...methods}>
       <BaseDialog

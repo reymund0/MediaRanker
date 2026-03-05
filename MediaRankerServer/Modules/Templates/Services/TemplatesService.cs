@@ -19,6 +19,7 @@ public class TemplatesService(
         var templates = await dbContext.Templates
             .AsNoTracking()
             .Include(t => t.Fields)
+            .Include(t => t.MediaType)
             .Where(t => t.Id < 0 || t.UserId == userId)
             .ToListAsync(cancellationToken);
 
@@ -44,6 +45,7 @@ public class TemplatesService(
         {
             UserId = userId,
             Name = normalizedName,
+            MediaTypeId = request.MediaTypeId,
             Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim()
         };
 
@@ -94,6 +96,7 @@ public class TemplatesService(
         }
 
         template.Name = normalizedName;
+        template.MediaTypeId = request.MediaTypeId;
         template.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
         template.UpdatedAt = DateTimeOffset.UtcNow;
 
@@ -181,6 +184,7 @@ public class TemplatesService(
         var template = await dbContext.Templates
             .AsNoTracking()
             .Include(t => t.Fields)
+            .Include(t => t.MediaType)
             .Where(t => t.Id == templateId)
             .FirstOrDefaultAsync(cancellationToken);
 

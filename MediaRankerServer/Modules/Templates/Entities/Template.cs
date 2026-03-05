@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
+using MediaRankerServer.Modules.Media.Entities;
 using MediaRankerServer.Modules.Rankings.Entities;
 
 namespace MediaRankerServer.Modules.Templates.Entities;
@@ -12,12 +12,14 @@ public class Template
     public long Id { get; set; }
     public string UserId { get; set; } = null!;
 
+    public long MediaTypeId { get; set; }
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
+    public MediaType MediaType { get; set; } = null!;
     public ICollection<TemplateField> Fields { get; set; } = [];
     public ICollection<RankedMedia> RankedMedia { get; set; } = [];
 
@@ -35,6 +37,9 @@ public class Template
             builder.Property(t => t.UserId)
                 .HasColumnName("user_id")
                 .IsRequired();
+
+            builder.Property(t => t.MediaTypeId)
+                .HasColumnName("media_type_id");
 
             builder.Property(t => t.Name)
                 .HasColumnName("name")
@@ -54,6 +59,10 @@ public class Template
                 .IsRequired();
 
             // Relationships
+            builder.HasOne(t => t.MediaType)
+                .WithMany()
+                .HasForeignKey(t => t.MediaTypeId);
+
             builder.HasMany(t => t.Fields)
                 .WithOne(f => f.Template)
                 .HasForeignKey(f => f.TemplateId);

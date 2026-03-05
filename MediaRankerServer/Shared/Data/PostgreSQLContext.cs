@@ -10,6 +10,7 @@ public class PostgreSQLContext : DbContext
     public PostgreSQLContext(DbContextOptions<PostgreSQLContext> options) : base(options) { }
 
 
+    public DbSet<MediaType> MediaTypes => Set<MediaType>();
     public DbSet<Media> Media => Set<Media>();
     public DbSet<Template> Templates => Set<Template>();
     public DbSet<TemplateField> TemplateFields => Set<TemplateField>();
