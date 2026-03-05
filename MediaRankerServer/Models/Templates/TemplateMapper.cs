@@ -1,5 +1,4 @@
 using MediaRankerServer.Data.Entities;
-using System.Linq;
 
 namespace MediaRankerServer.Models.Templates;
 
@@ -10,6 +9,7 @@ public static class TemplateMapper
         return new TemplateDto
         {
             Id = template.Id,
+            IsSystem = template.Id < 0,
             UserId = template.UserId,
             Name = template.Name,
             Description = template.Description,
@@ -28,7 +28,6 @@ public static class TemplateMapper
         {
             Id = field.Id,
             Name = field.Name,
-            DisplayName = field.DisplayName,
             Position = field.Position
         };
     }

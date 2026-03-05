@@ -10,47 +10,51 @@ import {
   Typography,
 } from "@mui/material";
 import { GridColDef } from "@mui/x-data-grid";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BaseDataGrid } from "@/lib/components/data-grid/base-data-grid";
 import {
   TemplateEditModal,
-  TemplateEditSubmitData,
 } from "./template-edit-modal";
 import { buildTemplateColumns, TemplateRow } from "./grid-utils";
-
-const INITIAL_ROWS: TemplateRow[] = [
-  {
-    id: "system-1",
-    name: "Default Movie Review",
-    description: "Base review template seeded by the system.",
-    updatedAt: "2026-03-01 09:10",
-    isSystem: true,
-    templateFields: ["Title", "Rating", "Summary", "Would Recommend"],
-  },
-  {
-    id: "user-1",
-    name: "Anime Weekly",
-    description: "Template focused on episode pacing and art quality.",
-    updatedAt: "2026-03-02 13:45",
-    isSystem: false,
-    templateFields: ["Series", "Episode", "Animation", "Pacing", "Overall Score"],
-  },
-];
+import { TemplateDto, TemplateUpsertRequest } from "./contracts";
+import { useQuery } from "@/lib/api/use-query";
+import { useUser } from "@/lib/auth/user-provider";
+import { useMutation } from "@/lib/api/use-mutation";
+import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
+import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 
 export default function TemplatesPage() {
-  const [rows, setRows] = useState<TemplateRow[]>(INITIAL_ROWS);
-  const [editingRowId, setEditingRowId] = useState<string | null>(null);
+  const { showSuccess, showError } = useAlert();
+  const { userId } = useUser();
 
+  const [rows, setRows] = useState<TemplateRow[]>([]);
+  const [editingRowId, setEditingRowId] = useState<number | undefined>(undefined);
   const editingRow = useMemo(
-    () => rows.find((row) => row.id === editingRowId) ?? null,
+    () => rows.find((row) => row.id === editingRowId) ?? undefined,
     [rows, editingRowId],
   );
 
-  const onEditClick = (row: TemplateRow) => {
-    if (row.isSystem) {
-      return;
-    }
+  console.log("editingRow", editingRow);
 
+  const { data: templates, isLoading, isError } = useQuery<TemplateDto[]>({
+    route: "/api/templates",
+    queryKey: ["templates"],
+    enabled: !!userId,
+  });
+
+  useEffect(() => {
+    if (templates) {
+      setRows(templates);
+    }
+  }, [templates]);
+
+  const { mutate: upsertTemplate } = useMutation<TemplateUpsertRequest, TemplateDto>({
+    route: "/api/templates",
+    method: "POST",
+  });
+
+
+  const onEditClick = (row: TemplateRow) => {
     setEditingRowId(row.id);
   };
 
@@ -59,63 +63,54 @@ export default function TemplatesPage() {
       return;
     }
 
-    if (editingRow.isTemporary) {
+    // Clear temporary new row.
+    if (editingRow.id === 0) {
       setRows((prev) => prev.filter((row) => row.id !== editingRow.id));
     }
 
-    setEditingRowId(null);
+    setEditingRowId(undefined);
   };
 
-  const submitEditing = (data: TemplateEditSubmitData) => {
-    const now = new Date();
-    const formattedUpdatedAt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-      now.getDate(),
-    ).padStart(
-      2,
-      "0",
-    )} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const submitEditing = (data: TemplateUpsertRequest) => {
+    upsertTemplate(data, {
+      onSuccess: (response) => {
+        showSuccess("Template saved successfully");
+        // Update the in-edit row with the response.
+        setRows((prev) =>
+          prev.map((row) =>
+            row.id === editingRowId ? response : row
+          )
+        );
+      },
+      onError: (error) => {
+        showError(error.message);
+      },
+    });
 
-    setRows((prev) =>
-      prev.map((row) =>
-        row.id === data.id
-          ? {
-              ...row,
-              name: data.name,
-              description: data.description,
-              templateFields: [...data.templateFields],
-              updatedAt: formattedUpdatedAt,
-              isTemporary: false,
-            }
-          : row,
-      ),
-    );
-
-    // this is where refresh grid goes
-
-    setEditingRowId(null);
+    setEditingRowId(undefined);
   };
 
   const addTemplate = () => {
-    const id = `temp-${Date.now()}`;
     const newRow: TemplateRow = {
-      id,
-      name: "",
-      description: "",
-      updatedAt: "-",
+      id: 0,
       isSystem: false,
-      isTemporary: true,
-      templateFields: ["Field 1", "Field 2", "Field 3"],
+      userId: userId!,
+      name: "",
+      description: null,
+      createdAt: "-",
+      updatedAt: "-",
+      fields: [],
     };
 
     setRows((prev) => [newRow, ...prev]);
-    setEditingRowId(id);
+    setEditingRowId(newRow.id);
   };
 
   const onDeleteClick = (row: TemplateRow) => {
     setRows((prev) => prev.filter((candidate) => candidate.id !== row.id));
 
     if (editingRowId === row.id) {
-      setEditingRowId(null);
+      setEditingRowId(undefined);
     }
   };
 
@@ -144,13 +139,12 @@ export default function TemplatesPage() {
               </Typography>
             </Box>
 
-            <Button
-              variant="contained"
+            <PrimaryButton
               startIcon={<AddIcon />}
               onClick={addTemplate}
             >
-              Add Template +
-            </Button>
+              Add Template
+            </PrimaryButton>
           </Stack>
 
           <Box
@@ -162,30 +156,23 @@ export default function TemplatesPage() {
             }}
           >
             <BaseDataGrid
-              autoHeight
               disableRowSelectionOnClick
               hideFooter
+              loading={isLoading}
+              error={isError}
               rowHeight={64}
               rows={rows}
               columns={columns}
             />
           </Box>
-
-          <TemplateEditModal
-            open={Boolean(editingRowId)}
-            row={
-              editingRow
-                ? {
-                    id: editingRow.id,
-                    name: editingRow.name,
-                    description: editingRow.description,
-                    templateFields: editingRow.templateFields,
-                  }
-                : null
-            }
-            onSubmitClick={submitEditing}
-            onCancelClick={cancelEditing}
-          />
+          {editingRow && (
+            <TemplateEditModal
+              open={true}
+              row={editingRow}
+              onSubmit={submitEditing}
+              onCancel={cancelEditing}
+            />
+          )}
         </CardContent>
       </Card>
     </Box>

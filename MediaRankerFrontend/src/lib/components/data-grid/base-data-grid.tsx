@@ -1,15 +1,40 @@
-import { Box } from "@mui/material";
-import { DataGrid, DataGridProps, GridValidRowModel } from "@mui/x-data-grid";
+import { Box, Typography, styled } from "@mui/material";
+import { DataGrid, DataGridProps, GridOverlay, GridValidRowModel } from "@mui/x-data-grid";
 
-type BaseDataGridProps<R extends GridValidRowModel> = DataGridProps<R>;
+const StyledGridOverlay = styled(GridOverlay)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  height: "100%",
+}));
+
+function ErrorOverlay() {
+  return (
+    <StyledGridOverlay>
+      <Typography color="error">error loading records</Typography>
+    </StyledGridOverlay>
+  );
+}
+
+interface BaseDataGridProps<R extends GridValidRowModel> extends DataGridProps<R> {
+  error?: boolean;
+}
 
 export function BaseDataGrid<R extends GridValidRowModel>(
   props: BaseDataGridProps<R>,
 ) {
+  const { error, rows, ...rest } = props;
+
   return (
     <Box>
       <DataGrid
-        {...props}
+        rows={error ? [] : rows}
+        slots={{
+          noRowsOverlay: error ? ErrorOverlay : undefined,
+          ...props.slots,
+        }}
+        {...rest}
         sx={{
           border: 0,
           "& .MuiDataGrid-columnHeaders": {

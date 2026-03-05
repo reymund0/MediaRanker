@@ -1,6 +1,5 @@
 using FluentValidation;
 using MediaRankerServer.Data.Entities;
-using MediaRankerServer.Data.Seeds;
 using MediaRankerServer.Models;
 using MediaRankerServer.Models.Templates;
 using Microsoft.EntityFrameworkCore;
@@ -17,8 +16,7 @@ public class TemplatesService(
         var templates = await dbContext.Templates
             .AsNoTracking()
             .Include(t => t.Fields)
-            .Where(t => t.UserId == SeedUtils.SystemUserId || t.UserId == userId)
-            .OrderBy(t => t.Name)
+            .Where(t => t.Id < 0 || t.UserId == userId)
             .ToListAsync(cancellationToken);
 
         return [..templates.Select(TemplateMapper.Map)];
@@ -51,7 +49,6 @@ public class TemplatesService(
             template.Fields.Add(new TemplateField
             {
                 Name = fieldRequest.Name.Trim(),
-                DisplayName = fieldRequest.DisplayName.Trim(),
                 Position = fieldRequest.Position
             });
         }
@@ -72,7 +69,7 @@ public class TemplatesService(
             .FirstOrDefaultAsync(t => t.Id == templateId, cancellationToken)
             ?? throw new DomainException("Template not found.", "template_not_found");
 
-        if (template.UserId == SeedUtils.SystemUserId)
+        if (template.Id < 0)
         {
             throw new DomainException("System templates cannot be modified.", "template_forbidden");
         }
@@ -125,7 +122,6 @@ public class TemplatesService(
                 }
 
                 existingField.Name = fieldRequest.Name.Trim();
-                existingField.DisplayName = fieldRequest.DisplayName.Trim();
                 existingField.Position = fieldRequest.Position;
                 continue;
             }
@@ -133,7 +129,6 @@ public class TemplatesService(
             template.Fields.Add(new TemplateField
             {
                 Name = fieldRequest.Name.Trim(),
-                DisplayName = fieldRequest.DisplayName.Trim(),
                 Position = fieldRequest.Position
             });
         }
@@ -150,7 +145,7 @@ public class TemplatesService(
             .FirstOrDefaultAsync(t => t.Id == templateId, cancellationToken))
             ?? throw new DomainException("Template not found.", "template_not_found");
 
-        if (template.UserId == SeedUtils.SystemUserId)
+        if (template.Id < 0)
         {
             throw new DomainException("System templates cannot be deleted.", "template_forbidden");
         }

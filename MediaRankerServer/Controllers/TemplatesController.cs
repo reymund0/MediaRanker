@@ -18,18 +18,16 @@ public class TemplatesController(ITemplatesService templatesService) : Controlle
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateTemplate([FromBody] TemplateUpsertRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpsertTemplate([FromBody] TemplateUpsertRequest request, CancellationToken cancellationToken)
     {
+        TemplateDto template;
         var userId = User.GetAuthenticatedUserId();
-        var template = await templatesService.CreateTemplateAsync(userId, request, cancellationToken);
-        return Ok(template);
-    }
-
-    [HttpPut("{templateId:long}")]
-    public async Task<IActionResult> UpdateTemplate(long templateId, [FromBody] TemplateUpsertRequest request, CancellationToken cancellationToken)
-    {
-        var userId = User.GetAuthenticatedUserId();
-        var template = await templatesService.UpdateTemplateAsync(userId, templateId, request, cancellationToken);
+        if (request.Id is null) {
+            template = await templatesService.CreateTemplateAsync(userId, request, cancellationToken);       
+        } else {
+            template = await templatesService.UpdateTemplateAsync(userId, request.Id.Value, request, cancellationToken);
+        }
+        
         return Ok(template);
     }
 

@@ -5,16 +5,19 @@ import { IconButton, List, ListItem } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useFieldArray, useFormContext } from "react-hook-form";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+
 
 
 export interface FormDnDListProps {
   name: string,
+  onItemRemove?: (index: number) => void,
   itemContent: (index: number) => React.ReactNode
 }
 
 export function FormDnDList(props: FormDnDListProps) {
   const { control } = useFormContext();
-  
+
   const { fields, move } = useFieldArray({
     control,
     name: props.name,
@@ -54,8 +57,8 @@ export function FormDnDList(props: FormDnDListProps) {
       onDragEnd={onDragEnd}
     >
       <SortableContext
-      items={dndFieldIds}
-      strategy={verticalListSortingStrategy}>
+        items={dndFieldIds}
+        strategy={verticalListSortingStrategy}>
         <List
           dense
           sx={{
@@ -67,14 +70,15 @@ export function FormDnDList(props: FormDnDListProps) {
             backgroundColor: "background.paper",
           }}
         >{
-          fields.map((field, index) => (
-            <SortableItem
-              key={field.dndId}
-              id={field.dndId}
-              index={index}
-              itemContent={props.itemContent}
-            />
-          ))}
+            fields.map((field, index) => (
+              <SortableItem
+                key={field.dndId}
+                id={field.dndId}
+                index={index}
+                itemContent={props.itemContent}
+                onRemove={props.onItemRemove}
+              />
+            ))}
         </List>
 
       </SortableContext>
@@ -87,20 +91,25 @@ interface SortableItemProps {
   id: string,
   index: number,
   itemContent: (index: number) => React.ReactNode
+  onRemove?: (index: number) => void
 }
 
 function SortableItem(props: SortableItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition } =
-      useSortable({id: props.id});
+    useSortable({ id: props.id });
 
   return (
     <ListItem
       ref={setNodeRef}
-      secondaryAction={
-        <IconButton size="small" {...attributes} {...listeners}>
-          <DragIndicatorIcon color="action" fontSize="small" />
+      secondaryAction={props.onRemove ? (
+        <IconButton
+          size="small"
+          color="error"
+          onClick={() => props.onRemove?.(props.index)}
+        >
+          <DeleteOutlineIcon fontSize="small" />
         </IconButton>
-      }
+      ) : null}
       sx={{
         borderBottom: "1px solid",
         borderColor: "divider",
@@ -111,6 +120,9 @@ function SortableItem(props: SortableItemProps) {
         transition,
       }}
     >
+      <IconButton size="small" {...attributes} {...listeners}>
+        <DragIndicatorIcon color="action" fontSize="small" />
+      </IconButton>
       {props.itemContent(props.index)}
     </ListItem>
   )

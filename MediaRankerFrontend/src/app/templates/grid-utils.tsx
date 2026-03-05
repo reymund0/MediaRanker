@@ -2,26 +2,20 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { Chip, IconButton, Stack, Typography } from "@mui/material";
 import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import { TemplateDto, TemplateFieldDto } from "./contracts";
 
-export type TemplateRow = {
-  id: string;
-  name: string;
-  description: string;
-  updatedAt: string;
-  isSystem: boolean;
-  isTemporary?: boolean;
-  templateFields: string[];
+export type TemplateRow = Omit<TemplateDto, "id"> & {
+  id: number | undefined;
 };
 
-export type TemplateDraft = {
-  name: string;
-  description: string;
+export type TemplateFieldRow = Omit<TemplateFieldDto, "id"> & {
+  id: number | undefined;
 };
 
-type BuildTemplateColumnsParams = {
+interface BuildTemplateColumnsParams {
   onEditClick: (row: TemplateRow) => void;
   onDeleteClick: (row: TemplateRow) => void;
-};
+}
 
 export function buildTemplateColumns({
   onEditClick,
@@ -79,14 +73,12 @@ export function buildTemplateColumns({
       filterable: false,
       disableColumnMenu: true,
       renderCell: (params: GridRenderCellParams<TemplateRow>) => {
-        const isSystem = params.row.isSystem;
-
         return (
           <Stack direction="row" spacing={0.5}>
             <IconButton
               size="small"
               color="primary"
-              disabled={isSystem}
+              disabled={params.row.isSystem}
               onClick={() => onEditClick(params.row)}
             >
               <EditOutlinedIcon fontSize="small" />
@@ -94,7 +86,7 @@ export function buildTemplateColumns({
             <IconButton
               size="small"
               color="error"
-              disabled={isSystem}
+              disabled={params.row.isSystem}
               onClick={() => onDeleteClick(params.row)}
             >
               <DeleteOutlineIcon fontSize="small" />

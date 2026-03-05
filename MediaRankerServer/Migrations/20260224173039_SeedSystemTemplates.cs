@@ -1,6 +1,4 @@
-﻿using System.Linq;
-using MediaRankerServer.Data.Seeds;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace MediaRankerServer.Migrations
 {
@@ -10,32 +8,17 @@ namespace MediaRankerServer.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            var seeds = SystemTemplates.GenerateSeeds().ToArray();
+            migrationBuilder.Sql(@"
+                INSERT INTO templates (id, user_id, name, description)
+                VALUES (-1, 'system', 'Video Games', 'Default review template for video games.');
 
-            foreach (var (template, fields) in seeds)
-            {
-                migrationBuilder.InsertData(
-                    table: "templates",
-                    columns: ["id", "user_id", "name", "description"],
-                    values: [template.Id, template.UserId, template.Name, template.Description]
-                );
-
-                foreach (var field in fields)
-                {
-                    migrationBuilder.InsertData(
-                        table: "template_fields",
-                        columns: ["id", "template_id", "name", "display_name", "position"],
-                        values:
-                        [
-                            field.Id,
-                            field.TemplateId,
-                            field.Name,
-                            field.DisplayName,
-                            field.Position
-                        ]
-                    );
-                }
-            }
+                INSERT INTO template_fields (id, template_id, name, display_name, position)
+                VALUES 
+                    (-11, -1, 'Gameplay', 'Gameplay', 1),
+                    (-14, -1, 'Graphics', 'Graphics', 2),
+                    (-12, -1, 'Story', 'Story', 3),
+                    (-13, -1, 'Sound', 'Sound', 4);
+            ");
         }
 
         /// <inheritdoc />
@@ -44,7 +27,7 @@ namespace MediaRankerServer.Migrations
             migrationBuilder.DeleteData(
                 table: "templates",
                 keyColumn: "user_id",
-                keyValue: SeedUtils.SystemUserId
+                keyValue: "system"
             );
         }
     }

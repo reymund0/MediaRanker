@@ -12,14 +12,16 @@ const AUTH_PATHS = ["/auth/login", "/auth/signup", "/auth/confirm-signup"];
 const PUBLIC_PATHS = [...AUTH_PATHS];
 
 interface UserContextType {
-  user: AuthUser | null;
-  session: AuthSession | null;
+  userId: string | undefined;
+  username: string | undefined;
+  sessionToken: string | undefined;
   isAuthenticated: boolean;
 }
 
 const UserContext = createContext<UserContextType>({
-  user: null,
-  session: null,
+  userId: undefined,
+  username: undefined,
+  sessionToken: undefined,
   isAuthenticated: false,
 });
 
@@ -58,7 +60,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   }, [pathname, router]);
 
   return (
-    <UserContext.Provider value={{ user, session, isAuthenticated: !!user }}>
+    <UserContext.Provider value={{ userId: user?.userId, username: user?.username, sessionToken: session?.tokens?.idToken?.toString(), isAuthenticated: !!user }}>
       {children}
     </UserContext.Provider>
   );

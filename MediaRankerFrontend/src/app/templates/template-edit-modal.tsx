@@ -1,4 +1,4 @@
-import { Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -6,15 +6,19 @@ import { useEffect } from "react";
 import { FormDialog } from "@/lib/components/feedback/dialog/form-dialog";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
 import { FormDnDList } from "@/lib/components/data-display/form-dnd-list";
+import { TemplateUpsertRequest } from "./contracts";
+import { TemplateRow } from "./grid-utils";
+import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 
 const templateEditSchema = z.object({
-  id: z.string().min(1, "Template id is required"),
+  id: z.number().optional(),
   name: z.string().trim().min(1, "Template name is required"),
-  description: z.string(),
-  templateFields: z
+  description: z.string().optional(),
+  fields: z
     .array(
       z.object({
-        value: z.string().trim().min(1, "Field name is required"),
+        id: z.number().optional(),
+        name: z.string().trim().min(1, "Field name is required"),
       }),
     )
     .min(1, "At least one field is required"),
@@ -22,75 +26,72 @@ const templateEditSchema = z.object({
 
 type TemplateEditFormValues = z.infer<typeof templateEditSchema>;
 
-export type TemplateEditRowData = {
-  id: string;
-  name: string;
-  description: string;
-  templateFields: string[];
-};
-
-export type TemplateEditSubmitData = {
-  id: string;
-  name: string;
-  description: string;
-  templateFields: string[];
-};
-
 type TemplateEditModalProps = {
   open: boolean;
-  row: TemplateEditRowData | null;
-  onSubmitClick: (data: TemplateEditSubmitData) => void;
-  onCancelClick: () => void;
+  row: TemplateRow;
+  onSubmit: (data: TemplateUpsertRequest) => void;
+  onCancel: () => void;
 };
 
 export function TemplateEditModal({
   open,
   row,
-  onSubmitClick,
-  onCancelClick,
+  onSubmit,
+  onCancel,
 }: TemplateEditModalProps) {
   const methods = useForm<TemplateEditFormValues>({
     resolver: zodResolver(templateEditSchema),
     defaultValues: {
-      id: "",
-      name: "",
-      description: "",
-      templateFields: [],
+      id: row.id,
+      name: row.name,
+      description: row.description || undefined,
+      fields: row.fields.map((templateField) => ({ 
+        id: templateField.id, 
+        name: templateField.name 
+      })),
     },
     mode: "onChange",
   });
 
-  const { handleSubmit, reset } = methods;
+  const { handleSubmit, setValue, getValues, watch } = methods;
 
-  useEffect(() => {
-    if (!row) {
-      return;
-    }
-
-    reset({
-      id: row.id,
-      name: row.name,
-      description: row.description,
-      templateFields: row.templateFields.map((templateField) => ({ value: templateField })),
-    });
-  }, [row, reset]);
-
-  const onSubmit = (data: TemplateEditFormValues) => {
-    onSubmitClick({
-      id: data.id,
+  const onSubmitClick = (data: TemplateEditFormValues) => {
+    onSubmit({
+      id: data.id || null,
       name: data.name.trim(),
-      description: data.description.trim(),
-      templateFields: data.templateFields.map((templateField) => templateField.value.trim()),
+      description: data.description?.trim() || null,
+      fields: data.fields.map((templateField, index) => ({
+        id: templateField.id || null,
+        name: templateField.name.trim(),
+        position: index,
+      })),
     });
   };
+
+  const handleAddField = () => {
+    const currentFields = getValues("fields");
+    const newFields = [...currentFields, { id: undefined, name: "" }];
+    setValue("fields", newFields, { shouldValidate: true, shouldDirty: true });
+  };
+
+  const handleRemoveField = (index: number) => {
+    const currentFields = getValues("fields");
+    const newFields = currentFields.filter((_, i) => i !== index);
+    setValue("fields", newFields, { shouldValidate: true, shouldDirty: true });
+  };
+
+  const templateFields = watch("fields");
+  console.log("templateFields", templateFields);
 
   return (
     <FormDialog<TemplateEditFormValues>
       open={open}
       title="Edit Template"
+      onSubmit={handleSubmit(onSubmitClick)}
+      onCancel={onCancel}
       methods={methods}
-      content={
-        <Stack spacing={2} sx={{ mt: 0.5 }}>
+    >
+      <Stack spacing={2} sx={{ mt: 1 }}>
           <FormTextField<TemplateEditFormValues>
             name="name"
             label="Template name"
@@ -102,15 +103,19 @@ export function TemplateEditModal({
             minRows={2}
           />
 
-          <Typography variant="subtitle1">
-            Template Fields (drag to reorder)
-          </Typography>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="subtitle1">
+              Template Fields (drag to reorder)
+            </Typography>
+            <PrimaryButton onClick={handleAddField}>Add Field</PrimaryButton>
+          </Box>
 
           <FormDnDList
-            name="templateFields"
+            name="fields"
+            onItemRemove={handleRemoveField}
             itemContent={(index) => (
               <FormTextField<TemplateEditFormValues>
-                name={`templateFields.${index}.value`}
+                name={`fields.${index}.name`}
                 placeholder={`Field ${index + 1}`}
                 size="small"
                 sx={{ pr: 4 }}
@@ -118,9 +123,6 @@ export function TemplateEditModal({
             )}
           />
         </Stack>
-      }
-      onCancel={onCancelClick}
-      onSubmit={handleSubmit(onSubmit)}
-    />
+    </FormDialog>
   );
 }

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -10,7 +9,6 @@ public class TemplateField
     public long TemplateId { get; set; }
 
     public string Name { get; set; } = null!;
-    public string DisplayName { get; set; } = null!;
     public int Position { get; set; }
 
     public Template Template { get; set; } = null!;
@@ -33,10 +31,6 @@ public class TemplateField
 
             builder.Property(tf => tf.Name)
                 .HasColumnName("name")
-                .IsRequired();
-
-            builder.Property(tf => tf.DisplayName)
-                .HasColumnName("display_name")
                 .IsRequired();
 
             builder.Property(tf => tf.Position)

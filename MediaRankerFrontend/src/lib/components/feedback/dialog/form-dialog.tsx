@@ -8,30 +8,29 @@ import {
 } from "@mui/material";
 import { FieldValues, FormProvider, UseFormReturn } from "react-hook-form";
 
-export type FormDialogProps<TFieldValues extends FieldValues = FieldValues> = {
+export type FormDialogProps<T extends FieldValues> = {
   open: boolean;
   title: string;
-  content: ReactNode;
   onCancel: () => void;
   onSubmit: () => void;
-  methods: UseFormReturn<TFieldValues>;
+  methods: UseFormReturn<T>;
 };
 
-export function FormDialog<TFieldValues extends FieldValues>({
+export function FormDialog<T extends FieldValues>({
   open,
   title,
-  content,
   onCancel,
   onSubmit,
   methods,
-}: FormDialogProps<TFieldValues>) {
+  children,
+}: FormDialogProps<T> & { children: ReactNode }) {
   const { formState } = methods;
-  const { isSubmitting, isValid } = formState;
+  const { isSubmitting, isValid, isDirty } = formState;
   return (
     <FormProvider {...methods}>
       <Dialog open={open} onClose={onCancel} fullWidth maxWidth="md">
         <DialogTitle>{title}</DialogTitle>
-        <DialogContent>{content}</DialogContent>
+        <DialogContent>{children}</DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button variant="outlined" onClick={onCancel} disabled={isSubmitting}>
             Cancel
@@ -39,7 +38,7 @@ export function FormDialog<TFieldValues extends FieldValues>({
           <Button
             variant="contained"
             onClick={onSubmit}
-            disabled={!isValid}
+            disabled={!isValid || !isDirty}
             loading={isSubmitting}
           >
             Submit
