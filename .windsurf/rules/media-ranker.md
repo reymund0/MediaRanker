@@ -39,10 +39,10 @@ Do not edit build artifacts:
 
 ### Seed + Migration Conventions
 
-- Seed helpers live in `MediaRankerServer/Data/Seeds` (for example `SystemTemplates`, `SeedUtils`).
+- Seed artifacts live in `MediaRankerServer/Data/Seeds` (current seed file: `SeedSystemTemplates.sql`).
 - Seed IDs are static and negative to indicate system-seeded rows.
-- Canonical system user id: `SeedUtils.SystemUserId = "system"`.
-- Migrations should reference seed helpers/constants instead of duplicating literals.
+- Keep system-owned identity values centralized in seed artifacts/migrations instead of scattering literals across services/controllers.
+- Migrations should reference seed artifacts/constants instead of duplicating literals.
 - Treat existing migrations as immutable history; create a new migration for seed changes.
 - Keep `Down` deterministic and verify FK behavior (cascade/restrict).
 

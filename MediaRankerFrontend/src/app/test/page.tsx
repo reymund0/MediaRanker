@@ -5,10 +5,10 @@ import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 
 export default function Test() {
-  const { user } = useUser();
+  const userContext = useUser();
   const { showInfo, showSuccess, showError, closeAlert } = useAlert();
 
-  const helloWorldMutation = useMutation<string>({
+  const helloWorldMutation = useMutation<void, string>({
     route: "/api/test/helloWorld",
     method: "POST",
     onSuccess: (data) => {
@@ -19,7 +19,7 @@ export default function Test() {
     },
   });
 
-  const domainErrorMutation = useMutation<never>({
+  const domainErrorMutation = useMutation<void, never>({
     route: "/api/test/domainError",
     method: "POST",
     onSuccess: () => {
@@ -30,7 +30,7 @@ export default function Test() {
     },
   });
 
-  const unexpectedErrorMutation = useMutation<never>({
+  const unexpectedErrorMutation = useMutation<void, never>({
     route: "/api/test/unexpectedError",
     method: "POST",
     onSuccess: () => {
@@ -47,12 +47,14 @@ export default function Test() {
     mutation.mutate();
   };
 
-  console.log("user", user);
+  console.log("userContext", userContext);
 
   return (
     <div>
       Test page signed in as{" "}
-      {user ? `(${user.username})` : "(not authenticated)"}
+      {userContext.username
+        ? `(${userContext.username})`
+        : "(not authenticated)"}
       <br />
       <br />
       <PrimaryButton
@@ -64,7 +66,9 @@ export default function Test() {
       <br />
       <br />
       <PrimaryButton
-        onClick={() => callEndpoint(domainErrorMutation, "/api/test/domainError")}
+        onClick={() =>
+          callEndpoint(domainErrorMutation, "/api/test/domainError")
+        }
         disabled={domainErrorMutation.isPending}
       >
         Trigger Domain Error

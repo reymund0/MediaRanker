@@ -45,5 +45,22 @@ This document contains non-always-on frontend details for MediaRanker.
 
 ## API error handling
 
-- `use-mutation.ts` parses non-OK responses as RFC 7807 ProblemDetails, logs the full object (plus route/method/body), and throws `Error` with only the `detail` field for UI display.
+- `httpRequest` parses non-OK responses as RFC 7807 ProblemDetails, logs the full object (plus route/method/body), and throws `ProblemDetailsError`.
 - Callers should rely on `error.message` for user-friendly text and avoid re-parsing the payload.
+
+## API hooks
+
+- `useQuery<TResponse>` is GET-only and should be used for read scenarios.
+- `useMutation<TRequest, TResponse>` is for write scenarios (`POST`/`PUT`/`DELETE`) and supports dynamic route builders (`route: (data) => string`).
+- Keep request/response contracts explicit at hook callsites to preserve strong typing for mutation data and callbacks.
+
+## Dialog and form pattern
+
+- Use `BaseDialog` for non-form confirmation flows (e.g., delete confirmations).
+- Use `FormDialog<T>` for modal forms that need `react-hook-form` context and built-in submit state handling.
+- `FormDialog` confirm state should remain tied to form validity/dirty state to prevent accidental empty submissions.
+
+## Sortable form arrays
+
+- For drag-and-drop ordering in form-managed arrays, use `FormDnDList` (`react-hook-form` + `useFieldArray` + `dnd-kit`).
+- Persist ordering using array index mapped to backend `position` on submit.

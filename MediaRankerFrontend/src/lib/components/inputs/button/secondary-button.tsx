@@ -1,6 +1,6 @@
-import { BaseButton } from "./base-button";
+import { Button } from "@mui/material";
 import { ButtonProps } from "@mui/material";
 
 export function SecondaryButton(props: ButtonProps) {
-  return <BaseButton {...props} variant="outlined" />;
+  return <Button {...props} variant="outlined" />;
 }

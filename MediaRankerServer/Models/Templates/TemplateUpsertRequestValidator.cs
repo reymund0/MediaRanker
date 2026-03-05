@@ -15,13 +15,13 @@ public class TemplateUpsertRequestValidator : AbstractValidator<TemplateUpsertRe
             .WithMessage("Template must include at least one field.");
 
         RuleFor(request => request.Fields)
-            .Must(HasNonEmptyUniqueFieldNames)
-            .WithMessage("Template field names must be non-empty and unique.")
+            .Must(HasValidNames)
+            .WithMessage("Template field names are required.")
             .When(request => request.Fields is { Count: > 0 });
 
         RuleFor(request => request.Fields)
-            .Must(HasValidDisplayNames)
-            .WithMessage("Template field display names are required.")
+            .Must(HasNonEmptyUniqueFieldNames)
+            .WithMessage("Template field names must be non-empty and unique.")
             .When(request => request.Fields is { Count: > 0 });
 
         RuleFor(request => request.Fields)
@@ -30,16 +30,16 @@ public class TemplateUpsertRequestValidator : AbstractValidator<TemplateUpsertRe
             .When(request => request.Fields is { Count: > 0 });
     }
 
+    private static bool HasValidNames(List<TemplateFieldUpsertRequest> fields)
+    {
+        return fields.All(field => !string.IsNullOrWhiteSpace(field.Name));
+    }
+
     private static bool HasNonEmptyUniqueFieldNames(List<TemplateFieldUpsertRequest> fields)
     {
         return fields
             .GroupBy(field => field.Name.Trim(), StringComparer.OrdinalIgnoreCase)
             .All(group => group.Key.Length > 0 && group.Count() == 1);
-    }
-
-    private static bool HasValidDisplayNames(List<TemplateFieldUpsertRequest> fields)
-    {
-        return fields.All(field => !string.IsNullOrWhiteSpace(field.DisplayName));
     }
 
     private static bool HasUniquePositions(List<TemplateFieldUpsertRequest> fields)

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using MediaRankerServer.Data.Seeds;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -70,9 +69,9 @@ public class Template
                 .HasDatabaseName("uq_templates_user_name");
 
             // Partial unique index for system templates (name unique among system templates)
-            builder.HasIndex(t => t.Name)
-                .HasDatabaseName("uq_templates_system_name")
-                .HasFilter($"user_id = '{SeedUtils.SystemUserId}'");
+            builder.HasIndex(t => t.Id)
+                .HasDatabaseName("uq_templates_is_system")
+                .HasFilter("id < 0");
         }
     }
 }

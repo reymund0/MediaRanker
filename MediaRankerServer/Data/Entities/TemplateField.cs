@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -10,7 +9,6 @@ public class TemplateField
     public long TemplateId { get; set; }
 
     public string Name { get; set; } = null!;
-    public string DisplayName { get; set; } = null!;
     public int Position { get; set; }
 
     public Template Template { get; set; } = null!;
@@ -35,10 +33,6 @@ public class TemplateField
                 .HasColumnName("name")
                 .IsRequired();
 
-            builder.Property(tf => tf.DisplayName)
-                .HasColumnName("display_name")
-                .IsRequired();
-
             builder.Property(tf => tf.Position)
                 .HasColumnName("position")
                 .IsRequired();
@@ -53,17 +47,9 @@ public class TemplateField
                 .WithOne(rms => rms.TemplateField)
                 .HasForeignKey(rms => rms.TemplateFieldId);
 
-            // Indexes & unique constraints
+            // Indexes
             builder.HasIndex(tf => tf.TemplateId)
                 .HasDatabaseName("ix_template_fields_template_id");
-
-            builder.HasIndex(tf => new { tf.TemplateId, tf.Name })
-                .IsUnique()
-                .HasDatabaseName("uq_template_fields_template_name");
-
-            builder.HasIndex(tf => new { tf.TemplateId, tf.Position })
-                .IsUnique()
-                .HasDatabaseName("uq_template_fields_template_position");
         }
     }
 }

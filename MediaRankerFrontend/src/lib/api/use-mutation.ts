@@ -3,83 +3,41 @@ import {
   UseMutationOptions,
 } from "@tanstack/react-query";
 import { useUser } from "../auth/user-provider";
-import { ProblemDetails } from "./types";
+import { httpRequest } from "./http-utils";
+import { ProblemDetailsError } from "./problem-details";
 
-export interface UseMutationOptionsType<T> extends Omit<
-  UseMutationOptions<T>,
+export interface UseMutationOptionsType<TRequest, TResponse> extends Omit<
+  UseMutationOptions<TResponse, ProblemDetailsError, TRequest>,
   "mutationFn"
 > {
-  route: string;
+  route: string | ((data: TRequest) => string);
   method: "POST" | "PUT" | "DELETE";
-  data?: Record<string, unknown>;
+  data?: TRequest;
 }
 
-export function useMutation<T = unknown>(options: UseMutationOptionsType<T>) {
+export const useMutation = <TRequest = unknown, TResponse = unknown>(
+  options: UseMutationOptionsType<TRequest, TResponse>,
+) => {
   const user = useUser();
-  const token = user.session?.tokens?.idToken?.toString();
+  const token = user.sessionToken;
 
-  const mutation = useTanstackMutation<T>({
-    mutationFn: async () => httpMutation<T>(options, token),
+  const mutation = useTanstackMutation<
+    TResponse,
+    ProblemDetailsError,
+    TRequest
+  >({
+    mutationFn: async (data) => {
+      const route =
+        typeof options.route === "function"
+          ? options.route(data)
+          : options.route;
+      return httpRequest<TRequest, TResponse>(
+        { ...options, route, data },
+        token,
+      );
+    },
     ...options,
   });
 
   return mutation;
-}
-
-const httpMutation = async <T>(
-  options: UseMutationOptionsType<T>,
-  token: string | undefined,
-): Promise<T> => {
-  const url = new URL(options.route, process.env.NEXT_PUBLIC_API_URL);
-  const response = await fetch(url.toString(), {
-    method: options.method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    body: options.data ? JSON.stringify(options.data) : undefined,
-  });
-
-  const body = await parseJsonSafe(response);
-
-  if (!response.ok) {
-    const problemDetails = normalizeProblemDetails(body, response);
-    console.error("API ProblemDetails", {
-      problemDetails,
-      route: options.route,
-      method: options.method,
-      body: options.data ?? null,
-    });
-    const message = problemDetails.detail || "Request failed";
-    throw new Error(message);
-  }
-
-  return body as T;
-};
-
-const normalizeProblemDetails = (
-  body: unknown,
-  response: Response,
-): ProblemDetails => {
-  if (body && typeof body === "object") {
-    return {
-      status: response.status,
-      ...(body as Record<string, unknown>),
-    } as ProblemDetails;
-  }
-
-  // Handle generic HTTP errors (non-problem details).
-  return {
-    status: response.status,
-    title: response.statusText || "Request failed",
-    detail: undefined,
-  } satisfies ProblemDetails;
-};
-
-const parseJsonSafe = async (response: Response): Promise<unknown> => {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
 };
