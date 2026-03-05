@@ -1,5 +1,14 @@
 # Backend Conventions
 
+## Project Structure (Modular Monolith)
+
+The server is organized into feature modules under `MediaRankerServer/Modules/`.
+
+- **Module Structure**: Each module contains its own Controllers, Services, Models, and Entities.
+- **Shared Infrastructure**: `MediaRankerServer/Shared/` contains cross-cutting concerns like `DomainException` and common extensions.
+- **Module Registration**: Each module has a `<Name>Module.cs` registration class. Add new modules to `Program.cs` via `builder.Services.Add<Name>Module()`.
+- **Inter-Module Communication**: Use MediatR for in-process events instead of direct service injection to maintain decoupling.
+
 ## ProblemDetails responses
 - Every non-OK HTTP response must return RFC 7807 ProblemDetails JSON with `type`, `title`, `status`, `detail`, and optional `instance`/extensions.
 - Controllers/services should populate `detail` with the user-facing string; frontend hooks only surface this field while logging the full object.
