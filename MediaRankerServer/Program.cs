@@ -1,10 +1,15 @@
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Scalar.AspNetCore;
-using MediaRankerServer.Data.Entities;
-using MediaRankerServer.Extensions;
-using MediaRankerServer.Models.Templates;
-using MediaRankerServer.Services;
+using MediaRankerServer.Shared.Data;
+using MediaRankerServer.Modules.Media.Entities;
+using MediaRankerServer.Modules.Rankings.Entities;
+using MediaRankerServer.Shared.Extensions;
+using MediaRankerServer.Modules.Templates.Contracts;
+using MediaRankerServer.Modules.Templates;
+using MediaRankerServer.Modules.Media;
+using MediaRankerServer.Modules.Rankings;
+using MediaRankerServer.Modules.Test;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc.Authorization;
@@ -35,6 +40,7 @@ builder.Services.AddControllers(options =>
 });
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<TemplateUpsertRequestValidator>();
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddProblemDetailsHandling();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -91,8 +97,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// Register services.
-builder.Services.AddScoped<ITemplatesService, TemplatesService>();
+// Register Module Services.
+builder.Services.AddTemplatesModule();
+builder.Services.AddMediaModule();
+builder.Services.AddRankingsModule();
+builder.Services.AddTestModule();
 
 var app = builder.Build();
 

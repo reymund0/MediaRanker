@@ -14,11 +14,16 @@ Use optional docs under `docs/ai/` for deeper details.
 - App type: personal media reviewing/ranking web app.
 - Current status: auth is implemented; initial template/field persistence and seed migrations exist.
 - Authorization model: any authenticated user (no roles/scopes yet).
+- Architecture: Modular Monolith (Option A - feature folders in single project).
 
-## Repo Layout (minimal)
+## Repo Layout (updated)
 
 - `MediaRankerFrontend/` — Next.js app (`src/app`, `src/lib`)
-- `MediaRankerServer/` — ASP.NET Core API (`Controllers`, `Services`, `Data`, `Migrations`)
+- `MediaRankerServer/` — ASP.NET Core API
+  - `Modules/` — Feature-based modules (Templates, Media, Rankings, Test)
+  - `Shared/` — Cross-cutting concerns (Exceptions, Extensions, Events)
+  - `Data/` — Data access (shared PostgreSQLContext)
+  - `Migrations/` — EF Core Migrations (kept migration-compatible)
 - `.windsurf/rules/media-ranker.md` — this core AI context file
 - `docs/ai/` — optional, non-always-on AI reference docs
 
