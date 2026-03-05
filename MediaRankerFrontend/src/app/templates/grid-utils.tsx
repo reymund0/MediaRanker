@@ -38,6 +38,11 @@ export function buildTemplateColumns({
             sx={{ minWidth: 0 }}
           >
             <Typography noWrap>{params.value}</Typography>
+            <Chip
+              label={params.row.mediaType.name}
+              size="small"
+              variant="outlined"
+            />
             {params.row.isSystem ? (
               <Chip label="System" size="small" variant="outlined" />
             ) : null}

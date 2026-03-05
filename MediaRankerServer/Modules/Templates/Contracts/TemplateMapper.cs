@@ -1,14 +1,16 @@
 using MediaRankerServer.Modules.Templates.Entities;
+using MediaRankerServer.Modules.Media.Contracts;
 
 namespace MediaRankerServer.Modules.Templates.Contracts;
 
 public static class TemplateMapper
 {
-    public static MediaRankerServer.Modules.Templates.Contracts.TemplateDto Map(MediaRankerServer.Modules.Templates.Entities.Template template)
+    public static TemplateDto Map(Template template)
     {
-        return new MediaRankerServer.Modules.Templates.Contracts.TemplateDto
+        return new TemplateDto
         {
             Id = template.Id,
+            MediaType = MediaTypeMapper.Map(template.MediaType),
             IsSystem = template.Id < 0,
             UserId = template.UserId,
             Name = template.Name,

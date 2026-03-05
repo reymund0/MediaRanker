@@ -1,5 +1,4 @@
 ﻿using System;
-using MediaRankerServer.Modules.Media.Entities;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -13,8 +12,18 @@ namespace MediaRankerServer.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterDatabase()
-                .Annotation("Npgsql:Enum:media_type", "album,book,game,movie,other,tv");
+            migrationBuilder.CreateTable(
+                name: "media_types",
+                columns: table => new
+                {
+                    id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_media_types", x => x.id);
+                });
 
             migrationBuilder.CreateTable(
                 name: "media",
@@ -23,7 +32,7 @@ namespace MediaRankerServer.Migrations
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     title = table.Column<string>(type: "text", nullable: false),
-                    media_type = table.Column<MediaType>(type: "media_type", nullable: false),
+                    media_type_id = table.Column<long>(type: "bigint", nullable: false),
                     release_date = table.Column<DateOnly>(type: "date", nullable: false),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()"),
                     updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
@@ -31,6 +40,12 @@ namespace MediaRankerServer.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_media", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_media_media_types_media_type_id",
+                        column: x => x.media_type_id,
+                        principalTable: "media_types",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -40,6 +55,7 @@ namespace MediaRankerServer.Migrations
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     user_id = table.Column<string>(type: "text", nullable: false),
+                    media_type_id = table.Column<long>(type: "bigint", nullable: false),
                     name = table.Column<string>(type: "text", nullable: false),
                     description = table.Column<string>(type: "text", nullable: true),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()"),
@@ -48,6 +64,12 @@ namespace MediaRankerServer.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_templates", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_templates_media_types_media_type_id",
+                        column: x => x.media_type_id,
+                        principalTable: "media_types",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -132,9 +154,9 @@ namespace MediaRankerServer.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "ix_media_media_type",
+                name: "ix_media_media_type_id",
                 table: "media",
-                column: "media_type");
+                column: "media_type_id");
 
             migrationBuilder.CreateIndex(
                 name: "ix_media_release_date",
@@ -144,7 +166,13 @@ namespace MediaRankerServer.Migrations
             migrationBuilder.CreateIndex(
                 name: "uq_media_title_type_release_date",
                 table: "media",
-                columns: new[] { "title", "media_type", "release_date" },
+                columns: new[] { "title", "media_type_id", "release_date" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "uq_media_types_name",
+                table: "media_types",
+                column: "name",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -184,6 +212,11 @@ namespace MediaRankerServer.Migrations
                 column: "template_id");
 
             migrationBuilder.CreateIndex(
+                name: "ix_templates_media_type_id",
+                table: "templates",
+                column: "media_type_id");
+
+            migrationBuilder.CreateIndex(
                 name: "ix_templates_user_id",
                 table: "templates",
                 column: "user_id");
@@ -218,6 +251,9 @@ namespace MediaRankerServer.Migrations
 
             migrationBuilder.DropTable(
                 name: "templates");
+
+            migrationBuilder.DropTable(
+                name: "media_types");
         }
     }
 }

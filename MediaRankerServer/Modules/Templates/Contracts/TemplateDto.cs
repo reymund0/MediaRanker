@@ -1,3 +1,5 @@
+using MediaRankerServer.Modules.Media.Contracts;
+
 namespace MediaRankerServer.Modules.Templates.Contracts;
 
 public class TemplateDto
@@ -10,4 +12,5 @@ public class TemplateDto
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public List<TemplateFieldDto> Fields { get; set; } = [];
+    public MediaTypeDto MediaType { get; set; } = new();
 }
