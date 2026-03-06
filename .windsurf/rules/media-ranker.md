@@ -24,6 +24,8 @@ Use optional docs under `docs/ai/` for deeper details.
   - `Shared/` — Cross-cutting concerns (Exceptions, Extensions, Events)
   - `Data/` — Data access (shared PostgreSQLContext)
   - `Migrations/` — EF Core Migrations (kept migration-compatible)
+  - `MediaRankerServer.IntegrationTests/` — PostgreSQL-backed endpoint tests (Testcontainers)
+  - `MediaRankerServer.UnitTests/` — Isolated logic tests (Moq)
 - `.windsurf/rules/media-ranker.md` — this core AI context file
 - `docs/ai/` — optional, non-always-on AI reference docs
 
@@ -70,12 +72,22 @@ Do not edit build artifacts:
 - Alert behavior is provider-based (`useAlert`) with a single active alert.
 - Keep existing app/provider composition patterns in `src/app/layout.tsx`.
 
+### Testing Conventions
+
+- **Unit Tests**: Use xUnit + FluentAssertions + Moq. Focus on pure logic, mapping, and extensions.
+- **Integration Tests**: Use Testcontainers (PostgreSQL) + Respawn.
+  - Inherit from `IntegrationTestBase`.
+  - Use `Fixture.CreateClient()` for authenticated requests (defaults to `test-user-1`).
+  - Tests are migration-driven; the fixture handles schema migration and data seeding.
+  - Assert ProblemDetails shape for error paths.
+
 ---
 
 ## Optional AI Reference Docs
 
 Use these when a task needs deeper context:
 
+- `docs/ai/backend-testing.md`
 - `docs/ai/backend-seeding.md`
 - `docs/ai/backend-conventions.md`
 - `docs/ai/frontend-conventions.md`
