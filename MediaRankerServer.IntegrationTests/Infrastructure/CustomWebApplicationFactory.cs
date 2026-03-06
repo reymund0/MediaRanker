@@ -23,8 +23,11 @@ public class CustomWebApplicationFactory<TProgram> : WebApplicationFactory<TProg
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.UseEnvironment("Integration");
+
         builder.ConfigureAppConfiguration((context, config) =>
         {
+            config.AddJsonFile("appsettings.Integration.json", optional: true);
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:DefaultConnection"] = _connectionString
