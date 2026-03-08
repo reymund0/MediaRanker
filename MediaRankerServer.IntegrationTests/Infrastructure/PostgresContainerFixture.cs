@@ -1,6 +1,4 @@
-using System.Threading.Tasks;
 using Testcontainers.PostgreSql;
-using Xunit;
 
 namespace MediaRankerServer.IntegrationTests.Infrastructure;
 

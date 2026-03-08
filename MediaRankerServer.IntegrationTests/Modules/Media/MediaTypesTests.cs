@@ -1,17 +1,11 @@
-using System.Collections.Generic;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
 using FluentAssertions;
 using MediaRankerServer.IntegrationTests.Infrastructure;
-using Xunit;
 
 namespace MediaRankerServer.IntegrationTests.Modules.Media;
 
-public class MediaTypesTests : IntegrationTestBase
+public class MediaTypesTests(PostgresContainerFixture fixture) : IntegrationTestBase(fixture)
 {
-    public MediaTypesTests(PostgresContainerFixture fixture) : base(fixture)
-    {
-    }
 
     [Fact]
     public async Task GetMediaTypes_ReturnsSeededMediaTypes()

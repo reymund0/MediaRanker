@@ -13,13 +13,9 @@ using Xunit;
 
 namespace MediaRankerServer.IntegrationTests.Modules.Templates;
 
-public class TemplatesTests : IntegrationTestBase
+public class TemplatesTests(PostgresContainerFixture fixture) : IntegrationTestBase(fixture)
 {
-    public TemplatesTests(PostgresContainerFixture fixture) : base(fixture)
-    {
-    }
-
-    [Fact]
+  [Fact]
     public async Task GetTemplates_ReturnsSystemTemplatesAndUserTemplatesOnly()
     {
         // Arrange

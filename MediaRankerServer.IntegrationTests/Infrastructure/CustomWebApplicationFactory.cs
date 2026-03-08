@@ -12,14 +12,9 @@ using MediaRankerServer.Shared.Data;
 
 namespace MediaRankerServer.IntegrationTests.Infrastructure;
 
-public class CustomWebApplicationFactory<TProgram> : WebApplicationFactory<TProgram> where TProgram : class
+public class CustomWebApplicationFactory<TProgram>(string connectionString) : WebApplicationFactory<TProgram> where TProgram : class
 {
-    private readonly string _connectionString;
-
-    public CustomWebApplicationFactory(string connectionString)
-    {
-        _connectionString = connectionString;
-    }
+    private readonly string _connectionString = connectionString;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {

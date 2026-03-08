@@ -1,20 +1,14 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
 using FluentAssertions;
 using MediaRankerServer.IntegrationTests.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
-using Xunit;
 
 namespace MediaRankerServer.IntegrationTests.Shared;
 
-public class ErrorPipelineEndpointTests : IntegrationTestBase
+public class ErrorPipelineEndpointTests(PostgresContainerFixture fixture) : IntegrationTestBase(fixture)
 {
-    public ErrorPipelineEndpointTests(PostgresContainerFixture fixture) : base(fixture)
-    {
-    }
-
-    [Fact]
+  [Fact]
     public async Task GetDomainError_Returns400ProblemDetails()
     {
         // Act
