@@ -29,7 +29,9 @@ export default function MediaPage() {
 
   const [rows, setRows] = useState<MediaRow[]>([]);
   const [deleteRowId, setDeleteRowId] = useState<number | undefined>(undefined);
-  const [editingRowId, setEditingRowId] = useState<number | undefined>(undefined);
+  const [editingRowId, setEditingRowId] = useState<number | undefined>(
+    undefined,
+  );
 
   const editingRow = useMemo(
     () => rows.find((row) => row.id === editingRowId) ?? undefined,
@@ -57,7 +59,6 @@ export default function MediaPage() {
   });
 
   useEffect(() => {
-
     const updateRows = async () => {
       if (!media) {
         return;
@@ -65,7 +66,7 @@ export default function MediaPage() {
 
       setRows(media.map((mediaRecord) => mapMediaToRow(mediaRecord)));
     };
-  
+
     updateRows();
   }, [media]);
 

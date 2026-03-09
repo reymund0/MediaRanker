@@ -5,7 +5,10 @@ import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import { format } from "date-fns";
 import { MediaDto } from "./contracts";
 
-export type MediaRow = Omit<MediaDto, "id" | "releaseDate" | "createdAt" | "updatedAt"> & {
+export type MediaRow = Omit<
+  MediaDto,
+  "id" | "releaseDate" | "createdAt" | "updatedAt"
+> & {
   id: number | undefined;
   releaseDate: Date | null;
   createdAt: Date | null;
@@ -29,7 +32,12 @@ export function buildMediaColumns({
       minWidth: 240,
       sortable: false,
       renderCell: (params: GridRenderCellParams<MediaRow, string>) => (
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          sx={{ minWidth: 0 }}
+        >
           <Typography noWrap>{params.value}</Typography>
           <Chip
             label={params.row.mediaType.name}

@@ -20,12 +20,15 @@ export default function TemplatesPage() {
   const { showSuccess, showError } = useAlert();
   const { userId } = useUser();
 
-  const { data: mediaTypes, isError: isMediaTypesError, isLoading: isMediaTypesLoading } = useQuery<MediaTypeDto[]>({
+  const {
+    data: mediaTypes,
+    isError: isMediaTypesError,
+    isLoading: isMediaTypesLoading,
+  } = useQuery<MediaTypeDto[]>({
     route: "/api/mediaTypes",
     queryKey: ["mediaTypes"],
     enabled: !!userId,
   });
-
 
   const [rows, setRows] = useState<TemplateRow[]>([]);
   const [deleteRowId, setDeleteRowId] = useState<number | undefined>(undefined);

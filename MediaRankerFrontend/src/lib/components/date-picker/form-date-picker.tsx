@@ -6,7 +6,10 @@ import { BaseDatePicker } from "./base-date-picker";
 type FormDatePickerProps<T extends FieldValues> = {
   name: Path<T>;
   textFieldProps?: TextFieldProps;
-} & Omit<ComponentProps<typeof BaseDatePicker>, "value" | "onChange" | "textFieldProps">;
+} & Omit<
+  ComponentProps<typeof BaseDatePicker>,
+  "value" | "onChange" | "textFieldProps"
+>;
 
 export function FormDatePicker<T extends FieldValues>({
   name,
