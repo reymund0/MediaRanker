@@ -77,7 +77,7 @@ public class TemplatesTests(PostgresContainerFixture fixture) : IntegrationTestB
         var response = await Client.PostAsJsonAsync("/api/templates", request);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<TemplateDto>();
         
         result.Should().NotBeNull();
@@ -90,48 +90,5 @@ public class TemplatesTests(PostgresContainerFixture fixture) : IntegrationTestB
         
         dbTemplate.Should().NotBeNull();
         dbTemplate!.Fields.Should().HaveCount(2);
-    }
-
-    [Fact]
-    public async Task CreateTemplate_DuplicateName_Returns400Conflict()
-    {
-        // Arrange
-        var name = "Unique Conflict Template";
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
-            db.Templates.Add(new Template { UserId = TestAuthHandler.DefaultUserId, Name = name, MediaTypeId = -3 });
-            await db.SaveChangesAsync();
-        }
-
-        var request = new TemplateUpsertRequest 
-        { 
-            Name = name, 
-            MediaTypeId = -3,
-            Fields = new List<TemplateFieldUpsertRequest>
-            {
-                new() { Name = "Acting", Position = 1 }
-            }
-        };
-
-        // Act
-        var response = await Client.PostAsJsonAsync("/api/templates", request);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var problem = await response.Content.ReadFromJsonAsync<Microsoft.AspNetCore.Mvc.ProblemDetails>();
-        problem!.Type.Should().Be("template_name_conflict");
-    }
-
-    [Fact]
-    public async Task DeleteTemplate_SystemTemplate_Returns403Forbidden()
-    {
-        // Act - System templates have negative IDs
-        var response = await Client.DeleteAsync("/api/templates/-1");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest); // Service throws DomainException which maps to 400
-        var problem = await response.Content.ReadFromJsonAsync<Microsoft.AspNetCore.Mvc.ProblemDetails>();
-        problem!.Type.Should().Be("template_forbidden");
     }
 }

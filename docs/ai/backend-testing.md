@@ -4,57 +4,43 @@ This document provides guidance on how to write and maintain tests for the Media
 
 ## Overview
 
-The backend uses a two-tiered testing approach:
-1.  **Unit Tests**: Fast, isolated tests for pure logic, mappers, and extension methods.
-2.  **Integration Tests**: PostgreSQL-backed tests for API endpoints and service-to-database interactions.
+The project uses a **Tiered Testing Strategy** to balance confidence with maintainability:
+
+1.  **Tier 1: Integration Tests (Smoke Suite)**: PostgreSQL-backed vertical slices for "Happy Path" verification.
+2.  **Tier 2: Unit Tests (Logic Suite)**: Fast, isolated tests for business logic, validation, and edge cases.
 
 ---
 
-## Unit Tests
-
-- **Project**: `MediaRankerServer.UnitTests`
-- **Stack**: xUnit, FluentAssertions, Moq.
-- **Focus**:
-    - Mapping logic (e.g., `TemplateMapper`).
-    - Domain entity logic.
-    - Custom extension methods (e.g., `ClaimsPrincipalExtensions`).
-    - Service logic that can be easily isolated from the database.
-
----
-
-## Integration Tests
+## Tier 1: Integration Tests
 
 - **Project**: `MediaRankerServer.IntegrationTests`
-- **Stack**: xUnit, FluentAssertions, `Microsoft.AspNetCore.Mvc.Testing`, Testcontainers (PostgreSQL), Respawn.
-- **Base Class**: All integration tests should inherit from `IntegrationTestBase`.
+- **Stack**: xUnit, FluentAssertions, `Microsoft.AspNetCore.Mvc.Testing`, **PostgreSQL Testcontainers**, Respawn.
+- **Focus**: Essential "Happy Path" CRUD operations to ensure the API, Database, and Migrations are correctly wired.
+- **Base Class**: All integration tests must inherit from `IntegrationTestBase`.
 
-### Infrastructure
+### Database Isolation
 
-- **PostgresContainerFixture**: Manages the lifecycle of a real PostgreSQL container.
-- **Respawn**: Cleans the database between tests while preserving the migration history.
-- **TestAuthHandler**: Provides a fake authentication scheme. Use the header `X-Test-UserId` to simulate different users.
+- **Reset Strategy**: A hybrid approach is used to ensure test isolation:
+    - **Respawn**: Automatically resets most tables between tests.
+    - **Manual Cleanup**: Tables with mixed system-seeded data (negative IDs) and test data (positive IDs) are cleaned manually in `IntegrationTestBase.ResetMutableDataAsync()`.
+- **Seeded Data**:
+    - `media_types`, `templates`, and `template_fields` contain system-seeded data with **negative IDs**.
+    - These rows persist across all tests.
+    - Test-created rows (ID > 0) in these tables are deleted before and after each test.
+- **Cleanup Timing**: Data is reset in both `InitializeAsync` (pre-test) and `DisposeAsync` (post-test) to maintain a consistent state.
 
-### Conventions
+---
 
-1.  **Authenticated Requests**:
-    ```csharp
-    using var client = CreateClient(); // Defaults to "test-user-1"
-    // OR
-    using var client = CreateClient("another-user-id");
-    ```
+## Tier 2: Unit Tests
 
-2.  **Database Reset**:
-    The database is automatically reset before each test by `IntegrationTestBase.InitializeAsync()`.
-
-3.  **Seeding Data**:
-    System data (MediaTypes, System Templates) is seeded automatically. Use helper methods within your test class to seed user-specific data for specific test scenarios.
-
-4.  **ProblemDetails Assertions**:
-    When testing error paths, assert the RFC 7807 `ProblemDetails` shape using `ProblemDetailsJson` utility.
-    ```csharp
-    response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    ProblemDetailsJson.GetType(payload).Should().Be("template_name_conflict");
-    ```
+- **Project**: `MediaRankerServer.UnitTests`
+- **Stack**: xUnit, FluentAssertions, Moq, **EF Core In-Memory Provider**.
+- **Focus**:
+    - Service layer logic (e.g., `UpdateTemplateAsync` access checks).
+    - Domain exception types and error mapping to ProblemDetails.
+    - Validation rules (FluentValidation).
+    - Mapping logic (e.g., `TemplateMapper`).
+    - Custom extension methods.
 
 ---
 
@@ -63,3 +49,13 @@ The backend uses a two-tiered testing approach:
 From the repository root:
 - Run all tests: `dotnet test MediaRanker.sln`
 - Run integration tests only: `dotnet test MediaRankerServer.IntegrationTests/MediaRankerServer.IntegrationTests.csproj`
+- Run unit tests only: `dotnet test MediaRankerServer.UnitTests/MediaRankerServer.UnitTests.csproj`
+
+### ProblemDetails Assertions
+
+When testing error paths (usually in Unit Tests), assert the RFC 7807 `ProblemDetails` shape or the `DomainException.Type`.
+
+```csharp
+await act.Should().ThrowAsync<DomainException>()
+    .Where(e => e.Type == "template_forbidden");
+```
