@@ -6,7 +6,7 @@ import { GridColDef } from "@mui/x-data-grid";
 import { useEffect, useMemo, useState } from "react";
 import { BaseDataGrid } from "@/lib/components/data-grid/base-data-grid";
 import { TemplateEditModal } from "./template-edit-modal";
-import { buildTemplateColumns, TemplateRow } from "./grid-utils";
+import { buildTemplateColumns, mapTemplateToRow, TemplateRow } from "./grid-utils";
 import { TemplateDto, TemplateUpsertRequest } from "./contracts";
 import { MediaTypeDto } from "@/lib/contracts/shared";
 import { useQuery } from "@/lib/api/use-query";
@@ -53,13 +53,7 @@ export default function TemplatesPage() {
   useEffect(() => {
     const updateRows = async () => {
       if (templates) {
-        // Sort fields by position (API might not return them in order).
-        setRows(
-          templates.map((template) => ({
-            ...template,
-            fields: template.fields.sort((a, b) => a.position - b.position),
-          })),
-        );
+        setRows(templates.map(mapTemplateToRow));
       }
     };
     updateRows();
@@ -102,14 +96,7 @@ export default function TemplatesPage() {
         // Update the in-edit row with the response.
         setRows((prev) =>
           prev.map((row) =>
-            row.id !== editingRowId
-              ? row
-              : {
-                  ...response,
-                  fields: response.fields.sort(
-                    (a, b) => a.position - b.position,
-                  ),
-                },
+            row.id !== editingRowId ? row : mapTemplateToRow(response),
           ),
         );
 

@@ -2,7 +2,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { Chip, IconButton, Stack, Typography } from "@mui/material";
 import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { MediaDto } from "./contracts";
 
 export type MediaRow = Omit<
@@ -14,6 +14,13 @@ export type MediaRow = Omit<
   createdAt: Date | null;
   updatedAt: Date | null;
 };
+
+export const mapMediaToRow = (media: MediaDto): MediaRow => ({
+  ...media,
+  releaseDate: media.releaseDate ? parseISO(media.releaseDate) : null,
+  createdAt: media.createdAt ? parseISO(media.createdAt) : null,
+  updatedAt: media.updatedAt ? parseISO(media.updatedAt) : null,
+});
 
 interface BuildMediaColumnsParams {
   onEditClick: (row: MediaRow) => void;
@@ -50,6 +57,7 @@ export function buildMediaColumns({
     {
       field: "releaseDate",
       headerName: "Release Date",
+      type: "date",
       flex: 1,
       minWidth: 160,
       sortable: false,
@@ -62,6 +70,7 @@ export function buildMediaColumns({
     {
       field: "updatedAt",
       headerName: "Updated At",
+      type: "dateTime",
       flex: 1,
       minWidth: 170,
       sortable: false,

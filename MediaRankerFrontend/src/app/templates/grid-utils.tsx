@@ -2,16 +2,29 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { Chip, IconButton, Stack, Typography } from "@mui/material";
 import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { TemplateDto, TemplateFieldDto } from "./contracts";
 
-export type TemplateRow = Omit<TemplateDto, "id"> & {
+export type TemplateRow = Omit<
+  TemplateDto,
+  "id" | "createdAt" | "updatedAt"
+> & {
   id: number | undefined;
+  createdAt: Date | null;
+  updatedAt: Date | null;
 };
 
 export type TemplateFieldRow = Omit<TemplateFieldDto, "id"> & {
   id: number | undefined;
 };
+
+export const mapTemplateToRow = (template: TemplateDto): TemplateRow => ({
+  ...template,
+  createdAt: template.createdAt ? parseISO(template.createdAt) : null,
+  updatedAt: template.updatedAt ? parseISO(template.updatedAt) : null,
+  // Sort fields by position (API might not return them in order).
+  fields: template.fields.sort((a, b) => a.position - b.position),
+});
 
 interface BuildTemplateColumnsParams {
   onEditClick: (row: TemplateRow) => void;
@@ -29,7 +42,7 @@ export function buildTemplateColumns({
       flex: 2,
       minWidth: 220,
       sortable: false,
-      renderCell: (params: GridRenderCellParams<TemplateRow, string>) => {
+      renderCell: (params: GridRenderCellParams<TemplateRow>) => {
         return (
           <Stack
             direction="row"
@@ -83,10 +96,11 @@ export function buildTemplateColumns({
     {
       field: "updatedAt",
       headerName: "Updated At",
+      type: "dateTime",
       flex: 1,
       minWidth: 170,
       sortable: false,
-      renderCell: (params: GridRenderCellParams<TemplateRow, Date>) => (
+      renderCell: (params: GridRenderCellParams<TemplateRow, Date | null>) => (
         <Typography color="text.secondary">
           {params.value ? format(params.value, "PPp") : "-"}
         </Typography>

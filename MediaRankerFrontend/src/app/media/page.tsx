@@ -14,15 +14,8 @@ import { BaseDialog } from "@/lib/components/feedback/dialog/base-dialog";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { MediaDto, MediaUpsertRequest } from "./contracts";
 import { MediaTypeDto } from "@/lib/contracts/shared";
-import { buildMediaColumns, MediaRow } from "./grid-utils";
+import { buildMediaColumns, MediaRow, mapMediaToRow } from "./grid-utils";
 import { MediaEditModal } from "./media-edit-modal";
-
-const mapMediaToRow = (media: MediaDto): MediaRow => ({
-  ...media,
-  releaseDate: media.releaseDate ? parseISO(media.releaseDate) : null,
-  createdAt: media.createdAt ? parseISO(media.createdAt) : null,
-  updatedAt: media.updatedAt ? parseISO(media.updatedAt) : null,
-});
 
 export default function MediaPage() {
   const { showSuccess, showError } = useAlert();
