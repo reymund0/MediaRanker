@@ -1,4 +1,5 @@
 using FluentValidation;
+using MediaRankerServer.Modules.Media.Services;
 using MediatR;
 using MediaRankerServer.Modules.Templates.Entities;
 using MediaRankerServer.Shared.Data;
@@ -11,7 +12,8 @@ namespace MediaRankerServer.Modules.Templates.Services;
 public class TemplatesService(
     PostgreSQLContext dbContext,
     IValidator<TemplateUpsertRequest> templateUpsertRequestValidator,
-    IPublisher publisher
+    IPublisher publisher,
+    IMediaService mediaService
 ) : ITemplatesService
 {
     public async Task<List<TemplateDto>> GetAllVisibleTemplatesAsync(string userId, CancellationToken cancellationToken = default)
@@ -28,7 +30,7 @@ public class TemplatesService(
 
     public async Task<TemplateDto> CreateTemplateAsync(string userId, TemplateUpsertRequest request, CancellationToken cancellationToken = default)
     {
-        ValidateTemplateRequestOrThrow(request);
+        await ValidateTemplateRequestOrThrow(request, cancellationToken);
 
         var normalizedName = request.Name.Trim();
         var nameTaken = await dbContext.Templates.AnyAsync(
@@ -67,7 +69,7 @@ public class TemplatesService(
 
     public async Task<TemplateDto> UpdateTemplateAsync(string userId, long templateId, TemplateUpsertRequest request, CancellationToken cancellationToken = default)
     {
-        ValidateTemplateRequestOrThrow(request);
+        await ValidateTemplateRequestOrThrow(request, cancellationToken);
 
         var template = await dbContext.Templates
             .Include(t => t.Fields)
@@ -170,13 +172,17 @@ public class TemplatesService(
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private void ValidateTemplateRequestOrThrow(TemplateUpsertRequest request)
+    private async Task ValidateTemplateRequestOrThrow(TemplateUpsertRequest request, CancellationToken cancellationToken)
     {
         var validationResult = templateUpsertRequestValidator.Validate(request);
         if (!validationResult.IsValid)
         {
             throw new DomainException(validationResult.Errors[0].ErrorMessage, "template_validation_error");
         }
+
+        // Verify media type exists
+        _ = await mediaService.GetMediaTypeByIdAsync(request.MediaTypeId, cancellationToken)
+            ?? throw new DomainException("Selected media type does not exist.", "template_validation_error");
     }
 
     private async Task<TemplateDto?> GetTemplateByIdAsync(long templateId, CancellationToken cancellationToken)

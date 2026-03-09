@@ -6,13 +6,11 @@ namespace MediaRankerServer.Modules.Templates.Contracts;
 
 public class TemplateUpsertRequestValidator : AbstractValidator<TemplateUpsertRequest>
 {
-    public TemplateUpsertRequestValidator(PostgreSQLContext dbContext)
+    public TemplateUpsertRequestValidator()
     {
         RuleFor(request => request.MediaTypeId)
             .NotEmpty()
-            .WithMessage("Media type is required.")
-            .Must(id => dbContext.MediaTypes.Any(mt => mt.Id == id))
-            .WithMessage("Selected media type does not exist.");
+            .WithMessage("Media type is required.");
 
         RuleFor(request => request.Name)
             .Must(name => !string.IsNullOrWhiteSpace(name))

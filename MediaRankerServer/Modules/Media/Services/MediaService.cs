@@ -103,6 +103,15 @@ public class MediaService(
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<MediaTypeDto?> GetMediaTypeByIdAsync(long id, CancellationToken cancellationToken = default)
+    {
+        var mediaType = await dbContext.MediaTypes
+            .AsNoTracking()
+            .FirstOrDefaultAsync(mt => mt.Id == id, cancellationToken);
+
+        return mediaType == null ? null : MediaTypeMapper.Map(mediaType);
+    }
+
     private void ValidateMediaRequestOrThrow(MediaUpsertRequest request)
     {
         var validationResult = mediaUpsertRequestValidator.Validate(request);
