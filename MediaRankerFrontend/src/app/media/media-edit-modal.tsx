@@ -6,7 +6,8 @@ import { FormDialog } from "@/lib/components/feedback/dialog/form-dialog";
 import { FormSelect } from "@/lib/components/inputs/select/form-select";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
 import { FormDatePicker } from "@/lib/components/date-picker/form-date-picker";
-import { MediaTypeDto, MediaUpsertRequest } from "./contracts";
+import { MediaUpsertRequest } from "./contracts";
+import { MediaTypeDto } from "@/lib/contracts/shared";
 import { MediaRow } from "./grid-utils";
 
 const mediaEditSchema = z.object({

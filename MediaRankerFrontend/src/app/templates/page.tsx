@@ -8,13 +8,13 @@ import { BaseDataGrid } from "@/lib/components/data-grid/base-data-grid";
 import { TemplateEditModal } from "./template-edit-modal";
 import { buildTemplateColumns, TemplateRow } from "./grid-utils";
 import { TemplateDto, TemplateUpsertRequest } from "./contracts";
+import { MediaTypeDto } from "@/lib/contracts/shared";
 import { useQuery } from "@/lib/api/use-query";
 import { useUser } from "@/lib/auth/user-provider";
 import { useMutation } from "@/lib/api/use-mutation";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { BaseDialog } from "@/lib/components/feedback/dialog/base-dialog";
-import { MediaTypeDto } from "./contracts";
 
 export default function TemplatesPage() {
   const { showSuccess, showError } = useAlert();

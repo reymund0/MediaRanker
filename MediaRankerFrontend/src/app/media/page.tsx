@@ -12,7 +12,8 @@ import { BaseDataGrid } from "@/lib/components/data-grid/base-data-grid";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import { BaseDialog } from "@/lib/components/feedback/dialog/base-dialog";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
-import { MediaDto, MediaTypeDto, MediaUpsertRequest } from "./contracts";
+import { MediaDto, MediaUpsertRequest } from "./contracts";
+import { MediaTypeDto } from "@/lib/contracts/shared";
 import { buildMediaColumns, MediaRow } from "./grid-utils";
 import { MediaEditModal } from "./media-edit-modal";
 
