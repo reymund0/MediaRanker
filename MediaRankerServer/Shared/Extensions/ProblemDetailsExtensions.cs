@@ -24,6 +24,10 @@ public static class ProblemDetailsExtensions
                     problemDetails.Type = domainException.Type;
                     problemDetails.Title = "Domain error";
                     problemDetails.Detail = domainException.Message;
+                    
+                    // Explicitly set the status code on the response to ensure 
+                    // it doesn't default to 500 when customization logic finishes.
+                    httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
                     return;
                 }
 
