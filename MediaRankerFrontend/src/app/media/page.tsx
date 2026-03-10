@@ -150,12 +150,12 @@ export default function MediaPage() {
   });
 
   return (
-    <Box sx={{ flex: 1, px: { xs: 2, md: 3 }, py: { xs: 2, md: 3 } }}>
+    <Box sx={{ flex: 1, px: 3, py: 3 }}>
       <Card>
-        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+        <CardContent sx={{ p: 3 }}>
           <Stack
-            direction={{ xs: "column", sm: "row" }}
-            alignItems={{ xs: "stretch", sm: "center" }}
+            direction="row"
+            alignItems="center"
             justifyContent="space-between"
             spacing={2}
             sx={{ mb: 2 }}

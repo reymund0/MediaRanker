@@ -7,6 +7,8 @@ This document contains non-always-on frontend details for MediaRanker.
 - Theme is centralized in `MediaRankerFrontend/src/app/theme.ts`.
 - Current mode is dark.
 - Prefer theme tokens over one-off hardcoded values.
+- **Desktop Only**: The application is **not** mobile-friendly and is not intended for multiple screen sizes.
+- **Grid/Layout Props**: Do not use multiple breakpoints (e.g., `xs`, `md`, `lg`) in MUI `Grid` or Box components. Always default to `xs` if a breakpoint property is required by the component, as the layout does not need to respond to screen size changes.
 
 ## Custom Component Library Pattern
 

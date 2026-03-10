@@ -23,8 +23,8 @@ export function AppNavbar() {
     <AppBar position="static" elevation={0}>
       <Toolbar
         sx={{
-          minHeight: { xs: 48, sm: 52 },
-          px: { xs: 1, sm: 2 },
+          minHeight: 52,
+          px: 2,
           display: "grid",
           gridTemplateColumns: "auto 1fr 48px",
           alignItems: "center",
@@ -47,7 +47,7 @@ export function AppNavbar() {
           sx={{
             display: "flex",
             justifyContent: "center",
-            gap: { xs: 1, sm: 2 },
+            gap: 2,
           }}
         >
           {NAV_LINKS.map((link) => {
@@ -61,9 +61,9 @@ export function AppNavbar() {
                 sx={{
                   textTransform: "none",
                   borderRadius: 1.5,
-                  px: { xs: 1.5, sm: 2.5 },
-                  py: { xs: 0.75, sm: 1 },
-                  fontSize: { xs: "1.05rem", sm: "1.2rem" },
+                  px: 2.5,
+                  py: 1,
+                  fontSize: "1.2rem",
                   fontWeight: isActive ? 700 : 600,
                   color: isActive ? "secondary.light" : "primary.contrastText",
                   transition: "background-color 120ms ease, color 120ms ease",
