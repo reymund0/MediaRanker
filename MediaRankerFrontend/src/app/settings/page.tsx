@@ -20,7 +20,7 @@ export default function SettingsPage() {
           boxShadow: 1,
           border: "1px solid",
           borderColor: "divider",
-          p: { xs: 3, sm: 4 },
+          p: 4,
           textAlign: "center",
         }}
       >

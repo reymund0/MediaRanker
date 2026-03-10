@@ -146,7 +146,7 @@ export function AlertProvider({
           left: "50%",
           transform: "translateX(-50%)",
           zIndex: 1400,
-          minWidth: { xs: "calc(100% - 32px)", sm: 420 },
+          minWidth: 420,
           maxWidth: "min(640px, calc(100% - 32px))",
         }}
       >

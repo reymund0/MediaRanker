@@ -1,9 +1,6 @@
-// DTOS
+import { MediaTypeDto } from '@/lib/contracts/shared';
 
-export interface MediaTypeDto {
-  id: number;
-  name: string;
-}
+// DTOS
 
 export interface TemplateFieldDto {
   id: number;
@@ -17,8 +14,8 @@ export interface TemplateDto {
   userId: string;
   name: string;
   description: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
   fields: TemplateFieldDto[];
   mediaType: MediaTypeDto;
 }

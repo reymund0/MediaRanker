@@ -3,76 +3,78 @@
 import AddIcon from "@mui/icons-material/Add";
 import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
 import { GridColDef } from "@mui/x-data-grid";
+import { parseISO } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
-import { BaseDataGrid } from "@/lib/components/data-grid/base-data-grid";
-import { TemplateEditModal } from "./template-edit-modal";
-import { buildTemplateColumns, mapTemplateToRow, TemplateRow } from "./grid-utils";
-import { TemplateDto, TemplateUpsertRequest } from "./contracts";
-import { MediaTypeDto } from "@/lib/contracts/shared";
+import { useMutation } from "@/lib/api/use-mutation";
 import { useQuery } from "@/lib/api/use-query";
 import { useUser } from "@/lib/auth/user-provider";
-import { useMutation } from "@/lib/api/use-mutation";
+import { BaseDataGrid } from "@/lib/components/data-grid/base-data-grid";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
-import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { BaseDialog } from "@/lib/components/feedback/dialog/base-dialog";
+import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
+import { MediaDto, MediaUpsertRequest } from "./contracts";
+import { MediaTypeDto } from "@/lib/contracts/shared";
+import { buildMediaColumns, MediaRow, mapMediaToRow } from "./grid-utils";
+import { MediaEditModal } from "./media-edit-modal";
 
-export default function TemplatesPage() {
+export default function MediaPage() {
   const { showSuccess, showError } = useAlert();
   const { userId } = useUser();
 
-  const {
-    data: mediaTypes,
-    isError: isMediaTypesError,
-    isLoading: isMediaTypesLoading,
-  } = useQuery<MediaTypeDto[]>({
-    route: "/api/mediaTypes",
-    queryKey: ["mediaTypes"],
-    enabled: !!userId,
-  });
-
-  const [rows, setRows] = useState<TemplateRow[]>([]);
+  const [rows, setRows] = useState<MediaRow[]>([]);
   const [deleteRowId, setDeleteRowId] = useState<number | undefined>(undefined);
   const [editingRowId, setEditingRowId] = useState<number | undefined>(
     undefined,
   );
+
   const editingRow = useMemo(
     () => rows.find((row) => row.id === editingRowId) ?? undefined,
     [rows, editingRowId],
   );
 
   const {
-    data: templates,
-    isLoading: isTemplatesLoading,
-    isError: isTemplatesError,
-  } = useQuery<TemplateDto[]>({
-    route: "/api/templates",
-    queryKey: ["templates"],
+    data: media,
+    isLoading: isMediaLoading,
+    isError: isMediaError,
+  } = useQuery<MediaDto[]>({
+    route: "/api/media",
+    queryKey: ["media"],
+    enabled: !!userId,
+  });
+
+  const {
+    data: mediaTypes,
+    isLoading: isMediaTypesLoading,
+    isError: isMediaTypesError,
+  } = useQuery<MediaTypeDto[]>({
+    route: "/api/mediaTypes",
+    queryKey: ["mediaTypes"],
     enabled: !!userId,
   });
 
   useEffect(() => {
     const updateRows = async () => {
-      if (templates) {
-        setRows(templates.map(mapTemplateToRow));
+      if (!media) {
+        return;
       }
-    };
-    updateRows();
-  }, [templates]);
 
-  const { mutate: upsertTemplate } = useMutation<
-    TemplateUpsertRequest,
-    TemplateDto
-  >({
-    route: "/api/templates",
+      setRows(media.map((mediaRecord) => mapMediaToRow(mediaRecord)));
+    };
+
+    updateRows();
+  }, [media]);
+
+  const { mutate: upsertMedia } = useMutation<MediaUpsertRequest, MediaDto>({
+    route: "/api/media",
     method: "POST",
   });
 
-  const { mutate: deleteTemplate } = useMutation<number, void>({
-    route: (id) => `/api/templates/${id}`,
+  const { mutate: deleteMedia } = useMutation<number, void>({
+    route: (id) => `/api/media/${id}`,
     method: "DELETE",
   });
 
-  const onEditClick = (row: TemplateRow) => {
+  const onEditClick = (row: MediaRow) => {
     setEditingRowId(row.id);
   };
 
@@ -81,7 +83,6 @@ export default function TemplatesPage() {
       return;
     }
 
-    // Clear temporary new row.
     if (editingRow.id === 0) {
       setRows((prev) => prev.filter((row) => row.id !== editingRow.id));
     }
@@ -89,17 +90,15 @@ export default function TemplatesPage() {
     setEditingRowId(undefined);
   };
 
-  const submitEditing = async (data: TemplateUpsertRequest) => {
-    await upsertTemplate(data, {
+  const submitEditing = async (data: MediaUpsertRequest) => {
+    await upsertMedia(data, {
       onSuccess: (response) => {
-        showSuccess("Template saved successfully");
-        // Update the in-edit row with the response.
+        showSuccess("Media saved successfully");
         setRows((prev) =>
           prev.map((row) =>
-            row.id !== editingRowId ? row : mapTemplateToRow(response),
+            row.id !== editingRowId ? row : mapMediaToRow(response),
           ),
         );
-
         setEditingRowId(undefined);
       },
       onError: (error) => {
@@ -108,37 +107,34 @@ export default function TemplatesPage() {
     });
   };
 
-  const addTemplate = () => {
-    const newRow: TemplateRow = {
+  const addMedia = () => {
+    const newRow: MediaRow = {
       id: 0,
+      title: "",
       mediaType: mediaTypes?.[0] ?? { id: 0, name: "" },
-      isSystem: false,
-      userId: userId!,
-      name: "",
-      description: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      fields: [],
+      releaseDate: null,
+      createdAt: null,
+      updatedAt: null,
     };
 
     setRows((prev) => [newRow, ...prev]);
     setEditingRowId(newRow.id);
   };
 
-  const onDeleteClick = (row: TemplateRow) => {
+  const onDeleteClick = (row: MediaRow) => {
     setDeleteRowId(row.id);
   };
 
   const onDeleteConfirm = async (rowId: number) => {
-    // If somehow the delete icon was pressed on a new row that hasn't been saved yet.
     if (rowId === 0) {
       setRows((prev) => prev.filter((candidate) => candidate.id !== rowId));
+      setDeleteRowId(undefined);
       return;
     }
 
-    deleteTemplate(rowId, {
+    deleteMedia(rowId, {
       onSuccess: () => {
-        showSuccess("Template deleted successfully");
+        showSuccess("Media deleted successfully");
         setRows((prev) => prev.filter((candidate) => candidate.id !== rowId));
         setDeleteRowId(undefined);
       },
@@ -148,7 +144,7 @@ export default function TemplatesPage() {
     });
   };
 
-  const columns: GridColDef<TemplateRow>[] = buildTemplateColumns({
+  const columns: GridColDef<MediaRow>[] = buildMediaColumns({
     onEditClick,
     onDeleteClick,
   });
@@ -166,15 +162,15 @@ export default function TemplatesPage() {
           >
             <Box>
               <Typography variant="h4" component="h1">
-                Templates
+                Media
               </Typography>
               <Typography color="text.secondary">
-                Manage your custom templates and reorder template fields.
+                Manage your media catalog.
               </Typography>
             </Box>
 
-            <PrimaryButton startIcon={<AddIcon />} onClick={addTemplate}>
-              Add Template
+            <PrimaryButton startIcon={<AddIcon />} onClick={addMedia}>
+              Add Media
             </PrimaryButton>
           </Stack>
 
@@ -189,35 +185,37 @@ export default function TemplatesPage() {
             <BaseDataGrid
               disableRowSelectionOnClick
               hideFooter
-              loading={isTemplatesLoading || isMediaTypesLoading}
-              error={isTemplatesError || isMediaTypesError}
+              loading={isMediaLoading || isMediaTypesLoading}
+              error={isMediaError || isMediaTypesError}
               rows={rows}
               columns={columns}
             />
           </Box>
-          {editingRow && (
-            <TemplateEditModal
+
+          {editingRow ? (
+            <MediaEditModal
               open={true}
               row={editingRow}
+              mediaTypes={mediaTypes || []}
               onSubmit={submitEditing}
               onCancel={cancelEditing}
-              mediaTypes={mediaTypes || []}
             />
-          )}
-          {deleteRowId && (
+          ) : null}
+
+          {deleteRowId !== undefined ? (
             <BaseDialog
               open={true}
               onConfirm={() => onDeleteConfirm(deleteRowId)}
               onClose={() => setDeleteRowId(undefined)}
-              title="Delete Template"
+              title="Delete Media"
               confirmLabel="Delete"
               confirmLoading={false}
             >
               {"Are you sure you want to delete " +
-                rows.find((r) => r.id === deleteRowId)?.name +
-                " template?"}
+                rows.find((r) => r.id === deleteRowId)?.title +
+                "?"}
             </BaseDialog>
-          )}
+          ) : null}
         </CardContent>
       </Card>
     </Box>

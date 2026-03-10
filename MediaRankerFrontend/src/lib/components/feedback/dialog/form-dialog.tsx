@@ -1,5 +1,10 @@
 import { ReactNode } from "react";
-import { FieldValues, FormProvider, UseFormReturn, useFormState } from "react-hook-form";
+import {
+  FieldValues,
+  FormProvider,
+  UseFormReturn,
+  useFormState,
+} from "react-hook-form";
 import { BaseDialog } from "./base-dialog";
 
 export type FormDialogProps<T extends FieldValues> = {

@@ -1,4 +1,11 @@
-import { Select, SelectProps, MenuItem, InputLabel, FormControl, FormHelperText } from "@mui/material";
+import {
+  Select,
+  SelectProps,
+  MenuItem,
+  InputLabel,
+  FormControl,
+  FormHelperText,
+} from "@mui/material";
 import { Controller, FieldValues, Path, useFormContext } from "react-hook-form";
 
 type FormSelectProps<T extends FieldValues> = {
@@ -7,13 +14,13 @@ type FormSelectProps<T extends FieldValues> = {
   label: string;
 } & Omit<SelectProps, "name">;
 
-export function FormSelect<T extends FieldValues>({ 
-  name, 
-  items, 
-  label, 
+export function FormSelect<T extends FieldValues>({
+  name,
+  items,
+  label,
   variant,
   fullWidth,
-  ...rest 
+  ...rest
 }: FormSelectProps<T>) {
   const { control } = useFormContext<T>();
   const labelId = `${name}-label`;
@@ -22,19 +29,14 @@ export function FormSelect<T extends FieldValues>({
       name={name}
       control={control}
       render={({ field, fieldState }) => (
-        <FormControl 
-          fullWidth={fullWidth} 
-          variant={variant} 
+        <FormControl
+          fullWidth={fullWidth}
+          variant={variant}
           error={!!fieldState.error}
         >
           {/* labelId is needed for MUI Labels to work properly */}
           <InputLabel id={labelId}>{label}</InputLabel>
-          <Select
-            {...rest}
-            {...field}
-            labelId={labelId}
-            label={label}
-          >
+          <Select {...rest} {...field} labelId={labelId} label={label}>
             {items.map((item) => (
               <MenuItem key={item.id} value={item.id}>
                 {item.label}

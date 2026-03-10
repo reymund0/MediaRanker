@@ -6,9 +6,9 @@ import { FormDialog } from "@/lib/components/feedback/dialog/form-dialog";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
 import { FormDnDList } from "@/lib/components/data-display/form-dnd-list";
 import { TemplateUpsertRequest } from "./contracts";
+import { MediaTypeDto } from "@/lib/contracts/shared";
 import { TemplateRow } from "./grid-utils";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
-import { MediaTypeDto } from "./contracts";
 import { FormSelect } from "@/lib/components/inputs/select/form-select";
 
 const templateEditSchema = z.object({
