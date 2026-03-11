@@ -11,7 +11,7 @@ public class PostgreSQLContext : DbContext
 
 
     public DbSet<MediaType> MediaTypes => Set<MediaType>();
-    public DbSet<Media> Media => Set<Media>();
+    public DbSet<MediaEntity> Media => Set<MediaEntity>();
     public DbSet<Template> Templates => Set<Template>();
     public DbSet<TemplateField> TemplateFields => Set<TemplateField>();
     public DbSet<RankedMedia> RankedMedia => Set<RankedMedia>();

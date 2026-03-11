@@ -24,7 +24,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\MediaRankerServer\Shared\GlobalUsings.cs" Link="Shared\GlobalUsings.cs" />
     <ProjectReference Include="..\MediaRankerServer\MediaRankerServer.csproj" />
   </ItemGroup>
 

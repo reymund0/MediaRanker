@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -25,7 +23,7 @@ public class RankedMedia
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
-    public Media.Entities.Media Media { get; set; } = null!;
+    public MediaEntity Media { get; set; } = null!;
     public Template Template { get; set; } = null!;
     public ICollection<RankedMediaScore> Scores { get; set; } = [];
 

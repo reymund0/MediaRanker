@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using MediaRankerServer.IntegrationTests.Infrastructure;
 using MediaRankerServer.Modules.Media.Contracts;
+using MediaRankerServer.Modules.Media.Entities;
 using MediaRankerServer.Shared.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
