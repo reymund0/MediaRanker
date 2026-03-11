@@ -9,6 +9,8 @@ using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
+using MediaRankerServer.Modules.Media.Services;
+using MediaRankerServer.Modules.Media.Contracts;
 
 namespace MediaRankerServer.UnitTests.Modules.Templates;
 
@@ -18,6 +20,7 @@ public class TemplatesServiceTests
     private readonly Mock<IValidator<TemplateUpsertRequest>> _mockValidator;
     private readonly Mock<IPublisher> _mockPublisher;
     private readonly TemplatesService _service;
+    private readonly Mock<IMediaService> _mediaService;
 
     public TemplatesServiceTests()
     {
@@ -33,7 +36,10 @@ public class TemplatesServiceTests
         _mockValidator.Setup(v => v.Validate(It.IsAny<TemplateUpsertRequest>()))
             .Returns(new FluentValidation.Results.ValidationResult());
 
-        _service = new TemplatesService(_context, _mockValidator.Object, _mockPublisher.Object);
+        _mediaService = new Mock<IMediaService>();
+        _mediaService.Setup(m => m.GetMediaTypeByIdAsync(It.IsAny<long>(), It.IsAny<CancellationToken>())).ReturnsAsync((long id, CancellationToken _) => new MediaTypeDto { Id = id, Name = "Test" });
+
+        _service = new TemplatesService(_context, _mockValidator.Object, _mockPublisher.Object, _mediaService.Object);
     }
 
     [Fact]
@@ -88,6 +94,27 @@ public class TemplatesServiceTests
         // Assert
         await act.Should().ThrowAsync<DomainException>()
             .Where(e => e.Type == "template_forbidden");
+    }
+
+    [Fact]
+    public async Task UpdateTemplateAsync_InvalidMediaType_ThrowsDomainException()
+    {
+        // Arrange
+        var request = new TemplateUpsertRequest 
+        { 
+            Name = "New Template", 
+            MediaTypeId = 999, 
+            Fields = [] 
+        };
+
+        _mediaService.Setup(m => m.GetMediaTypeByIdAsync(999, It.IsAny<CancellationToken>())).ReturnsAsync((MediaTypeDto?)null);
+
+        // Act
+        var act = () => _service.UpdateTemplateAsync("user-1", 1, request);
+
+        // Assert
+        await act.Should().ThrowAsync<DomainException>()
+            .Where(e => e.Type == "template_validation_error");
     }
 
     [Fact]
