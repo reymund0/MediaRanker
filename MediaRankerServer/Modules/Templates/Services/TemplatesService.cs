@@ -27,6 +27,18 @@ public class TemplatesService(
 
         return [..templates.Select(TemplateMapper.Map)];
     }
+    
+    public async Task<TemplateDto?> GetTemplateByIdAsync(long templateId, CancellationToken cancellationToken)
+    {
+        var template = await dbContext.Templates
+            .AsNoTracking()
+            .Include(t => t.Fields)
+            .Include(t => t.MediaType)
+            .Where(t => t.Id == templateId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return template is null ? null : TemplateMapper.Map(template);
+    }
 
     public async Task<TemplateDto> CreateTemplateAsync(string userId, TemplateUpsertRequest request, CancellationToken cancellationToken = default)
     {
@@ -183,17 +195,5 @@ public class TemplatesService(
         // Verify media type exists
         _ = await mediaService.GetMediaTypeByIdAsync(request.MediaTypeId, cancellationToken)
             ?? throw new DomainException("Selected media type does not exist.", "template_validation_error");
-    }
-
-    private async Task<TemplateDto?> GetTemplateByIdAsync(long templateId, CancellationToken cancellationToken)
-    {
-        var template = await dbContext.Templates
-            .AsNoTracking()
-            .Include(t => t.Fields)
-            .Include(t => t.MediaType)
-            .Where(t => t.Id == templateId)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        return template is null ? null : TemplateMapper.Map(template);
     }
 }

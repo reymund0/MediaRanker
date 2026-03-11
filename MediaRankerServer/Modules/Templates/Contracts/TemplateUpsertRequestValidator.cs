@@ -1,6 +1,4 @@
 using FluentValidation;
-using MediaRankerServer.Shared.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace MediaRankerServer.Modules.Templates.Contracts;
 

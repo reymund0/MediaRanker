@@ -29,6 +29,16 @@ public class MediaService(
         return [.. media.Select(m => MediaMapper.Map(m))];
     }
 
+    public async Task<MediaDto?> GetMediaByIdAsync(long mediaId, CancellationToken cancellationToken)
+    {
+        var media = await dbContext.Media
+            .AsNoTracking()
+            .Include(m => m.MediaType)
+            .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
+
+        return media is null ? null : MediaMapper.Map(media);
+    }
+
     public async Task<MediaDto> CreateMediaAsync(MediaUpsertRequest request, CancellationToken cancellationToken = default)
     {
         ValidateMediaRequestOrThrow(request);
@@ -119,15 +129,5 @@ public class MediaService(
         {
             throw new DomainException(validationResult.Errors[0].ErrorMessage, "media_validation_error");
         }
-    }
-
-    private async Task<MediaDto?> GetMediaByIdAsync(long mediaId, CancellationToken cancellationToken)
-    {
-        var media = await dbContext.Media
-            .AsNoTracking()
-            .Include(m => m.MediaType)
-            .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
-
-        return media is null ? null : MediaMapper.Map(media);
     }
 }
