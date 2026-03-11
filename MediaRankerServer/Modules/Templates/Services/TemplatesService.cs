@@ -60,7 +60,12 @@ public class TemplatesService(
             UserId = userId,
             Name = normalizedName,
             MediaTypeId = request.MediaTypeId,
-            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim()
+            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+            Fields = [..request.Fields.Select(fieldRequest => new TemplateField
+            {
+                Name = fieldRequest.Name.Trim(),
+                Position = fieldRequest.Position
+            })]
         };
 
         foreach (var fieldRequest in request.Fields)
@@ -180,6 +185,8 @@ public class TemplatesService(
             throw new DomainException("You do not have access to this template.", "template_forbidden");
         }
 
+        // Delete Template and its fields.
+        dbContext.TemplateFields.RemoveRange(dbContext.TemplateFields.Where(tf => tf.TemplateId == templateId));
         dbContext.Templates.Remove(template);
         await dbContext.SaveChangesAsync(cancellationToken);
     }

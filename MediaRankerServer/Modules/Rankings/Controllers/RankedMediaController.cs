@@ -32,4 +32,12 @@ public class RankedMediaController(IRankedMediaService rankedMediaService) : Con
 
       return Ok(updatedRankedMedia);
     }
+
+    [HttpDelete("{rankedMediaId}")]
+    public async Task<IActionResult> DeleteRankedMedia(long rankedMediaId, CancellationToken cancellationToken)
+    {
+      var userId = User.GetAuthenticatedUserId();
+      await rankedMediaService.DeleteRankedMediaAsync(userId, rankedMediaId, cancellationToken);
+      return Ok();
+    }
 }
