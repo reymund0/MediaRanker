@@ -8,13 +8,34 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using MediaRankerServer.Shared.Data;
+using Serilog;
 
 namespace MediaRankerServer.IntegrationTests.Infrastructure;
 
 public class CustomWebApplicationFactory<TProgram>(string connectionString) : WebApplicationFactory<TProgram> where TProgram : class
 {
     private readonly string _connectionString = connectionString;
+
+    protected override IHost CreateHost(IHostBuilder builder)
+    {
+        builder.UseSerilog((context, services, loggerConfiguration) =>
+        {
+            loggerConfiguration
+                .ReadFrom.Configuration(context.Configuration)
+                .ReadFrom.Services(services)
+                .Enrich.FromLogContext()
+                .WriteTo.File(
+                    path: "../../../logs/integration-tests-.txt",
+                    rollingInterval: RollingInterval.Minute,
+                    retainedFileCountLimit: 10,
+                    shared: true
+                );
+        });
+
+        return base.CreateHost(builder);
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {

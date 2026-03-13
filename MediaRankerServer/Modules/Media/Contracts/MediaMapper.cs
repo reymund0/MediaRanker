@@ -1,3 +1,5 @@
+using MediaRankerServer.Modules.Media.Entities;
+
 namespace MediaRankerServer.Modules.Media.Contracts;
 
 public static class MediaMapper

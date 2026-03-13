@@ -2,6 +2,7 @@ using FluentAssertions;
 using FluentValidation;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Services;
+using MediaRankerServer.Modules.Media.Entities;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;

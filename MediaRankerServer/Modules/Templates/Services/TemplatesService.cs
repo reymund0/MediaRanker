@@ -27,6 +27,18 @@ public class TemplatesService(
 
         return [..templates.Select(TemplateMapper.Map)];
     }
+    
+    public async Task<TemplateDto?> GetTemplateByIdAsync(long templateId, CancellationToken cancellationToken)
+    {
+        var template = await dbContext.Templates
+            .AsNoTracking()
+            .Include(t => t.Fields)
+            .Include(t => t.MediaType)
+            .Where(t => t.Id == templateId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return template is null ? null : TemplateMapper.Map(template);
+    }
 
     public async Task<TemplateDto> CreateTemplateAsync(string userId, TemplateUpsertRequest request, CancellationToken cancellationToken = default)
     {
@@ -48,17 +60,13 @@ public class TemplatesService(
             UserId = userId,
             Name = normalizedName,
             MediaTypeId = request.MediaTypeId,
-            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim()
-        };
-
-        foreach (var fieldRequest in request.Fields)
-        {
-            template.Fields.Add(new TemplateField
+            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+            Fields = [..request.Fields.Select(fieldRequest => new TemplateField
             {
                 Name = fieldRequest.Name.Trim(),
                 Position = fieldRequest.Position
-            });
-        }
+            })]
+        };
 
         dbContext.Templates.Add(template);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -168,6 +176,8 @@ public class TemplatesService(
             throw new DomainException("You do not have access to this template.", "template_forbidden");
         }
 
+        // Delete Template and its fields.
+        dbContext.TemplateFields.RemoveRange(dbContext.TemplateFields.Where(tf => tf.TemplateId == templateId));
         dbContext.Templates.Remove(template);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
@@ -183,17 +193,5 @@ public class TemplatesService(
         // Verify media type exists
         _ = await mediaService.GetMediaTypeByIdAsync(request.MediaTypeId, cancellationToken)
             ?? throw new DomainException("Selected media type does not exist.", "template_validation_error");
-    }
-
-    private async Task<TemplateDto?> GetTemplateByIdAsync(long templateId, CancellationToken cancellationToken)
-    {
-        var template = await dbContext.Templates
-            .AsNoTracking()
-            .Include(t => t.Fields)
-            .Include(t => t.MediaType)
-            .Where(t => t.Id == templateId)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        return template is null ? null : TemplateMapper.Map(template);
     }
 }

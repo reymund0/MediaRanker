@@ -5,7 +5,7 @@ using MediaRankerServer.Modules.Rankings.Entities;
 
 namespace MediaRankerServer.Modules.Media.Entities;
 
-public class Media
+public class MediaEntity
 {
     public long Id { get; set; }
 
@@ -19,9 +19,9 @@ public class Media
 
     public ICollection<RankedMedia> RankedMedia { get; set; } = [];
 
-    public class Configuration : IEntityTypeConfiguration<Media>
+    public class Configuration : IEntityTypeConfiguration<MediaEntity>
     {
-        public void Configure(EntityTypeBuilder<Media> builder)
+        public void Configure(EntityTypeBuilder<MediaEntity> builder)
         {
             builder.ToTable("media");
 

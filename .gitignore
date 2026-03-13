@@ -20,6 +20,7 @@ obj/
 **/*.cache
 *.log
 MediaRankerServer/logs/
+MediaRankerServer.IntegrationTests/logs/
 *.tlog
 *.pidb
 *.svclog

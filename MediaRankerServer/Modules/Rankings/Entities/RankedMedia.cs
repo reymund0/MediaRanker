@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -25,7 +23,7 @@ public class RankedMedia
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
-    public Media.Entities.Media Media { get; set; } = null!;
+    public MediaEntity Media { get; set; } = null!;
     public Template Template { get; set; } = null!;
     public ICollection<RankedMediaScore> Scores { get; set; } = [];
 
@@ -106,9 +104,9 @@ public class RankedMedia
             builder.HasIndex(rm => rm.MediaId)
                 .HasDatabaseName("ix_ranked_media_media_id");
 
-            builder.HasIndex(rm => new { rm.UserId, rm.MediaId, rm.TemplateId })
+            builder.HasIndex(rm => new { rm.UserId, rm.MediaId })
                 .IsUnique()
-                .HasDatabaseName("uq_ranked_media_user_media_template");
+                .HasDatabaseName("uq_ranked_media_user_media");
         }
     }
 }

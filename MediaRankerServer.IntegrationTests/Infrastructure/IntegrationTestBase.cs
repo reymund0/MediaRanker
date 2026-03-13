@@ -81,8 +81,6 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         if (_connection == null) return;
 
         var sql = @"
-            DELETE FROM ranked_media_scores WHERE ranked_media_id > 0 OR template_field_id > 0;
-            DELETE FROM ranked_media WHERE id > 0;
             DELETE FROM template_fields WHERE id > 0;
             DELETE FROM templates WHERE id > 0;
             DELETE FROM media WHERE id > 0;
