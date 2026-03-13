@@ -104,9 +104,9 @@ public class RankedMedia
             builder.HasIndex(rm => rm.MediaId)
                 .HasDatabaseName("ix_ranked_media_media_id");
 
-            builder.HasIndex(rm => new { rm.UserId, rm.MediaId, rm.TemplateId })
+            builder.HasIndex(rm => new { rm.UserId, rm.MediaId })
                 .IsUnique()
-                .HasDatabaseName("uq_ranked_media_user_media_template");
+                .HasDatabaseName("uq_ranked_media_user_media");
         }
     }
 }

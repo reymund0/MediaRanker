@@ -30,14 +30,14 @@ public class TemplatesTests(PostgresContainerFixture fixture) : IntegrationTestB
             { 
                 UserId = userId, 
                 Name = "User Template", 
-                MediaTypeId = -3 // Movie
+                MediaTypeId = -1
             });
             
             db.Templates.Add(new Template 
             { 
                 UserId = otherUserId, 
                 Name = "Other User Template", 
-                MediaTypeId = -3 
+                MediaTypeId = -1
             });
 
             await db.SaveChangesAsync();
@@ -63,7 +63,7 @@ public class TemplatesTests(PostgresContainerFixture fixture) : IntegrationTestB
         // Arrange
         var request = new TemplateUpsertRequest
         {
-            MediaTypeId = -3, // Movie
+            MediaTypeId = -1,
             Name = "New Integration Template",
             Description = "Test Description",
             Fields = new List<TemplateFieldUpsertRequest>

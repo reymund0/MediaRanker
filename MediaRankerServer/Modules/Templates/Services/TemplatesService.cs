@@ -68,15 +68,6 @@ public class TemplatesService(
             })]
         };
 
-        foreach (var fieldRequest in request.Fields)
-        {
-            template.Fields.Add(new TemplateField
-            {
-                Name = fieldRequest.Name.Trim(),
-                Position = fieldRequest.Position
-            });
-        }
-
         dbContext.Templates.Add(template);
         await dbContext.SaveChangesAsync(cancellationToken);
 

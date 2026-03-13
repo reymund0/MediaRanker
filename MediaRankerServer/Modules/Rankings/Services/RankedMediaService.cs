@@ -21,6 +21,7 @@ public class RankedMediaService(
             .AsNoTracking()
             .Include(rm => rm.Scores)
             .Include(rm => rm.Media)
+            .Include(rm => rm.Template)
             .Where(rm => rm.UserId == userId)
             .ToListAsync(cancellationToken);
         return [.. userRankedMedia.Select(RankedMediaMapper.Map)];
@@ -29,6 +30,16 @@ public class RankedMediaService(
     public async Task<RankedMediaDto> CreateRankedMediaAsync(string userId, RankedMediaUpsertRequest request, CancellationToken cancellationToken = default)
     {
         await ValidateRankedMediaUpsertRequestOrThrowAsync(request, cancellationToken);
+
+        // Validate user does not have an existing review for this media.
+        var existingReview = await dbContext.RankedMedia
+            .AsNoTracking()
+            .Where(rm => rm.UserId == userId && rm.MediaId == request.MediaId)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (existingReview != null)
+        {
+            throw new DomainException("User already has a review for this media item", "ranked_media_duplicate_review");
+        }
 
         // Normalize strings.
         var normalizedReviewTitle = string.IsNullOrWhiteSpace(request.ReviewTitle) ? null : request.ReviewTitle.Trim();
@@ -42,6 +53,7 @@ public class RankedMediaService(
         {
             UserId = userId,
             MediaId = request.MediaId,
+            TemplateId = request.TemplateId,
             ReviewTitle = normalizedReviewTitle,
             Notes = normalizedNotes,
             OverallScore = overallScore,
@@ -157,9 +169,9 @@ public class RankedMediaService(
         }
 
         // Validate Media Type is compatible with Template Media Type
-        if (media.MediaType != template.MediaType)
+        if (media.MediaType.Id != template.MediaType.Id)
         {
-            throw new DomainException($"Media type {media.MediaType} is not compatible with template media type {template.MediaType}", errorType);
+            throw new DomainException($"Media type {media.MediaType.Name} is not compatible with template media type {template.MediaType.Name}", errorType);
         }
     }
 
@@ -174,6 +186,7 @@ public class RankedMediaService(
             .AsNoTracking()
             .Include(rm => rm.Scores)
             .Include(rm => rm.Media)
+            .Include(rm => rm.Template)
             .FirstOrDefaultAsync(rm => rm.Id == rankedMediaId, cancellationToken);
         return rankedMedia is null ? null : RankedMediaMapper.Map(rankedMedia);
     }

@@ -12,29 +12,38 @@ namespace MediaRankerServer.IntegrationTests.Modules.Media;
 
 public class MediaCrudTests(PostgresContainerFixture fixture) : IntegrationTestBase(fixture)
 {
+    private MediaEntity _testMedia = null!;
+    
+    public override async Task InitializeAsync()
+    {
+        await base.InitializeAsync();
+        
+        // Create a test Media
+        using var scope = Factory.Services.CreateScope();
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+            var media = new MediaEntity
+            {
+                Title = "Test Media",
+                MediaTypeId = -3,
+                ReleaseDate = new DateOnly(2024, 1, 1),
+            };
+            dbContext.Media.Add(media);
+            dbContext.SaveChanges();
+            _testMedia = media;
+        }
+    }
+    
     [Fact]
     public async Task GetMedia_ReturnsExistingRows()
     {
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
-            db.Media.Add(new MediaEntity
-            {
-                Title = "The Matrix",
-                MediaTypeId = -3,
-                ReleaseDate = new DateOnly(1999, 3, 31),
-            });
-
-            await db.SaveChangesAsync();
-        }
-
         var response = await Client.GetAsync("/api/media");
 
         response.EnsureSuccessStatusCode();
         var media = await response.Content.ReadFromJsonAsync<List<MediaDto>>();
 
         media.Should().NotBeNull();
-        media.Should().Contain(m => m.Title == "The Matrix");
+        media.Should().Contain(m => m.Title == _testMedia.Title);
     }
 
     [Fact]
@@ -66,24 +75,9 @@ public class MediaCrudTests(PostgresContainerFixture fixture) : IntegrationTestB
     [Fact]
     public async Task UpsertMedia_Update_PersistsChanges()
     {
-        long mediaId;
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
-            var media = new MediaEntity
-            {
-                Title = "Blade Runner",
-                MediaTypeId = -3,
-                ReleaseDate = new DateOnly(1982, 6, 25),
-            };
-            db.Media.Add(media);
-            await db.SaveChangesAsync();
-            mediaId = media.Id;
-        }
-
         var request = new MediaUpsertRequest
         {
-            Id = mediaId,
+            Id = _testMedia.Id,
             Title = "Blade Runner: Final Cut",
             MediaTypeId = -3,
             ReleaseDate = new DateOnly(1982, 6, 25),
@@ -99,7 +93,7 @@ public class MediaCrudTests(PostgresContainerFixture fixture) : IntegrationTestB
 
         using var verifyScope = Factory.Services.CreateScope();
         var verifyDb = verifyScope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
-        var dbMedia = await verifyDb.Media.FirstOrDefaultAsync(m => m.Id == mediaId);
+        var dbMedia = await verifyDb.Media.FirstOrDefaultAsync(m => m.Id == _testMedia.Id);
 
         dbMedia.Should().NotBeNull();
         dbMedia!.Title.Should().Be("Blade Runner: Final Cut");
@@ -108,29 +102,13 @@ public class MediaCrudTests(PostgresContainerFixture fixture) : IntegrationTestB
     [Fact]
     public async Task DeleteMedia_RemovesExistingRow()
     {
-        long mediaId;
-        using (var scope = Factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
-            var media = new MediaEntity
-            {
-                Title = "Interstellar",
-                MediaTypeId = -3,
-                ReleaseDate = new DateOnly(2014, 11, 7),
-            };
-
-            db.Media.Add(media);
-            await db.SaveChangesAsync();
-            mediaId = media.Id;
-        }
-
-        var response = await Client.DeleteAsync($"/api/media/{mediaId}");
+        var response = await Client.DeleteAsync($"/api/media/{_testMedia.Id}");
 
         response.EnsureSuccessStatusCode();
 
         using var verifyScope = Factory.Services.CreateScope();
         var verifyDb = verifyScope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
-        var dbMedia = await verifyDb.Media.FirstOrDefaultAsync(m => m.Id == mediaId);
+        var dbMedia = await verifyDb.Media.FirstOrDefaultAsync(m => m.Id == _testMedia.Id);
         dbMedia.Should().BeNull();
     }
 

@@ -117,6 +117,25 @@ public class RankedMediaServiceTests
             .Where(e => e.Message.Contains("Media type"));
     }
 
+    [Fact]
+    public async Task CreateRankedMediaAsync_WhenUserAlreadyHasReviewForMedia_ThrowsDomainException()
+    {
+        // Arrange - Seed an existing review directly to bypass full entity requirement
+        _dbContext.RankedMedia.Add(new RankedMedia
+        {
+            UserId = "test-user",
+            MediaId = _testRequest.MediaId,
+            TemplateId = _testRequest.TemplateId,
+            OverallScore = 5
+        });
+        await _dbContext.SaveChangesAsync();
+        
+        // Act & Assert - Try to create second review
+        var act = () => _service.CreateRankedMediaAsync("test-user", _testRequest, CancellationToken.None);
+        await act.Should().ThrowAsync<DomainException>()
+            .Where(e => e.Type == "ranked_media_duplicate_review");
+    }
+
 
     [Fact]
     public async Task ValidateUpdateRankedMediaAsync_WhenRankedMediaNotFound_ThrowsDomainException()
