@@ -22,7 +22,9 @@ public static class RankedMediaMapper
       TemplateId = rankedMedia.TemplateId,
       TemplateName = rankedMedia.Template.Name,
       MediaId = rankedMedia.MediaId,
-      MediaTitle = rankedMedia.Media.Title
+      MediaTitle = rankedMedia.Media.Title,
+      MediaTypeId = rankedMedia.Media.MediaTypeId,
+      MediaTypeName = rankedMedia.Media.MediaType.Name
     };
   }
 

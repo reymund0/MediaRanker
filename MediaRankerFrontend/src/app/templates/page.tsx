@@ -89,8 +89,8 @@ export default function TemplatesPage() {
     setEditingRowId(undefined);
   };
 
-  const submitEditing = async (data: TemplateUpsertRequest) => {
-    await upsertTemplate(data, {
+  const submitEditing = (data: TemplateUpsertRequest) => {
+    upsertTemplate(data, {
       onSuccess: (response) => {
         showSuccess("Template saved successfully");
         // Update the in-edit row with the response.
@@ -129,7 +129,7 @@ export default function TemplatesPage() {
     setDeleteRowId(row.id);
   };
 
-  const onDeleteConfirm = async (rowId: number) => {
+  const onDeleteConfirm = (rowId: number) => {
     // If somehow the delete icon was pressed on a new row that hasn't been saved yet.
     if (rowId === 0) {
       setRows((prev) => prev.filter((candidate) => candidate.id !== rowId));
@@ -161,7 +161,6 @@ export default function TemplatesPage() {
             direction="row"
             alignItems="center"
             justifyContent="space-between"
-            spacing={2}
             sx={{ mb: 2 }}
           >
             <Box>
@@ -187,8 +186,6 @@ export default function TemplatesPage() {
             }}
           >
             <BaseDataGrid
-              disableRowSelectionOnClick
-              hideFooter
               loading={isTemplatesLoading || isMediaTypesLoading}
               error={isTemplatesError || isMediaTypesError}
               rows={rows}

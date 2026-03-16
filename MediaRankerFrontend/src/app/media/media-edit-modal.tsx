@@ -69,7 +69,7 @@ export function MediaEditModal({
         <FormSelect<MediaEditFormValues>
           name="mediaTypeId"
           label="Media type"
-          items={mediaTypes.map((mediaType) => ({
+          options={mediaTypes.map((mediaType) => ({
             id: mediaType.id,
             label: mediaType.name,
           }))}

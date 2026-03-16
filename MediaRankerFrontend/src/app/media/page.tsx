@@ -3,7 +3,6 @@
 import AddIcon from "@mui/icons-material/Add";
 import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
 import { GridColDef } from "@mui/x-data-grid";
-import { parseISO } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@/lib/api/use-mutation";
 import { useQuery } from "@/lib/api/use-query";
@@ -90,8 +89,8 @@ export default function MediaPage() {
     setEditingRowId(undefined);
   };
 
-  const submitEditing = async (data: MediaUpsertRequest) => {
-    await upsertMedia(data, {
+  const submitEditing = (data: MediaUpsertRequest) => {
+    upsertMedia(data, {
       onSuccess: (response) => {
         showSuccess("Media saved successfully");
         setRows((prev) =>
@@ -125,7 +124,7 @@ export default function MediaPage() {
     setDeleteRowId(row.id);
   };
 
-  const onDeleteConfirm = async (rowId: number) => {
+  const onDeleteConfirm = (rowId: number) => {
     if (rowId === 0) {
       setRows((prev) => prev.filter((candidate) => candidate.id !== rowId));
       setDeleteRowId(undefined);
@@ -157,7 +156,6 @@ export default function MediaPage() {
             direction="row"
             alignItems="center"
             justifyContent="space-between"
-            spacing={2}
             sx={{ mb: 2 }}
           >
             <Box>
@@ -183,8 +181,6 @@ export default function MediaPage() {
             }}
           >
             <BaseDataGrid
-              disableRowSelectionOnClick
-              hideFooter
               loading={isMediaLoading || isMediaTypesLoading}
               error={isMediaError || isMediaTypesError}
               rows={rows}
