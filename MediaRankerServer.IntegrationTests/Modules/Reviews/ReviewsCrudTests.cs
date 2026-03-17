@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using FluentAssertions;
 using MediaRankerServer.IntegrationTests.Infrastructure;
+using MediaRankerServer.IntegrationTests.Utils;
 using MediaRankerServer.Modules.Media.Entities;
 using MediaRankerServer.Modules.Reviews.Contracts;
 using MediaRankerServer.Modules.Reviews.Entities;
@@ -16,6 +17,7 @@ public class ReviewsCrudTests(PostgresContainerFixture fixture) : IntegrationTes
     const string basePath = "/api/Reviews";
     private Review _testReviews = null!;
     private MediaEntity _testMedia = null!;
+    private MediaEntity _testUnreviewedMedia = null!;
     private Template _testTemplate = null!;
 
     public override async Task InitializeAsync()
@@ -45,9 +47,19 @@ public class ReviewsCrudTests(PostgresContainerFixture fixture) : IntegrationTes
                 }]
             };
             dbContext.Reviews.Add(review);
+
+            var unreviewedMedia = new MediaEntity
+            {
+                Title = "Unreviewed Media",
+                MediaTypeId = _testTemplate.MediaTypeId,
+                ReleaseDate = new DateOnly(2024, 1, 1),
+            };
+            dbContext.Media.Add(unreviewedMedia);
+            
             dbContext.SaveChanges();
             _testReviews = review;
             _testMedia = review.Media;
+            _testUnreviewedMedia = unreviewedMedia;
         }
     }
     
@@ -55,17 +67,24 @@ public class ReviewsCrudTests(PostgresContainerFixture fixture) : IntegrationTes
     public async Task GetReviews_ReturnsExistingRows()
     {
         var response = await Client.GetAsync(basePath);
-        if (!response.IsSuccessStatusCode)
-        {
-            var content = await response.Content.ReadAsStringAsync();
-            throw new Exception($"Failed to GET rankings. Status: {response.StatusCode}. Content: {content}");
-        }
-        response.EnsureSuccessStatusCode();
+        TestUtils.AssertSuccessResponse(response);
 
         var Reviews = await response.Content.ReadFromJsonAsync<List<ReviewDto>>();
         Reviews.Should().NotBeNull();
         Reviews.Should().NotBeEmpty();
         Reviews.Should().Contain(r => r.Id == _testReviews.Id);
+    }
+
+    [Fact]
+    public async Task GetUnreviewedMedia_ReturnsUnreviewedMedia()
+    {
+        var response = await Client.GetAsync($"{basePath}/unreviewedByType?mediaTypeId={_testUnreviewedMedia.MediaTypeId}");
+        TestUtils.AssertSuccessResponse(response);
+
+        var unreviewedMedia = await response.Content.ReadFromJsonAsync<List<UnreviewedMediaDto>>();
+        unreviewedMedia.Should().NotBeNull();
+        unreviewedMedia.Should().NotBeEmpty();
+        unreviewedMedia.Should().Contain(m => m.Id == _testUnreviewedMedia.Id);
     }
     
     [Fact]
@@ -91,12 +110,7 @@ public class ReviewsCrudTests(PostgresContainerFixture fixture) : IntegrationTes
             }]
         };
         var response = await Client.PostAsJsonAsync(basePath, request);
-        if (!response.IsSuccessStatusCode)
-        {
-            var content = await response.Content.ReadAsStringAsync();
-            throw new Exception($"Failed to POST ranking. Status: {response.StatusCode}. Content: {content}");
-        }
-        response.EnsureSuccessStatusCode();
+        TestUtils.AssertSuccessResponse(response);
         
         var Reviews = await response.Content.ReadFromJsonAsync<ReviewDto>();
         Reviews.Should().NotBeNull();
@@ -121,12 +135,7 @@ public class ReviewsCrudTests(PostgresContainerFixture fixture) : IntegrationTes
             }]
         };
         var response = await Client.PostAsJsonAsync(basePath, request);
-        if (!response.IsSuccessStatusCode)
-        {
-            var content = await response.Content.ReadAsStringAsync();
-            throw new Exception($"Failed to UPDATE (POST) ranking. Status: {response.StatusCode}. Content: {content}");
-        }
-        response.EnsureSuccessStatusCode();
+        TestUtils.AssertSuccessResponse(response);
         
         var Reviews = await response.Content.ReadFromJsonAsync<ReviewDto>();
         Reviews.Should().NotBeNull();
@@ -138,12 +147,7 @@ public class ReviewsCrudTests(PostgresContainerFixture fixture) : IntegrationTes
     public async Task DeleteReviews_DeletesRecord()
     {
         var response = await Client.DeleteAsync($"{basePath}/{_testReviews.Id}");
-        if (!response.IsSuccessStatusCode)
-        {
-            var content = await response.Content.ReadAsStringAsync();
-            throw new Exception($"Failed to DELETE ranking. Status: {response.StatusCode}. Content: {content}");
-        }
-        response.EnsureSuccessStatusCode();
+        TestUtils.AssertSuccessResponse(response);
         
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();

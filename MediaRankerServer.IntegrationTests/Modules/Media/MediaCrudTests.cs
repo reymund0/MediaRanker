@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using FluentAssertions;
 using MediaRankerServer.IntegrationTests.Infrastructure;
+using MediaRankerServer.IntegrationTests.Utils;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Entities;
 using MediaRankerServer.Shared.Data;
@@ -39,7 +40,7 @@ public class MediaCrudTests(PostgresContainerFixture fixture) : IntegrationTestB
     {
         var response = await Client.GetAsync("/api/media");
 
-        response.EnsureSuccessStatusCode();
+        TestUtils.AssertSuccessResponse(response);
         var media = await response.Content.ReadFromJsonAsync<List<MediaDto>>();
 
         media.Should().NotBeNull();
@@ -58,7 +59,7 @@ public class MediaCrudTests(PostgresContainerFixture fixture) : IntegrationTestB
 
         var response = await Client.PostAsJsonAsync("/api/media", request);
 
-        response.EnsureSuccessStatusCode();
+        TestUtils.AssertSuccessResponse(response);
         var result = await response.Content.ReadFromJsonAsync<MediaDto>();
 
         result.Should().NotBeNull();
@@ -85,7 +86,7 @@ public class MediaCrudTests(PostgresContainerFixture fixture) : IntegrationTestB
 
         var response = await Client.PostAsJsonAsync("/api/media", request);
 
-        response.EnsureSuccessStatusCode();
+        TestUtils.AssertSuccessResponse(response);
         var result = await response.Content.ReadFromJsonAsync<MediaDto>();
 
         result.Should().NotBeNull();
@@ -104,7 +105,7 @@ public class MediaCrudTests(PostgresContainerFixture fixture) : IntegrationTestB
     {
         var response = await Client.DeleteAsync($"/api/media/{_testMedia.Id}");
 
-        response.EnsureSuccessStatusCode();
+        TestUtils.AssertSuccessResponse(response);
 
         using var verifyScope = Factory.Services.CreateScope();
         var verifyDb = verifyScope.ServiceProvider.GetRequiredService<PostgreSQLContext>();

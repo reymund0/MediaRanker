@@ -25,6 +25,7 @@ public class ReviewServiceTests : IDisposable
     private readonly Mock<ITemplateService> _mockTemplatesService;
     private readonly PostgreSQLContext _dbContext;
     private readonly ReviewService _service;
+    private readonly ReviewUpsertRequest _defaultRequest;
 
     public ReviewServiceTests()
     {
@@ -43,6 +44,17 @@ public class ReviewServiceTests : IDisposable
             _mockMediaService.Object,
             _mockTemplatesService.Object
         );
+
+        _defaultRequest = new ReviewUpsertRequest
+        {
+            MediaId = 1,
+            TemplateId = 1,
+            Scores = new List<ReviewFieldUpsertRequest> { new() { TemplateFieldId = 1, Value = 5 } }
+        };
+
+        // Seed data and setup mocks once per test instance
+        SeedData();
+        SetupValidMocks();
     }
 
     public void Dispose()
@@ -52,7 +64,7 @@ public class ReviewServiceTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private async Task SeedDataAsync()
+    private void SeedData()
     {
         var mediaType = new MediaType { Id = 1, Name = "Movie" };
         var media = new MediaEntity { Id = 1, Title = "Test Movie", MediaTypeId = 1, MediaType = mediaType };
@@ -73,7 +85,7 @@ public class ReviewServiceTests : IDisposable
         _dbContext.MediaTypes.Add(mediaType);
         _dbContext.Media.Add(media);
         _dbContext.Templates.Add(template);
-        await _dbContext.SaveChangesAsync();
+        _dbContext.SaveChanges();
     }
 
     private void SetupValidMocks()
@@ -100,15 +112,8 @@ public class ReviewServiceTests : IDisposable
     public async Task ValidateReviewUpsertRequest_WhenMediaIdIsInvalid_ThrowsValidationDomainException()
     {
         // Arrange
-        await SeedDataAsync();
-        SetupValidMocks();
-        
-        var request = new ReviewUpsertRequest
-        {
-            MediaId = -10,
-            TemplateId = 1,
-            Scores = new List<ReviewFieldUpsertRequest> { new() { TemplateFieldId = 1, Value = 5 } }
-        };
+        var request = _defaultRequest;
+        request.MediaId = -10;
 
         _mockMediaService.Setup(m => m.GetMediaByIdAsync(-10, It.IsAny<CancellationToken>()))
             .ReturnsAsync((MediaDto?)null);
@@ -124,15 +129,8 @@ public class ReviewServiceTests : IDisposable
     public async Task ValidateReviewUpsertRequest_WhenTemplateIdIsInvalid_ThrowsValidationDomainException()
     {
         // Arrange
-        await SeedDataAsync();
-        SetupValidMocks();
-        
-        var request = new ReviewUpsertRequest
-        {
-            MediaId = 1,
-            TemplateId = -10,
-            Scores = new List<ReviewFieldUpsertRequest> { new() { TemplateFieldId = 1, Value = 5 } }
-        };
+        var request = _defaultRequest;
+        request.TemplateId = -10;
 
         _mockTemplatesService.Setup(t => t.GetTemplateByIdAsync(-10, It.IsAny<CancellationToken>()))
             .ReturnsAsync((TemplateDto?)null);
@@ -148,15 +146,8 @@ public class ReviewServiceTests : IDisposable
     public async Task ValidateReviewUpsertRequest_WhenTemplateFieldsAreInvalid_ThrowsValidationDomainException()
     {
         // Arrange
-        await SeedDataAsync();
-        SetupValidMocks();
-        
-        var request = new ReviewUpsertRequest
-        {
-            MediaId = 1,
-            TemplateId = 1,
-            Scores = new List<ReviewFieldUpsertRequest> { new() { TemplateFieldId = 999, Value = 5 } }
-        };
+        var request = _defaultRequest;
+        request.Scores = new List<ReviewFieldUpsertRequest> { new() { TemplateFieldId = 999, Value = 5 } };
 
         // Act & Assert
         var act = () => _service.CreateReviewAsync("test-user", request);
@@ -169,15 +160,7 @@ public class ReviewServiceTests : IDisposable
     public async Task ValidateReviewUpsertRequest_WhenMediaTypeIsIncompatible_ThrowsValidationDomainException()
     {
         // Arrange
-        await SeedDataAsync();
-        SetupValidMocks();
-        
-        var request = new ReviewUpsertRequest
-        {
-            MediaId = 1,
-            TemplateId = 1,
-            Scores = new List<ReviewFieldUpsertRequest> { new() { TemplateFieldId = 1, Value = 5 } }
-        };
+        var request = _defaultRequest;
 
         _mockMediaService.Setup(m => m.GetMediaByIdAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new MediaDto { Id = 1, Title = "Test", MediaType = new MediaRankerServer.Modules.Media.Contracts.MediaTypeDto { Id = 2, Name = "Book" } });
@@ -193,15 +176,7 @@ public class ReviewServiceTests : IDisposable
     public async Task CreateReviewAsync_WhenUserAlreadyHasReviewForMedia_ThrowsDomainException()
     {
         // Arrange
-        await SeedDataAsync();
-        SetupValidMocks();
-        
-        var request = new ReviewUpsertRequest
-        {
-            MediaId = 1,
-            TemplateId = 1,
-            Scores = new List<ReviewFieldUpsertRequest> { new() { TemplateFieldId = 1, Value = 5 } }
-        };
+        var request = _defaultRequest;
 
         var existingReview = new Review
         {
@@ -223,15 +198,8 @@ public class ReviewServiceTests : IDisposable
     public async Task ValidateUpdateReviewAsync_WhenReviewsNotFound_ThrowsDomainException()
     {
         // Arrange
-        await SeedDataAsync();
-        SetupValidMocks();
         var reviewId = 999;
-        var request = new ReviewUpsertRequest
-        {
-            MediaId = 1,
-            TemplateId = 1,
-            Scores = new List<ReviewFieldUpsertRequest> { new() { TemplateFieldId = 1, Value = 5 } }
-        };
+        var request = _defaultRequest;
 
         // Act & Assert
         var act = () => _service.UpdateReviewAsync("test-user", reviewId, request);
@@ -243,8 +211,6 @@ public class ReviewServiceTests : IDisposable
     public async Task ValidateUpdateReviewAsync_WhenReviewsDoesNotBelongToUser_ThrowsDomainException()
     {
         // Arrange
-        await SeedDataAsync();
-        SetupValidMocks();
         var review = new Review
         {
             UserId = "other-user",
@@ -255,12 +221,7 @@ public class ReviewServiceTests : IDisposable
         _dbContext.Reviews.Add(review);
         await _dbContext.SaveChangesAsync();
 
-        var request = new ReviewUpsertRequest
-        {
-            MediaId = 1,
-            TemplateId = 1,
-            Scores = new List<ReviewFieldUpsertRequest> { new() { TemplateFieldId = 1, Value = 5 } }
-        };
+        var request = _defaultRequest;
 
         // Act & Assert
         var act = () => _service.UpdateReviewAsync("test-user", review.Id, request);
@@ -272,8 +233,6 @@ public class ReviewServiceTests : IDisposable
     public async Task ValidateDeleteReviewAsync_WhenReviewsNotFound_ThrowsDomainException()
     {
         // Arrange
-        await SeedDataAsync();
-        SetupValidMocks();
         var reviewId = 999;
 
         // Act & Assert
@@ -286,8 +245,6 @@ public class ReviewServiceTests : IDisposable
     public async Task ValidateDeleteReviewAsync_WhenReviewsDoesNotBelongToUser_ThrowsDomainException()
     {
         // Arrange
-        await SeedDataAsync();
-        SetupValidMocks();
         var review = new Review
         {
             UserId = "other-user",
@@ -308,19 +265,13 @@ public class ReviewServiceTests : IDisposable
     public async Task CreateReviewAsync_ValidRequest_CreatesAndReturnsDto()
     {
         // Arrange
-        await SeedDataAsync();
-        SetupValidMocks();
         var userId = "user1";
-        var request = new ReviewUpsertRequest
+        var request = _defaultRequest;
+        request.ReviewTitle = "Great Movie";
+        request.Scores = new List<ReviewFieldUpsertRequest>
         {
-            MediaId = 1,
-            TemplateId = 1,
-            ReviewTitle = "Great Movie",
-            Scores = new List<ReviewFieldUpsertRequest>
-            {
-                new() { TemplateFieldId = 1, Value = 8 },
-                new() { TemplateFieldId = 2, Value = 9 }
-            }
+            new() { TemplateFieldId = 1, Value = 8 },
+            new() { TemplateFieldId = 2, Value = 9 }
         };
 
         // Act
@@ -344,8 +295,6 @@ public class ReviewServiceTests : IDisposable
     public async Task UpdateReviewAsync_ValidRequest_UpdatesAndReturnsDto()
     {
         // Arrange
-        await SeedDataAsync();
-        SetupValidMocks();
         var userId = "user1";
         
         var mediaEntity = await _dbContext.Media.FirstAsync();
@@ -368,17 +317,13 @@ public class ReviewServiceTests : IDisposable
         _dbContext.Reviews.Add(existingReview);
         await _dbContext.SaveChangesAsync();
 
-        var request = new ReviewUpsertRequest
+        var request = _defaultRequest;
+        request.Id = existingReview.Id;
+        request.ReviewTitle = "New Title";
+        request.Scores = new List<ReviewFieldUpsertRequest>
         {
-            Id = existingReview.Id,
-            MediaId = 1,
-            TemplateId = 1,
-            ReviewTitle = "New Title",
-            Scores = new List<ReviewFieldUpsertRequest>
-            {
-                new() { TemplateFieldId = 1, Value = 8 }, // Update
-                new() { TemplateFieldId = 2, Value = 9 }  // Add
-            }
+            new() { TemplateFieldId = 1, Value = 8 }, // Update
+            new() { TemplateFieldId = 2, Value = 9 }  // Add
         };
 
         // Act
@@ -399,8 +344,6 @@ public class ReviewServiceTests : IDisposable
     public async Task DeleteReviewAsync_ValidId_DeletesReviewAndScores()
     {
         // Arrange
-        await SeedDataAsync();
-        SetupValidMocks();
         var userId = "user1";
         
         var existingReview = new Review
