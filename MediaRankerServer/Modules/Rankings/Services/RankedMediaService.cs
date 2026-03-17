@@ -6,6 +6,7 @@ using MediaRankerServer.Modules.Rankings.Contracts;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 namespace MediaRankerServer.Modules.Rankings.Services;
 
 public class RankedMediaService(
@@ -22,9 +23,21 @@ public class RankedMediaService(
             .Include(rm => rm.Scores)
             .Include(rm => rm.Media)
             .Include(rm => rm.Template)
+            .Include(rm => rm.Media.MediaType)
             .Where(rm => rm.UserId == userId)
             .ToListAsync(cancellationToken);
         return [.. userRankedMedia.Select(RankedMediaMapper.Map)];
+    }
+    
+    public async Task<List<UnreviewedMediaDto>> GetUnreviewedMediaByTypeAsync(string userId, long mediaTypeId, CancellationToken cancellationToken = default)
+    {
+        var userUnreviewedMedia = await dbContext.Media
+            .AsNoTracking()
+            .Where(m => m.MediaTypeId == mediaTypeId)
+            .Include(m => m.MediaType)
+            .Where(m => !m.RankedMedia.Any(rm => rm.UserId == userId))
+            .ToListAsync(cancellationToken);
+        return [.. userUnreviewedMedia.Select(UnreviewedMediaMapper.Map)];
     }
 
     public async Task<RankedMediaDto> CreateRankedMediaAsync(string userId, RankedMediaUpsertRequest request, CancellationToken cancellationToken = default)

@@ -36,6 +36,8 @@ export function BaseDataGrid<R extends GridValidRowModel>(
   return (
     <Box>
       <DataGrid
+        disableRowSelectionOnClick
+        hideFooter
         rows={error ? [] : rows}
         slots={{
           noRowsOverlay: error ? ErrorOverlay : undefined,

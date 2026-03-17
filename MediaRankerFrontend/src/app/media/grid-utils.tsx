@@ -36,7 +36,6 @@ export function buildMediaColumns({
       field: "title",
       headerName: "Title",
       flex: 3,
-      minWidth: 240,
       sortable: false,
       renderCell: (params: GridRenderCellParams<MediaRow, string>) => (
         <Stack
@@ -59,7 +58,6 @@ export function buildMediaColumns({
       headerName: "Release Date",
       type: "date",
       flex: 1,
-      minWidth: 160,
       sortable: false,
       renderCell: (params: GridRenderCellParams<MediaRow, Date | null>) => (
         <Typography color="text.secondary">
@@ -72,7 +70,6 @@ export function buildMediaColumns({
       headerName: "Updated At",
       type: "dateTime",
       flex: 1,
-      minWidth: 170,
       sortable: false,
       renderCell: (params: GridRenderCellParams<MediaRow, Date | null>) => (
         <Typography color="text.secondary">
@@ -83,8 +80,8 @@ export function buildMediaColumns({
     {
       field: "actions",
       headerName: "Actions",
-      width: 140,
       sortable: false,
+      width: 90,
       filterable: false,
       disableColumnMenu: true,
       renderCell: (params: GridRenderCellParams<MediaRow>) => {

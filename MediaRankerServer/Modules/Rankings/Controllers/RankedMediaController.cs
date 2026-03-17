@@ -17,6 +17,14 @@ public class RankedMediaController(IRankedMediaService rankedMediaService) : Con
       return Ok(rankedMedia);
     }
 
+    [HttpGet("unreviewedByType")]
+    public async Task<IActionResult> GetUnreviewedMediaByType(long mediaTypeId, CancellationToken cancellationToken)
+    {
+      var userId = User.GetAuthenticatedUserId();
+      var unreviewedMedia = await rankedMediaService.GetUnreviewedMediaByTypeAsync(userId, mediaTypeId, cancellationToken);
+      return Ok(unreviewedMedia);
+    }
+
     [HttpPost]
     public async Task<IActionResult> UpsertRankedMedia([FromBody] RankedMediaUpsertRequest request, CancellationToken cancellationToken)
     {

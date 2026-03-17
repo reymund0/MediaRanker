@@ -1,5 +1,3 @@
-using MediaRankerServer.Modules.Media.Contracts;
-
 namespace MediaRankerServer.Modules.Rankings.Contracts;
 
 public class RankedMediaDto
@@ -19,4 +17,6 @@ public class RankedMediaDto
   // Media fields.
   public long MediaId {get; set;}
   public string MediaTitle {get; set;} = null!;
+  public long MediaTypeId {get; set;}
+  public string MediaTypeName {get; set;} = null!;
 }
