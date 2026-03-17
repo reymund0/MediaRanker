@@ -43,30 +43,35 @@ export function rankedMediaColumns({
 }: RankedMediaColumnsParams): GridColDef<RankedMediaRow>[] {
   return [
     {
+      flex: 2,
       field: "mediaTitle",
       headerName: "Title",
     },
     { 
+      flex: 1,
       field: "mediaTypeName",
       headerName: "Type"
     },
     {
+      flex: 1,
       field: "overallScore",
       headerName: "Score"
     },
     {
+      flex: 1,
       field: "consumedAt",
       // TODO: Would be cool to rename to action verb based on mediaType. Consumed is weird.
       headerName: "Date Consumed"
     },
     {
+      flex: 1,
       field: "templateName",
       headerName: "Template"
     },
     {
       field: "actions",
       headerName: "Actions",
-      width: 140,
+      width: 90,
       sortable: false,
       filterable: false,
       disableColumnMenu: true,

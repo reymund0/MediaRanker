@@ -40,7 +40,6 @@ export function buildTemplateColumns({
       field: "name",
       headerName: "Name",
       flex: 2,
-      minWidth: 220,
       sortable: false,
       renderCell: (params: GridRenderCellParams<TemplateRow>) => {
         return (
@@ -67,7 +66,6 @@ export function buildTemplateColumns({
       field: "description",
       headerName: "Description",
       flex: 5,
-      minWidth: 320,
       sortable: false,
       renderCell: (params: GridRenderCellParams<TemplateRow, string>) => (
         <Typography noWrap color="text.secondary">
@@ -79,7 +77,6 @@ export function buildTemplateColumns({
       field: "fields",
       headerName: "Fields",
       flex: 1,
-      minWidth: 150,
       sortable: false,
       renderCell: (
         params: GridRenderCellParams<TemplateRow, TemplateFieldRow[]>,
@@ -98,7 +95,6 @@ export function buildTemplateColumns({
       headerName: "Updated At",
       type: "dateTime",
       flex: 1,
-      minWidth: 170,
       sortable: false,
       renderCell: (params: GridRenderCellParams<TemplateRow, Date | null>) => (
         <Typography color="text.secondary">
@@ -109,7 +105,7 @@ export function buildTemplateColumns({
     {
       field: "actions",
       headerName: "Actions",
-      width: 140,
+      width: 90,
       sortable: false,
       filterable: false,
       disableColumnMenu: true,
