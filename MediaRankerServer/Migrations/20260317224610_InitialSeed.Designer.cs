@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MediaRankerServer.Migrations
 {
     [DbContext(typeof(PostgreSQLContext))]
-    [Migration("20260317190344_InitialSeed")]
+    [Migration("20260317224610_InitialSeed")]
     partial class InitialSeed
     {
         /// <inheritdoc />
@@ -327,7 +327,7 @@ namespace MediaRankerServer.Migrations
             modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Entities.ReviewField", b =>
                 {
                     b.HasOne("MediaRankerServer.Modules.Reviews.Entities.Review", "Review")
-                        .WithMany("Scores")
+                        .WithMany("Fields")
                         .HasForeignKey("ReviewId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
@@ -376,7 +376,7 @@ namespace MediaRankerServer.Migrations
 
             modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Entities.Review", b =>
                 {
-                    b.Navigation("Scores");
+                    b.Navigation("Fields");
                 });
 
             modelBuilder.Entity("MediaRankerServer.Modules.Templates.Entities.Template", b =>

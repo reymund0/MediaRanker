@@ -25,7 +25,7 @@ public class Review
 
     public MediaEntity Media { get; set; } = null!;
     public Template Template { get; set; } = null!;
-    public ICollection<ReviewField> Scores { get; set; } = [];
+    public ICollection<ReviewField> Fields { get; set; } = [];
 
     public class Configuration : IEntityTypeConfiguration<Review>
     {
@@ -89,9 +89,9 @@ public class Review
                 .WithMany(t => t.Reviews)
                 .HasForeignKey(rm => rm.TemplateId);
 
-            builder.HasMany(rm => rm.Scores)
-                .WithOne(s => s.Review)
-                .HasForeignKey(s => s.ReviewId)
+            builder.HasMany(rm => rm.Fields)
+                .WithOne(f => f.Review)
+                .HasForeignKey(f => f.ReviewId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Indexes

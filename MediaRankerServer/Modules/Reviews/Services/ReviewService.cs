@@ -19,7 +19,7 @@ public class ReviewService(
     {
         var userReviews = await dbContext.Reviews
             .AsNoTracking()
-            .Include(rm => rm.Scores)
+            .Include(rm => rm.Fields)
             .Include(rm => rm.Media)
             .Include(rm => rm.Template)
             .Include(rm => rm.Media.MediaType)
@@ -58,7 +58,7 @@ public class ReviewService(
         var normalizedNotes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
 
         // Calculate overall score from scores, rounding up.
-        var overallScore = CalculateOverallScore(request.Scores.Select(score => (double)score.Value));
+        var overallScore = CalculateOverallScore(request.Fields.Select(score => (double)score.Value));
         
         // Create Reviews entity
         var review = new Review
@@ -69,7 +69,7 @@ public class ReviewService(
             ReviewTitle = normalizedReviewTitle,
             Notes = normalizedNotes,
             OverallScore = overallScore,
-            Scores = [..request.Scores.Select(score => new ReviewField
+            Fields = [..request.Fields.Select(score => new ReviewField
             {
                 TemplateFieldId = score.TemplateFieldId,
                 Value = score.Value
@@ -88,7 +88,7 @@ public class ReviewService(
 
         // Validate review exists and belongs to user
         var review = await dbContext.Reviews
-            .Include(rm => rm.Scores)
+            .Include(rm => rm.Fields)
             .FirstOrDefaultAsync(rm => rm.Id == reviewId, cancellationToken)
             ?? throw new DomainException("Review not found", "reviews_not_found");
         if (review.UserId != userId)
@@ -101,7 +101,7 @@ public class ReviewService(
         var normalizedNotes = request.Notes?.Trim();
 
         // Recalculate overall score
-        var overallScore = CalculateOverallScore(request.Scores.Select(score => (double)score.Value));
+        var overallScore = CalculateOverallScore(request.Fields.Select(score => (double)score.Value));
 
         // Update Review
         review.ReviewTitle = normalizedReviewTitle;
@@ -113,14 +113,14 @@ public class ReviewService(
 
         // Update Review Fields.
         // Identify new, updated, and removeable scores
-        var newScores = request.Scores.Where(score => !review.Scores.Any(s => s.TemplateFieldId == score.TemplateFieldId)).ToList();
-        var updatedScores = request.Scores.Where(score => review.Scores.Any(s => s.TemplateFieldId == score.TemplateFieldId)).ToList();
-        var removeableScores = review.Scores.Where(score => !request.Scores.Any(s => s.TemplateFieldId == score.TemplateFieldId)).ToList();
+        var newScores = request.Fields.Where(score => !review.Fields.Any(s => s.TemplateFieldId == score.TemplateFieldId)).ToList();
+        var updatedScores = request.Fields.Where(score => review.Fields.Any(s => s.TemplateFieldId == score.TemplateFieldId)).ToList();
+        var removeableScores = review.Fields.Where(score => !request.Fields.Any(s => s.TemplateFieldId == score.TemplateFieldId)).ToList();
 
         // Add new scores
         foreach (var score in newScores)
         {
-            review.Scores.Add(new ReviewField
+            review.Fields.Add(new ReviewField
             {
                 ReviewId = reviewId,
                 TemplateFieldId = score.TemplateFieldId,
@@ -131,7 +131,7 @@ public class ReviewService(
         // Update existing scores
         foreach (var score in updatedScores)
         {
-            var existingScore = review.Scores.First(s => s.TemplateFieldId == score.TemplateFieldId);
+            var existingScore = review.Fields.First(s => s.TemplateFieldId == score.TemplateFieldId);
             existingScore.Value = score.Value;
         }
         
@@ -174,7 +174,7 @@ public class ReviewService(
         var template = await templatesService.GetTemplateByIdAsync(request.TemplateId, cancellationToken) ?? throw new DomainException($"TemplateId {request.TemplateId} not found", errorType);
         
         // Validate Template fields exist
-        var invalidField = request.Scores.FirstOrDefault(score => !template.Fields.Any(field => field.Id == score.TemplateFieldId));
+        var invalidField = request.Fields.FirstOrDefault(score => !template.Fields.Any(field => field.Id == score.TemplateFieldId));
         if (invalidField is not null)
         {
             throw new DomainException($"Template field {invalidField.TemplateFieldId} not found in template {request.TemplateId}", errorType);
@@ -196,7 +196,7 @@ public class ReviewService(
     {
         var review = await dbContext.Reviews
             .AsNoTracking()
-            .Include(rm => rm.Scores)
+            .Include(rm => rm.Fields)
             .Include(rm => rm.Media)
                 .ThenInclude(m => m.MediaType)
             .Include(rm => rm.Template)

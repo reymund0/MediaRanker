@@ -7,7 +7,7 @@ export interface ReviewDto {
   consumedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  scores: ReviewFieldsDto[];
+  fields: ReviewFieldDto[];
   templateId: number;
   templateName: string;
   mediaId: number;
@@ -16,7 +16,7 @@ export interface ReviewDto {
   mediaTypeName: string;
 }
 
-export interface ReviewFieldsDto {
+export interface ReviewFieldDto {
   id: number;
   reviewId: number;
   templateFieldId: number;

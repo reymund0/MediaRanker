@@ -7,7 +7,7 @@ import { useQuery } from "@/lib/api/use-query";
 import { useUser } from "@/lib/auth/user-provider";
 import { ReviewDto } from "./contracts";
 import { useState, useEffect } from "react";
-import { ReviewsRow, mapReviewsToRow, reviewsColumns } from "./grid-utils";
+import { ReviewRow, mapReviewToRow, reviewsColumns } from "./grid-utils";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@/lib/api/use-mutation";
 import { BaseDialog } from "@/lib/components/feedback/dialog/base-dialog";
@@ -20,7 +20,7 @@ export default function ReviewsPage() {
   // Would be cool to filter by media types.
   // Need a new page to actually add/edit reviews.
   
-  const [rows, setRows] = useState<ReviewsRow[]>([]);
+  const [rows, setRows] = useState<ReviewRow[]>([]);
   const [deleteRowId, setDeleteRowId] = useState<number | undefined>(undefined);
   const { showSuccess, showError } = useAlert();
 
@@ -45,7 +45,7 @@ export default function ReviewsPage() {
       if (!reviews) {
         return;
       }
-      setRows(reviews.map(mapReviewsToRow));
+      setRows(reviews.map(mapReviewToRow));
     };
     updateRows();
   }, [reviews]);

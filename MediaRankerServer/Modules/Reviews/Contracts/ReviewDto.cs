@@ -10,7 +10,7 @@ public class ReviewDto
   public DateTimeOffset? ConsumedAt { get; set; }
   public DateTimeOffset CreatedAt { get; set; }
   public DateTimeOffset UpdatedAt { get; set; }
-  public List<ReviewFieldDto> Scores {get; set;} = [];
+  public List<ReviewFieldDto> Fields {get; set;} = [];
   // Template fields.
   public long TemplateId {get; set;}
   public string TemplateName {get; set;} = null!;

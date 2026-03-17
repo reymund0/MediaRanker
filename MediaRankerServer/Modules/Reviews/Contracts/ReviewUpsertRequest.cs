@@ -9,5 +9,5 @@ public class ReviewUpsertRequest
   public string? ReviewTitle { get; set; }
   public string? Notes { get; set; }
   public DateTimeOffset? ConsumedAt { get; set; }
-  public List<ReviewFieldUpsertRequest> Scores { get; set; } = [];    
+  public List<ReviewFieldUpsertRequest> Fields { get; set; } = [];    
 }

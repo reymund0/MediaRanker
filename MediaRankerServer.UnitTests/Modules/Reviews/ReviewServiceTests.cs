@@ -49,7 +49,7 @@ public class ReviewServiceTests : IDisposable
         {
             MediaId = 1,
             TemplateId = 1,
-            Scores = new List<ReviewFieldUpsertRequest> { new() { TemplateFieldId = 1, Value = 5 } }
+            Fields = new List<ReviewFieldUpsertRequest> { new() { TemplateFieldId = 1, Value = 5 } }
         };
 
         // Seed data and setup mocks once per test instance
@@ -147,7 +147,7 @@ public class ReviewServiceTests : IDisposable
     {
         // Arrange
         var request = _defaultRequest;
-        request.Scores = new List<ReviewFieldUpsertRequest> { new() { TemplateFieldId = 999, Value = 5 } };
+        request.Fields = new List<ReviewFieldUpsertRequest> { new() { TemplateFieldId = 999, Value = 5 } };
 
         // Act & Assert
         var act = () => _service.CreateReviewAsync("test-user", request);
@@ -268,7 +268,7 @@ public class ReviewServiceTests : IDisposable
         var userId = "user1";
         var request = _defaultRequest;
         request.ReviewTitle = "Great Movie";
-        request.Scores = new List<ReviewFieldUpsertRequest>
+        request.Fields = new List<ReviewFieldUpsertRequest>
         {
             new() { TemplateFieldId = 1, Value = 8 },
             new() { TemplateFieldId = 2, Value = 9 }
@@ -284,11 +284,11 @@ public class ReviewServiceTests : IDisposable
         result.TemplateId.Should().Be(request.TemplateId);
         result.ReviewTitle.Should().Be(request.ReviewTitle);
         result.OverallScore.Should().Be(8); // (8+9)/2 = 8.5 -> 8 (Banker's rounding)
-        result.Scores.Should().HaveCount(2);
+        result.Fields.Should().HaveCount(2);
 
-        var savedReview = await _dbContext.Reviews.Include(rm => rm.Scores).FirstAsync();
+        var savedReview = await _dbContext.Reviews.Include(rm => rm.Fields).FirstAsync();
         savedReview.Should().NotBeNull();
-        savedReview.Scores.Should().HaveCount(2);
+        savedReview.Fields.Should().HaveCount(2);
     }
 
     [Fact]
@@ -309,7 +309,7 @@ public class ReviewServiceTests : IDisposable
             OverallScore = 5,
             Media = mediaEntity,
             Template = templateEntity,
-            Scores = new List<ReviewField>
+            Fields = new List<ReviewField>
             {
                 new() { TemplateFieldId = 1, Value = 5 }
             }
@@ -320,7 +320,7 @@ public class ReviewServiceTests : IDisposable
         var request = _defaultRequest;
         request.Id = existingReview.Id;
         request.ReviewTitle = "New Title";
-        request.Scores = new List<ReviewFieldUpsertRequest>
+        request.Fields = new List<ReviewFieldUpsertRequest>
         {
             new() { TemplateFieldId = 1, Value = 8 }, // Update
             new() { TemplateFieldId = 2, Value = 9 }  // Add
@@ -333,11 +333,11 @@ public class ReviewServiceTests : IDisposable
         result.Should().NotBeNull();
         result.ReviewTitle.Should().Be("New Title");
         result.OverallScore.Should().Be(8); // (8+9)/2 = 8.5 -> 8 (Banker's rounding)
-        result.Scores.Should().HaveCount(2);
+        result.Fields.Should().HaveCount(2);
 
-        var updatedReview = await _dbContext.Reviews.Include(rm => rm.Scores).FirstAsync();
+        var updatedReview = await _dbContext.Reviews.Include(rm => rm.Fields).FirstAsync();
         updatedReview.ReviewTitle.Should().Be("New Title");
-        updatedReview.Scores.Should().HaveCount(2);
+        updatedReview.Fields.Should().HaveCount(2);
     }
     
     [Fact]
@@ -352,7 +352,7 @@ public class ReviewServiceTests : IDisposable
             MediaId = 1,
             TemplateId = 1,
             OverallScore = 5,
-            Scores = new List<ReviewField>
+            Fields = new List<ReviewField>
             {
                 new() { TemplateFieldId = 1, Value = 5 }
             }

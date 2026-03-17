@@ -324,7 +324,7 @@ namespace MediaRankerServer.Migrations
             modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Entities.ReviewField", b =>
                 {
                     b.HasOne("MediaRankerServer.Modules.Reviews.Entities.Review", "Review")
-                        .WithMany("Scores")
+                        .WithMany("Fields")
                         .HasForeignKey("ReviewId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
@@ -373,7 +373,7 @@ namespace MediaRankerServer.Migrations
 
             modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Entities.Review", b =>
                 {
-                    b.Navigation("Scores");
+                    b.Navigation("Fields");
                 });
 
             modelBuilder.Entity("MediaRankerServer.Modules.Templates.Entities.Template", b =>

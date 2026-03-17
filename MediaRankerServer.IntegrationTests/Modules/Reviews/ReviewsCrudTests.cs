@@ -40,7 +40,7 @@ public class ReviewsCrudTests(PostgresContainerFixture fixture) : IntegrationTes
                     MediaTypeId = _testTemplate.MediaTypeId,
                     ReleaseDate = new DateOnly(2024, 1, 1),
                 },
-                Scores = [new ReviewField
+                Fields = [new ReviewField
                 {
                     TemplateFieldId = _testTemplate.Fields.First().Id,
                     Value = 5
@@ -103,7 +103,7 @@ public class ReviewsCrudTests(PostgresContainerFixture fixture) : IntegrationTes
             TemplateId = _testTemplate.Id,
             Notes = "Test notes",
             ConsumedAt = DateTime.UtcNow,
-            Scores = [new ReviewFieldUpsertRequest
+            Fields = [new ReviewFieldUpsertRequest
             {
                 TemplateFieldId = _testTemplate.Fields.First().Id,
                 Value = 5
@@ -128,7 +128,7 @@ public class ReviewsCrudTests(PostgresContainerFixture fixture) : IntegrationTes
             TemplateId = _testTemplate.Id,
             Notes = "Updated notes",
             ConsumedAt = DateTime.UtcNow,
-            Scores = [new ReviewFieldUpsertRequest
+            Fields = [new ReviewFieldUpsertRequest
             {
                 TemplateFieldId = _testTemplate.Fields.First().Id,
                 Value = 10

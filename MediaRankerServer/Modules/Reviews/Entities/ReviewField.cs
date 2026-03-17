@@ -39,7 +39,7 @@ public class ReviewField
 
             // Relationships
             builder.HasOne(rms => rms.Review)
-                .WithMany(rm => rm.Scores)
+                .WithMany(rm => rm.Fields)
                 .HasForeignKey(rms => rms.ReviewId)
                 .OnDelete(DeleteBehavior.Cascade);
 

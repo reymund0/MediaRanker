@@ -16,7 +16,7 @@ public static class ReviewMapper
       ConsumedAt = review.ConsumedAt,
       CreatedAt = review.CreatedAt,
       UpdatedAt = review.UpdatedAt,
-      Scores = review.Scores.Select(MapScore).ToList(),
+      Fields = review.Fields.Select(MapField).ToList(),
       TemplateId = review.TemplateId,
       TemplateName = review.Template.Name,
       MediaId = review.MediaId,
@@ -26,13 +26,13 @@ public static class ReviewMapper
     };
   }
 
-  private static ReviewFieldDto MapScore(ReviewField score)
+  private static ReviewFieldDto MapField(ReviewField field)
   {
     return new ReviewFieldDto
     {
-      ReviewId = score.ReviewId,
-      TemplateFieldId = score.TemplateFieldId,
-      Value = score.Value
+      ReviewId = field.ReviewId,
+      TemplateFieldId = field.TemplateFieldId,
+      Value = field.Value
     };
   }
 }
