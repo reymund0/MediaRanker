@@ -1,4 +1,4 @@
-namespace MediaRankerServer.Modules.Rankings.Contracts;
+namespace MediaRankerServer.Modules.Reviews.Contracts;
 
 public class UnreviewedMediaDto
 {

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using MediaRankerServer.Modules.Rankings.Entities;
+using MediaRankerServer.Modules.Reviews.Entities;
 
 namespace MediaRankerServer.Modules.Templates.Entities;
 
@@ -14,7 +14,7 @@ public class TemplateField
     public int Position { get; set; }
 
     public Template Template { get; set; } = null!;
-    public ICollection<RankedMediaScore> RankedMediaScores { get; set; } = [];
+    public ICollection<ReviewField> ReviewFields { get; set; } = [];
 
     public class Configuration : IEntityTypeConfiguration<TemplateField>
     {
@@ -45,9 +45,9 @@ public class TemplateField
                 .HasForeignKey(tf => tf.TemplateId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.HasMany(tf => tf.RankedMediaScores)
-                .WithOne(rms => rms.TemplateField)
-                .HasForeignKey(rms => rms.TemplateFieldId);
+            builder.HasMany(tf => tf.ReviewFields)
+                .WithOne(rf => rf.TemplateField)
+                .HasForeignKey(rf => rf.TemplateFieldId);
 
             // Indexes
             builder.HasIndex(tf => tf.TemplateId)

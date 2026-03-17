@@ -2,7 +2,7 @@ using MediaRankerServer.Modules.Templates.Contracts;
 
 namespace MediaRankerServer.Modules.Templates.Services;
 
-public interface ITemplatesService
+public interface ITemplateService
 {
     Task<List<TemplateDto>> GetAllVisibleTemplatesAsync(string userId, CancellationToken cancellationToken = default);
     Task<TemplateDto?> GetTemplateByIdAsync(long templateId, CancellationToken cancellationToken = default);

@@ -1,46 +1,45 @@
-
 import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
-import { RankedMediaDto, RankedMediaScoreDto } from "./contracts";
+import { ReviewDto, ReviewFieldsDto } from "./contracts";
 import { IconButton, Stack } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
-export type RankedMediaScoreRow = Omit<RankedMediaScoreDto, "id" | "createdAt" | "updatedAt"> & {
+export type ReviewFieldsRow = Omit<ReviewFieldsDto, "id" | "createdAt" | "updatedAt"> & {
   id: number | undefined;
   createdAt: Date;
   updatedAt: Date;
 };
 
-export type RankedMediaRow = Omit<RankedMediaDto, "id" | "scores" | "consumedAt" | "createdAt" | "updatedAt"> & {
+export type ReviewsRow = Omit<ReviewDto, "id" | "scores" | "consumedAt" | "createdAt" | "updatedAt"> & {
   id: number | undefined;
   consumedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-  scores: RankedMediaScoreRow[];
+  scores: ReviewFieldsRow[];
 };
 
-export const mapRankedMediaToRow = (rankedMedia: RankedMediaDto): RankedMediaRow => ({
-  ...rankedMedia,
-  id: rankedMedia.id,
-  consumedAt: rankedMedia.consumedAt ? new Date(rankedMedia.consumedAt) : null,
-  createdAt: new Date(rankedMedia.createdAt),
-  updatedAt: new Date(rankedMedia.updatedAt),
-  scores: rankedMedia.scores.map(score => ({
+export const mapReviewsToRow = (reviews: ReviewDto): ReviewsRow => ({
+  ...reviews,
+  id: reviews.id,
+  consumedAt: reviews.consumedAt ? new Date(reviews.consumedAt) : null,
+  createdAt: new Date(reviews.createdAt),
+  updatedAt: new Date(reviews.updatedAt),
+  scores: reviews.scores.map(score => ({
     ...score,
     createdAt: new Date(score.createdAt),
     updatedAt: new Date(score.updatedAt),
   })),
 });
 
-interface RankedMediaColumnsParams {
-  onEditClick: (row: RankedMediaRow) => void;
-  onDeleteClick: (row: RankedMediaRow) => void;
+interface ReviewsColumnsParams {
+  onEditClick: (row: ReviewsRow) => void;
+  onDeleteClick: (row: ReviewsRow) => void;
 }
 
-export function rankedMediaColumns({
+export function reviewsColumns({
   onEditClick,
   onDeleteClick,
-}: RankedMediaColumnsParams): GridColDef<RankedMediaRow>[] {
+}: ReviewsColumnsParams): GridColDef<ReviewsRow>[] {
   return [
     {
       flex: 2,
@@ -75,7 +74,7 @@ export function rankedMediaColumns({
       sortable: false,
       filterable: false,
       disableColumnMenu: true,
-      renderCell: (params: GridRenderCellParams<RankedMediaRow>) => {
+      renderCell: (params: GridRenderCellParams<ReviewsRow>) => {
         return (
           <Stack direction="row" spacing={0.5}>
             <IconButton

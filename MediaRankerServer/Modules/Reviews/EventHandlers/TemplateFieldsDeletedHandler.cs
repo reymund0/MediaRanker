@@ -2,7 +2,7 @@ using MediaRankerServer.Modules.Templates.Events;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
-namespace MediaRankerServer.Modules.Rankings.EventHandlers;
+namespace MediaRankerServer.Modules.Reviews.EventHandlers;
 
 public class TemplateFieldsDeletedHandler(ILogger<TemplateFieldsDeletedHandler> logger) 
     : INotificationHandler<TemplateFieldsDeletedEvent>
@@ -14,7 +14,7 @@ public class TemplateFieldsDeletedHandler(ILogger<TemplateFieldsDeletedHandler> 
             notification.TemplateId, 
             string.Join(", ", notification.FieldIds));
 
-        // TODO: MR-15 recalculate OverallScore for RankedMedia associated with these field deletions
+        // TODO: MR-15 recalculate OverallScore for Reviews associated with these field deletions
         
         return Task.CompletedTask;
     }

@@ -9,12 +9,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MediaRankerServer.Modules.Templates.Services;
 
-public class TemplatesService(
+public class TemplateService(
     PostgreSQLContext dbContext,
     IValidator<TemplateUpsertRequest> templateUpsertRequestValidator,
     IPublisher publisher,
     IMediaService mediaService
-) : ITemplatesService
+) : ITemplateService
 {
     public async Task<List<TemplateDto>> GetAllVisibleTemplatesAsync(string userId, CancellationToken cancellationToken = default)
     {

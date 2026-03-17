@@ -2,19 +2,19 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using MediaRankerServer.IntegrationTests.Infrastructure;
 using MediaRankerServer.Modules.Media.Entities;
-using MediaRankerServer.Modules.Rankings.Contracts;
-using MediaRankerServer.Modules.Rankings.Entities;
+using MediaRankerServer.Modules.Reviews.Contracts;
+using MediaRankerServer.Modules.Reviews.Entities;
 using MediaRankerServer.Modules.Templates.Entities;
 using MediaRankerServer.Shared.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MediaRankerServer.IntegrationTests.Modules.Rankings;
+namespace MediaRankerServer.IntegrationTests.Modules.Reviews;
 
-public class MediaRankingsCrudTests(PostgresContainerFixture fixture) : IntegrationTestBase(fixture)
+public class ReviewsCrudTests(PostgresContainerFixture fixture) : IntegrationTestBase(fixture)
 {
-    const string basePath = "/api/RankedMedia";
-    private RankedMedia _testRankedMedia = null!;
+    const string basePath = "/api/Reviews";
+    private Review _testReviews = null!;
     private MediaEntity _testMedia = null!;
     private Template _testTemplate = null!;
 
@@ -27,7 +27,7 @@ public class MediaRankingsCrudTests(PostgresContainerFixture fixture) : Integrat
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
             _testTemplate = dbContext.Templates.Include(t => t.Fields).First();
-            var rankedMedia = new RankedMedia
+            var review = new Review
             {
                 UserId = TestAuthHandler.DefaultUserId,
                 TemplateId = _testTemplate.Id,
@@ -38,21 +38,21 @@ public class MediaRankingsCrudTests(PostgresContainerFixture fixture) : Integrat
                     MediaTypeId = _testTemplate.MediaTypeId,
                     ReleaseDate = new DateOnly(2024, 1, 1),
                 },
-                Scores = [new RankedMediaScore
+                Scores = [new ReviewField
                 {
                     TemplateFieldId = _testTemplate.Fields.First().Id,
                     Value = 5
                 }]
             };
-            dbContext.RankedMedia.Add(rankedMedia);
+            dbContext.Reviews.Add(review);
             dbContext.SaveChanges();
-            _testRankedMedia = rankedMedia;
-            _testMedia = rankedMedia.Media;
+            _testReviews = review;
+            _testMedia = review.Media;
         }
     }
     
     [Fact]
-    public async Task GetRankedMedia_ReturnsExistingRows()
+    public async Task GetReviews_ReturnsExistingRows()
     {
         var response = await Client.GetAsync(basePath);
         if (!response.IsSuccessStatusCode)
@@ -62,29 +62,29 @@ public class MediaRankingsCrudTests(PostgresContainerFixture fixture) : Integrat
         }
         response.EnsureSuccessStatusCode();
 
-        var rankedMedia = await response.Content.ReadFromJsonAsync<List<RankedMediaDto>>();
-        rankedMedia.Should().NotBeNull();
-        rankedMedia.Should().NotBeEmpty();
-        rankedMedia.Should().Contain(r => r.Id == _testRankedMedia.Id);
+        var Reviews = await response.Content.ReadFromJsonAsync<List<ReviewDto>>();
+        Reviews.Should().NotBeNull();
+        Reviews.Should().NotBeEmpty();
+        Reviews.Should().Contain(r => r.Id == _testReviews.Id);
     }
     
     [Fact]
-    public async Task CreateRankedMedia_CreatesNewRecord()
+    public async Task CreateReviews_CreatesNewRecord()
     {
         // Remove the existing ranked media to avoid duplicate review violation.
         using var scope = Factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
-        dbContext.RankedMedia.Remove(_testRankedMedia);
+        dbContext.Reviews.Remove(_testReviews);
         dbContext.SaveChanges();
         
-        var request = new RankedMediaUpsertRequest
+        var request = new ReviewUpsertRequest
         {
             UserId = TestAuthHandler.DefaultUserId,
             MediaId = _testMedia.Id,
             TemplateId = _testTemplate.Id,
             Notes = "Test notes",
             ConsumedAt = DateTime.UtcNow,
-            Scores = [new RankedMediaScoreUpsertRequest
+            Scores = [new ReviewFieldUpsertRequest
             {
                 TemplateFieldId = _testTemplate.Fields.First().Id,
                 Value = 5
@@ -98,23 +98,23 @@ public class MediaRankingsCrudTests(PostgresContainerFixture fixture) : Integrat
         }
         response.EnsureSuccessStatusCode();
         
-        var rankedMedia = await response.Content.ReadFromJsonAsync<RankedMediaDto>();
-        rankedMedia.Should().NotBeNull();
-        rankedMedia!.Id.Should().NotBe(_testRankedMedia.Id);
+        var Reviews = await response.Content.ReadFromJsonAsync<ReviewDto>();
+        Reviews.Should().NotBeNull();
+        Reviews!.Id.Should().NotBe(_testReviews.Id);
     }
     
     [Fact]
-    public async Task UpdateRankedMedia_UpdatesExistingRecord()
+    public async Task UpdateReviews_UpdatesExistingRecord()
     {
-        var request = new RankedMediaUpsertRequest
+        var request = new ReviewUpsertRequest
         {
-            Id = _testRankedMedia.Id,
+            Id = _testReviews.Id,
             UserId = TestAuthHandler.DefaultUserId,
             MediaId = _testMedia.Id,
             TemplateId = _testTemplate.Id,
             Notes = "Updated notes",
             ConsumedAt = DateTime.UtcNow,
-            Scores = [new RankedMediaScoreUpsertRequest
+            Scores = [new ReviewFieldUpsertRequest
             {
                 TemplateFieldId = _testTemplate.Fields.First().Id,
                 Value = 10
@@ -128,16 +128,16 @@ public class MediaRankingsCrudTests(PostgresContainerFixture fixture) : Integrat
         }
         response.EnsureSuccessStatusCode();
         
-        var rankedMedia = await response.Content.ReadFromJsonAsync<RankedMediaDto>();
-        rankedMedia.Should().NotBeNull();
-        rankedMedia!.Id.Should().Be(_testRankedMedia.Id);
-        rankedMedia.Notes.Should().Be("Updated notes");
+        var Reviews = await response.Content.ReadFromJsonAsync<ReviewDto>();
+        Reviews.Should().NotBeNull();
+        Reviews!.Id.Should().Be(_testReviews.Id);
+        Reviews.Notes.Should().Be("Updated notes");
     }
     
     [Fact]
-    public async Task DeleteRankedMedia_DeletesRecord()
+    public async Task DeleteReviews_DeletesRecord()
     {
-        var response = await Client.DeleteAsync($"{basePath}/{_testRankedMedia.Id}");
+        var response = await Client.DeleteAsync($"{basePath}/{_testReviews.Id}");
         if (!response.IsSuccessStatusCode)
         {
             var content = await response.Content.ReadAsStringAsync();
@@ -147,7 +147,7 @@ public class MediaRankingsCrudTests(PostgresContainerFixture fixture) : Integrat
         
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
-        var exists = await db.RankedMedia.AnyAsync(r => r.Id == _testRankedMedia.Id);
+        var exists = await db.Reviews.AnyAsync(r => r.Id == _testReviews.Id);
         exists.Should().BeFalse();
     }
 }

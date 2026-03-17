@@ -14,15 +14,15 @@ using MediaRankerServer.Modules.Media.Contracts;
 
 namespace MediaRankerServer.UnitTests.Modules.Templates;
 
-public class TemplatesServiceTests
+public class TemplateServiceTests
 {
     private readonly PostgreSQLContext _context;
     private readonly Mock<IValidator<TemplateUpsertRequest>> _mockValidator;
     private readonly Mock<IPublisher> _mockPublisher;
-    private readonly TemplatesService _service;
+    private readonly TemplateService _service;
     private readonly Mock<IMediaService> _mediaService;
 
-    public TemplatesServiceTests()
+    public TemplateServiceTests()
     {
         var options = new DbContextOptionsBuilder<PostgreSQLContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
@@ -39,7 +39,7 @@ public class TemplatesServiceTests
         _mediaService = new Mock<IMediaService>();
         _mediaService.Setup(m => m.GetMediaTypeByIdAsync(It.IsAny<long>(), It.IsAny<CancellationToken>())).ReturnsAsync((long id, CancellationToken _) => new MediaTypeDto { Id = id, Name = "Test" });
 
-        _service = new TemplatesService(_context, _mockValidator.Object, _mockPublisher.Object, _mediaService.Object);
+        _service = new TemplateService(_context, _mockValidator.Object, _mockPublisher.Object, _mediaService.Object);
     }
 
     [Fact]

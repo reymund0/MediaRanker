@@ -1,6 +1,6 @@
-namespace MediaRankerServer.Modules.Rankings.Contracts;
+namespace MediaRankerServer.Modules.Reviews.Contracts;
 
-public class RankedMediaUpsertRequest
+public class ReviewUpsertRequest
 {
   public long? Id { get; set; }
   public string UserId { get; set; } = null!;
@@ -9,5 +9,5 @@ public class RankedMediaUpsertRequest
   public string? ReviewTitle { get; set; }
   public string? Notes { get; set; }
   public DateTimeOffset? ConsumedAt { get; set; }
-  public List<RankedMediaScoreUpsertRequest> Scores { get; set; } = [];    
+  public List<ReviewFieldUpsertRequest> Scores { get; set; } = [];    
 }

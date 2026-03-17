@@ -1,0 +1,206 @@
+using FluentValidation;
+using MediaRankerServer.Modules.Media.Services;
+using MediaRankerServer.Modules.Reviews.Entities;
+using MediaRankerServer.Modules.Templates.Services;
+using MediaRankerServer.Modules.Reviews.Contracts;
+using MediaRankerServer.Shared.Data;
+using MediaRankerServer.Shared.Exceptions;
+using Microsoft.EntityFrameworkCore;
+namespace MediaRankerServer.Modules.Reviews.Services;
+
+public class ReviewService(
+  PostgreSQLContext dbContext,
+  IValidator<ReviewUpsertRequest> reviewUpsertRequestValidator,
+  IMediaService mediaService,
+  ITemplateService templatesService
+  ) : IReviewService
+{
+    public async Task<List<ReviewDto>> GetReviewsAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var userReviews = await dbContext.Reviews
+            .AsNoTracking()
+            .Include(rm => rm.Scores)
+            .Include(rm => rm.Media)
+            .Include(rm => rm.Template)
+            .Include(rm => rm.Media.MediaType)
+            .Where(rm => rm.UserId == userId)
+            .ToListAsync(cancellationToken);
+        return [.. userReviews.Select(ReviewMapper.Map)];
+    }
+    
+    public async Task<List<UnreviewedMediaDto>> GetUnreviewedMediaByTypeAsync(string userId, long mediaTypeId, CancellationToken cancellationToken = default)
+    {
+        var userUnreviewedMedia = await dbContext.Media
+            .AsNoTracking()
+            .Where(m => m.MediaTypeId == mediaTypeId)
+            .Include(m => m.MediaType)
+            .Where(m => !m.Reviews.Any(rm => rm.UserId == userId))
+            .ToListAsync(cancellationToken);
+        return [.. userUnreviewedMedia.Select(UnreviewedMediaMapper.Map)];
+    }
+
+    public async Task<ReviewDto> CreateReviewAsync(string userId, ReviewUpsertRequest request, CancellationToken cancellationToken = default)
+    {
+        await ValidateReviewUpsertRequestOrThrowAsync(request, cancellationToken);
+
+        // Validate user does not have an existing review for this media.
+        var existingReview = await dbContext.Reviews
+            .AsNoTracking()
+            .Where(rm => rm.UserId == userId && rm.MediaId == request.MediaId)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (existingReview != null)
+        {
+            throw new DomainException("User already has a review for this media item", "reviews_duplicate_review");
+        }
+
+        // Normalize strings.
+        var normalizedReviewTitle = string.IsNullOrWhiteSpace(request.ReviewTitle) ? null : request.ReviewTitle.Trim();
+        var normalizedNotes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
+
+        // Calculate overall score from scores, rounding up.
+        var overallScore = CalculateOverallScore(request.Scores.Select(score => (double)score.Value));
+        
+        // Create Reviews entity
+        var review = new Review
+        {
+            UserId = userId,
+            MediaId = request.MediaId,
+            TemplateId = request.TemplateId,
+            ReviewTitle = normalizedReviewTitle,
+            Notes = normalizedNotes,
+            OverallScore = overallScore,
+            Scores = [..request.Scores.Select(score => new ReviewField
+            {
+                TemplateFieldId = score.TemplateFieldId,
+                Value = score.Value
+            })]
+        };
+
+        dbContext.Reviews.Add(review);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        
+        return await GetReviewByIdAsync(review.Id, cancellationToken) ?? throw new DomainException("Failed to retrieve newly created Review", "reviews_load_failed");
+    }
+
+    public async Task<ReviewDto> UpdateReviewAsync(string userId, long reviewId, ReviewUpsertRequest request, CancellationToken cancellationToken = default)
+    {
+        await ValidateReviewUpsertRequestOrThrowAsync(request, cancellationToken);
+
+        // Validate review exists and belongs to user
+        var review = await dbContext.Reviews
+            .Include(rm => rm.Scores)
+            .FirstOrDefaultAsync(rm => rm.Id == reviewId, cancellationToken)
+            ?? throw new DomainException("Review not found", "reviews_not_found");
+        if (review.UserId != userId)
+        {
+            throw new DomainException("Review does not belong to user", "reviews_forbidden");
+        }
+
+        // Normalize fields
+        var normalizedReviewTitle = request.ReviewTitle?.Trim();
+        var normalizedNotes = request.Notes?.Trim();
+
+        // Recalculate overall score
+        var overallScore = CalculateOverallScore(request.Scores.Select(score => (double)score.Value));
+
+        // Update Review
+        review.ReviewTitle = normalizedReviewTitle;
+        review.Notes = normalizedNotes;
+        review.ConsumedAt = request.ConsumedAt;
+        review.OverallScore = overallScore;
+        review.MediaId = request.MediaId;
+        review.TemplateId = request.TemplateId;
+
+        // Update Review Fields.
+        // Identify new, updated, and removeable scores
+        var newScores = request.Scores.Where(score => !review.Scores.Any(s => s.TemplateFieldId == score.TemplateFieldId)).ToList();
+        var updatedScores = request.Scores.Where(score => review.Scores.Any(s => s.TemplateFieldId == score.TemplateFieldId)).ToList();
+        var removeableScores = review.Scores.Where(score => !request.Scores.Any(s => s.TemplateFieldId == score.TemplateFieldId)).ToList();
+
+        // Add new scores
+        foreach (var score in newScores)
+        {
+            review.Scores.Add(new ReviewField
+            {
+                ReviewId = reviewId,
+                TemplateFieldId = score.TemplateFieldId,
+                Value = score.Value
+            });
+        }
+        
+        // Update existing scores
+        foreach (var score in updatedScores)
+        {
+            var existingScore = review.Scores.First(s => s.TemplateFieldId == score.TemplateFieldId);
+            existingScore.Value = score.Value;
+        }
+        
+        // Remove scores
+        dbContext.ReviewFields.RemoveRange(removeableScores);
+        
+        await dbContext.SaveChangesAsync(cancellationToken);
+        
+        return await GetReviewByIdAsync(reviewId, cancellationToken) ?? throw new DomainException("Failed to retrieve updated Review", "reviews_load_failed");
+    }
+
+    public async Task DeleteReviewAsync(string userId, long reviewId, CancellationToken cancellationToken = default)
+    {
+        // Validate Review exists
+        var review = await dbContext.Reviews.FindAsync([reviewId], cancellationToken) ?? throw new DomainException("Review not found", "reviews_not_found");
+        
+        // Validate user owns Review
+        if (review.UserId != userId)
+        {
+            throw new DomainException("Review does not belong to user", "reviews_forbidden");
+        }
+
+        // Delete Review and its scores.
+        dbContext.ReviewFields.RemoveRange(dbContext.ReviewFields.Where(rms => rms.ReviewId == reviewId));
+        dbContext.Reviews.Remove(review);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task ValidateReviewUpsertRequestOrThrowAsync(ReviewUpsertRequest request, CancellationToken cancellationToken = default)
+    {
+        const string errorType = "reviews_upsert_validation_error";
+
+        // Validate request
+        await reviewUpsertRequestValidator.ValidateAndThrowAsync(request, cancellationToken);
+
+        // Validate Media exists
+        var media = await mediaService.GetMediaByIdAsync(request.MediaId, cancellationToken) ?? throw new DomainException($"MediaId {request.MediaId} not found", errorType);
+
+        // Validate Template exists
+        var template = await templatesService.GetTemplateByIdAsync(request.TemplateId, cancellationToken) ?? throw new DomainException($"TemplateId {request.TemplateId} not found", errorType);
+        
+        // Validate Template fields exist
+        var invalidField = request.Scores.FirstOrDefault(score => !template.Fields.Any(field => field.Id == score.TemplateFieldId));
+        if (invalidField is not null)
+        {
+            throw new DomainException($"Template field {invalidField.TemplateFieldId} not found in template {request.TemplateId}", errorType);
+        }
+
+        // Validate Media Type is compatible with Template Media Type
+        if (media.MediaType.Id != template.MediaType.Id)
+        {
+            throw new DomainException($"Media type {media.MediaType.Name} is not compatible with template media type {template.MediaType.Name}", errorType);
+        }
+    }
+
+    private static short CalculateOverallScore(IEnumerable<double> scores)
+    {
+        return (short)Math.Round(Enumerable.Average(scores));
+    }
+
+    private async Task<ReviewDto?> GetReviewByIdAsync(long reviewId, CancellationToken cancellationToken = default)
+    {
+        var review = await dbContext.Reviews
+            .AsNoTracking()
+            .Include(rm => rm.Scores)
+            .Include(rm => rm.Media)
+                .ThenInclude(m => m.MediaType)
+            .Include(rm => rm.Template)
+            .FirstOrDefaultAsync(rm => rm.Id == reviewId, cancellationToken);
+        return review is null ? null : ReviewMapper.Map(review);
+    }
+}

@@ -3,32 +3,32 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 using MediaRankerServer.Modules.Templates.Entities;
 
-namespace MediaRankerServer.Modules.Rankings.Entities;
+namespace MediaRankerServer.Modules.Reviews.Entities;
 
-public class RankedMediaScore
+public class ReviewField
 {
-    public long RankedMediaId { get; set; }
+    public long ReviewId { get; set; }
     public long TemplateFieldId { get; set; }
 
     public short Value { get; set; } // 1–10
 
-    public RankedMedia RankedMedia { get; set; } = null!;
+    public Review Review { get; set; } = null!;
     public TemplateField TemplateField { get; set; } = null!;
 
-    public class Configuration : IEntityTypeConfiguration<RankedMediaScore>
+    public class Configuration : IEntityTypeConfiguration<ReviewField>
     {
-        public void Configure(EntityTypeBuilder<RankedMediaScore> builder)
+        public void Configure(EntityTypeBuilder<ReviewField> builder)
         {
-            builder.ToTable("ranked_media_scores", t =>
+            builder.ToTable("review_fields", t =>
             {
                 // Check constraint for 1–10 score range
-                t.HasCheckConstraint("ck_ranked_media_scores_value", "value BETWEEN 1 AND 10");
+                t.HasCheckConstraint("ck_review_fields_value", "value BETWEEN 1 AND 10");
             });
 
-            builder.HasKey(rms => new { rms.RankedMediaId, rms.TemplateFieldId });
+            builder.HasKey(rms => new { rms.ReviewId, rms.TemplateFieldId });
 
-            builder.Property(rms => rms.RankedMediaId)
-                .HasColumnName("ranked_media_id");
+            builder.Property(rms => rms.ReviewId)
+                .HasColumnName("review_id");
 
             builder.Property(rms => rms.TemplateFieldId)
                 .HasColumnName("template_field_id");
@@ -38,18 +38,18 @@ public class RankedMediaScore
                 .IsRequired();
 
             // Relationships
-            builder.HasOne(rms => rms.RankedMedia)
+            builder.HasOne(rms => rms.Review)
                 .WithMany(rm => rm.Scores)
-                .HasForeignKey(rms => rms.RankedMediaId)
+                .HasForeignKey(rms => rms.ReviewId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasOne(rms => rms.TemplateField)
-                .WithMany(tf => tf.RankedMediaScores)
+                .WithMany(tf => tf.ReviewFields)
                 .HasForeignKey(rms => rms.TemplateFieldId);
 
             // Indexes
             builder.HasIndex(rms => rms.TemplateFieldId)
-                .HasDatabaseName("ix_ranked_media_scores_field");
+                .HasDatabaseName("ix_review_fields_field");
         }
     }
 }

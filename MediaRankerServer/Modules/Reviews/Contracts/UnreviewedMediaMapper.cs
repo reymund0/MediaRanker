@@ -1,6 +1,6 @@
 using MediaRankerServer.Modules.Media.Entities;
 
-namespace MediaRankerServer.Modules.Rankings.Contracts;
+namespace MediaRankerServer.Modules.Reviews.Contracts;
 
 public static class UnreviewedMediaMapper
 {

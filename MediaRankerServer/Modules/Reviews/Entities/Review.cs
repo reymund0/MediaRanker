@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MediaRankerServer.Modules.Media.Entities;
 using MediaRankerServer.Modules.Templates.Entities;
 
-namespace MediaRankerServer.Modules.Rankings.Entities;
+namespace MediaRankerServer.Modules.Reviews.Entities;
 
-public class RankedMedia
+public class Review
 {
     public long Id { get; set; }
     public string UserId { get; set; } = null!;
@@ -25,16 +25,16 @@ public class RankedMedia
 
     public MediaEntity Media { get; set; } = null!;
     public Template Template { get; set; } = null!;
-    public ICollection<RankedMediaScore> Scores { get; set; } = [];
+    public ICollection<ReviewField> Scores { get; set; } = [];
 
-    public class Configuration : IEntityTypeConfiguration<RankedMedia>
+    public class Configuration : IEntityTypeConfiguration<Review>
     {
-        public void Configure(EntityTypeBuilder<RankedMedia> builder)
+        public void Configure(EntityTypeBuilder<Review> builder)
         {
-            builder.ToTable("ranked_media", t =>
+            builder.ToTable("reviews", t =>
             {
                 t.HasCheckConstraint(
-                    "ck_ranked_media_overall_score",
+                    "ck_reviews_overall_score",
                     "overall_score BETWEEN 1 AND 10"
                 );
             });
@@ -81,32 +81,32 @@ public class RankedMedia
 
             // Relationships
             builder.HasOne(rm => rm.Media)
-                .WithMany(m => m.RankedMedia)
+                .WithMany(m => m.Reviews)
                 .HasForeignKey(rm => rm.MediaId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasOne(rm => rm.Template)
-                .WithMany(t => t.RankedMedia)
+                .WithMany(t => t.Reviews)
                 .HasForeignKey(rm => rm.TemplateId);
 
             builder.HasMany(rm => rm.Scores)
-                .WithOne(s => s.RankedMedia)
-                .HasForeignKey(s => s.RankedMediaId)
+                .WithOne(s => s.Review)
+                .HasForeignKey(s => s.ReviewId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Indexes
             builder.HasIndex(rm => rm.UserId)
-                .HasDatabaseName("ix_ranked_media_user");
+                .HasDatabaseName("ix_reviews_user");
 
             builder.HasIndex(rm => new { rm.UserId, rm.TemplateId })
-                .HasDatabaseName("ix_ranked_media_user_template");
+                .HasDatabaseName("ix_reviews_user_template");
 
             builder.HasIndex(rm => rm.MediaId)
-                .HasDatabaseName("ix_ranked_media_media_id");
+                .HasDatabaseName("ix_reviews_media_id");
 
             builder.HasIndex(rm => new { rm.UserId, rm.MediaId })
                 .IsUnique()
-                .HasDatabaseName("uq_ranked_media_user_media");
+                .HasDatabaseName("uq_reviews_user_media");
         }
     }
 }

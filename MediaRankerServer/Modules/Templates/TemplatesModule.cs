@@ -9,7 +9,7 @@ public static class TemplatesModule
 {
     public static IServiceCollection AddTemplatesModule(this IServiceCollection services)
     {
-        services.AddScoped<ITemplatesService, TemplatesService>();
+        services.AddScoped<ITemplateService, TemplateService>();
         services.AddScoped<IValidator<TemplateUpsertRequest>, TemplateUpsertRequestValidator>();
         return services;
     }

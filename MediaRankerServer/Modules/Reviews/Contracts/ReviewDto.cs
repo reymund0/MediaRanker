@@ -1,6 +1,6 @@
-namespace MediaRankerServer.Modules.Rankings.Contracts;
+namespace MediaRankerServer.Modules.Reviews.Contracts;
 
-public class RankedMediaDto
+public class ReviewDto
 {
   public long Id {get; set;}
   public string UserId { get; set; } = null!;
@@ -10,7 +10,7 @@ public class RankedMediaDto
   public DateTimeOffset? ConsumedAt { get; set; }
   public DateTimeOffset CreatedAt { get; set; }
   public DateTimeOffset UpdatedAt { get; set; }
-  public List<RankedMediaScoreDto> Scores {get; set;} = [];
+  public List<ReviewFieldDto> Scores {get; set;} = [];
   // Template fields.
   public long TemplateId {get; set;}
   public string TemplateName {get; set;} = null!;

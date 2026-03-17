@@ -1,10 +1,10 @@
 using FluentValidation;
 
-namespace MediaRankerServer.Modules.Rankings.Contracts;
+namespace MediaRankerServer.Modules.Reviews.Contracts;
 
-public class RankedMediaUpsertRequestValidator : AbstractValidator<RankedMediaUpsertRequest>
+public class ReviewUpsertRequestValidator : AbstractValidator<ReviewUpsertRequest>
 {
-  public RankedMediaUpsertRequestValidator() {
+  public ReviewUpsertRequestValidator() {
     RuleFor(request => request.ConsumedAt)
       .Must(date => date <= DateTime.Now)
       .WithMessage("Consumed at date cannot be in the future");
@@ -22,7 +22,7 @@ public class RankedMediaUpsertRequestValidator : AbstractValidator<RankedMediaUp
       .WithMessage("Cannot score the same template field multiple times");
   }
 
-  private static bool HasUniqueTemplateFieldIds(List<RankedMediaScoreUpsertRequest> scores)
+  private static bool HasUniqueTemplateFieldIds(List<ReviewFieldUpsertRequest> scores)
   {
     return scores.Select(score => score.TemplateFieldId).Distinct().Count() == scores.Count;
   }
