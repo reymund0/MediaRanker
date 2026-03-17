@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using MediaRankerServer.Modules.Rankings.Entities;
+using MediaRankerServer.Modules.Reviews.Entities;
 
 namespace MediaRankerServer.Modules.Media.Entities;
 
@@ -17,7 +17,7 @@ public class MediaEntity
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
-    public ICollection<RankedMedia> RankedMedia { get; set; } = [];
+    public ICollection<Review> Reviews { get; set; } = [];
 
     public class Configuration : IEntityTypeConfiguration<MediaEntity>
     {
@@ -58,7 +58,7 @@ public class MediaEntity
                 .WithMany()
                 .HasForeignKey(m => m.MediaTypeId);
 
-            builder.HasMany(m => m.RankedMedia)
+            builder.HasMany(m => m.Reviews)
                 .WithOne(rm => rm.Media)
                 .HasForeignKey(rm => rm.MediaId);
 

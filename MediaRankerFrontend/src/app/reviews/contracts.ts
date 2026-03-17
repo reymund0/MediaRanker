@@ -1,4 +1,4 @@
-export interface RankedMediaDto {
+export interface ReviewDto {
   id: number;
   userId: string;
   overallScore: number;
@@ -7,7 +7,7 @@ export interface RankedMediaDto {
   consumedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  scores: RankedMediaScoreDto[];
+  fields: ReviewFieldDto[];
   templateId: number;
   templateName: string;
   mediaId: number;
@@ -16,9 +16,9 @@ export interface RankedMediaDto {
   mediaTypeName: string;
 }
 
-export interface RankedMediaScoreDto {
+export interface ReviewFieldDto {
   id: number;
-  rankedMediaId: number;
+  reviewId: number;
   templateFieldId: number;
   score: number;
   createdAt: string;

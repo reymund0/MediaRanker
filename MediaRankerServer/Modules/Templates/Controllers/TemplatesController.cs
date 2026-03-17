@@ -7,13 +7,13 @@ namespace MediaRankerServer.Modules.Templates.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class TemplatesController(ITemplatesService templatesService) : ControllerBase
+public class TemplatesController(ITemplateService templateService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetTemplates(CancellationToken cancellationToken)
     {
         var userId = User.GetAuthenticatedUserId();
-        var templates = await templatesService.GetAllVisibleTemplatesAsync(userId, cancellationToken);
+        var templates = await templateService.GetAllVisibleTemplatesAsync(userId, cancellationToken);
         return Ok(templates);
     }
 
@@ -23,9 +23,9 @@ public class TemplatesController(ITemplatesService templatesService) : Controlle
         TemplateDto template;
         var userId = User.GetAuthenticatedUserId();
         if (request.Id is null) {
-            template = await templatesService.CreateTemplateAsync(userId, request, cancellationToken);       
+            template = await templateService.CreateTemplateAsync(userId, request, cancellationToken);       
         } else {
-            template = await templatesService.UpdateTemplateAsync(userId, request.Id.Value, request, cancellationToken);
+            template = await templateService.UpdateTemplateAsync(userId, request.Id.Value, request, cancellationToken);
         }
         
         return Ok(template);
@@ -35,7 +35,7 @@ public class TemplatesController(ITemplatesService templatesService) : Controlle
     public async Task<IActionResult> DeleteTemplate(long templateId, CancellationToken cancellationToken)
     {
         var userId = User.GetAuthenticatedUserId();
-        await templatesService.DeleteTemplateAsync(userId, templateId, cancellationToken);
+        await templateService.DeleteTemplateAsync(userId, templateId, cancellationToken);
         return Ok(true);
     }
 

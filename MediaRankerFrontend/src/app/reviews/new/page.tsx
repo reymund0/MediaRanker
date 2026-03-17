@@ -33,7 +33,7 @@ export default function NewReviewPage() {
   }, [mediaTypes]);
 
   const { data: unreviewedMedia, isLoading: unreviewedMediaLoading, error: unreviewedMediaError } = useQuery<UnreviewedMediaDto[]>({
-    route: `api/rankedMedia/unreviewedByType?mediaTypeId=${selectedMediaType}`,
+    route: `api/Reviews/unreviewedByType?mediaTypeId=${selectedMediaType}`,
     queryKey: ['unreviewedMedia', selectedMediaType],
     enabled: !!userId && !!selectedMediaType
   });

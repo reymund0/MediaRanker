@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MediaRankerServer.Modules.Media.Entities;
 using MediaRankerServer.Modules.Templates.Entities;
-using MediaRankerServer.Modules.Rankings.Entities;
+using MediaRankerServer.Modules.Reviews.Entities;
 
 namespace MediaRankerServer.Shared.Data;
 
@@ -14,8 +14,8 @@ public class PostgreSQLContext : DbContext
     public DbSet<MediaEntity> Media => Set<MediaEntity>();
     public DbSet<Template> Templates => Set<Template>();
     public DbSet<TemplateField> TemplateFields => Set<TemplateField>();
-    public DbSet<RankedMedia> RankedMedia => Set<RankedMedia>();
-    public DbSet<RankedMediaScore> RankedMediaScores => Set<RankedMediaScore>();
+    public DbSet<Review> Reviews => Set<Review>();
+    public DbSet<ReviewField> ReviewFields => Set<ReviewField>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

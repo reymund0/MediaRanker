@@ -20,7 +20,7 @@ Use optional docs under `docs/ai/` for deeper details.
 
 - `MediaRankerFrontend/` — Next.js app (`src/app`, `src/lib`)
 - `MediaRankerServer/` — ASP.NET Core API
-  - `Modules/` — Feature-based modules (Templates, Media, Rankings, Test)
+  - `Modules/` — Feature-based modules (Templates, Media, Reviews, Test)
   - `Shared/` — Cross-cutting concerns (Exceptions, Extensions, Events)
   - `Data/` — Data access (shared PostgreSQLContext)
   - `Migrations/` — EF Core Migrations (kept migration-compatible)

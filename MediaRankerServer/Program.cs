@@ -3,12 +3,12 @@ using FluentValidation.AspNetCore;
 using Scalar.AspNetCore;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Modules.Media.Entities;
-using MediaRankerServer.Modules.Rankings.Entities;
+using MediaRankerServer.Modules.Reviews.Entities;
 using MediaRankerServer.Shared.Extensions;
 using MediaRankerServer.Modules.Templates.Contracts;
 using MediaRankerServer.Modules.Templates;
 using MediaRankerServer.Modules.Media;
-using MediaRankerServer.Modules.Rankings;
+using MediaRankerServer.Modules.Reviews;
 using MediaRankerServer.Modules.Test;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -96,7 +96,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // Register Module Services.
 builder.Services.AddTemplatesModule();
 builder.Services.AddMediaModule();
-builder.Services.AddRankingsModule();
+builder.Services.AddReviewsModule();
 builder.Services.AddTestModule();
 
 var app = builder.Build();

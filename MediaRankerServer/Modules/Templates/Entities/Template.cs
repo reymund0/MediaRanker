@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MediaRankerServer.Modules.Media.Entities;
-using MediaRankerServer.Modules.Rankings.Entities;
+using MediaRankerServer.Modules.Reviews.Entities;
 
 namespace MediaRankerServer.Modules.Templates.Entities;
 
@@ -21,7 +21,7 @@ public class Template
 
     public MediaType MediaType { get; set; } = null!;
     public ICollection<TemplateField> Fields { get; set; } = [];
-    public ICollection<RankedMedia> RankedMedia { get; set; } = [];
+    public ICollection<Review> Reviews { get; set; } = [];
 
     public class Configuration : IEntityTypeConfiguration<Template>
     {
@@ -67,9 +67,9 @@ public class Template
                 .WithOne(f => f.Template)
                 .HasForeignKey(f => f.TemplateId);
 
-            builder.HasMany(t => t.RankedMedia)
-                .WithOne(rm => rm.Template)
-                .HasForeignKey(rm => rm.TemplateId);
+            builder.HasMany(t => t.Reviews)
+                .WithOne(r => r.Template)
+                .HasForeignKey(r => r.TemplateId);
 
             // Indexes
             builder.HasIndex(t => t.UserId)

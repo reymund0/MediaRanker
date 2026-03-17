@@ -5,22 +5,22 @@ import { BaseDataGrid } from "@/lib/components/data-grid/base-data-grid";
 import { Box, Stack, Typography } from "@mui/material";
 import { useQuery } from "@/lib/api/use-query";
 import { useUser } from "@/lib/auth/user-provider";
-import { RankedMediaDto } from "./contracts";
+import { ReviewDto } from "./contracts";
 import { useState, useEffect } from "react";
-import { RankedMediaRow, mapRankedMediaToRow, rankedMediaColumns } from "./grid-utils";
+import { ReviewRow, mapReviewToRow, reviewsColumns } from "./grid-utils";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@/lib/api/use-mutation";
 import { BaseDialog } from "@/lib/components/feedback/dialog/base-dialog";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 
-export default function RankingsPage() {
-  // Get rankings from API.
-  // Display in rankings table, ordered by overall rank.
+export default function ReviewsPage() {
+  // Get reviews from API.
+  // Display in reviews table, ordered by overall rank.
   // Would be cool to filter by media types.
-  // Need a new page to actually add/edit rankings.
+  // Need a new page to actually add/edit reviews.
   
-  const [rows, setRows] = useState<RankedMediaRow[]>([]);
+  const [rows, setRows] = useState<ReviewRow[]>([]);
   const [deleteRowId, setDeleteRowId] = useState<number | undefined>(undefined);
   const { showSuccess, showError } = useAlert();
 
@@ -29,31 +29,31 @@ export default function RankingsPage() {
   const user = useUser();
   const userId = user.userId;
 
-  const { data: rankings, isLoading: isRankingsLoading, isError: isRankingsError } = useQuery<RankedMediaDto[]>({
-    route: "api/RankedMedia",
-    queryKey: ["ranked-media"],
+  const { data: reviews, isLoading: isReviewsLoading, isError: isReviewsError } = useQuery<ReviewDto[]>({
+    route: "api/Reviews",
+    queryKey: ["reviews"],
     enabled: !!userId,
   });
 
   const { mutate: deleteMutation } = useMutation<number, void>({
-    route: (id: number) => `api/RankedMedia/${id}`,
+    route: (id: number) => `api/Reviews/${id}`,
     method: "DELETE",
   });
 
   useEffect(() => {
     const updateRows = async () => {
-      if (!rankings) {
+      if (!reviews) {
         return;
       }
-      setRows(rankings.map(mapRankedMediaToRow));
+      setRows(reviews.map(mapReviewToRow));
     };
     updateRows();
-  }, [rankings]);
+  }, [reviews]);
 
-  const columns = rankedMediaColumns({
+  const columns = reviewsColumns({
     onEditClick: (row) => {
       // TODO: Would be nice to store a cookie with the users filter info so if they hit back button they come back to the same place.
-      router.push(`/rankings/${row.id}`);
+      router.push(`/reviews/${row.id}`);
     },
     onDeleteClick: (row) => {
       if (!row.id) {
@@ -101,8 +101,8 @@ export default function RankingsPage() {
       <BaseDataGrid
         columns={columns}
         rows={rows}
-        loading={isRankingsLoading}
-        error={isRankingsError}
+        loading={isReviewsLoading}
+        error={isReviewsError}
       />
       <BaseDialog
         open={deleteRowId !== undefined}
