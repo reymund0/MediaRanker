@@ -73,7 +73,7 @@ namespace MediaRankerServer.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ranked_media",
+                name: "reviews",
                 columns: table => new
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
@@ -90,16 +90,16 @@ namespace MediaRankerServer.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_ranked_media", x => x.id);
-                    table.CheckConstraint("ck_ranked_media_overall_score", "overall_score BETWEEN 1 AND 10");
+                    table.PrimaryKey("pk_reviews", x => x.id);
+                    table.CheckConstraint("ck_reviews_overall_score", "overall_score BETWEEN 1 AND 10");
                     table.ForeignKey(
-                        name: "fk_ranked_media_media_media_id",
+                        name: "fk_reviews_media_media_id",
                         column: x => x.media_id,
                         principalTable: "media",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "fk_ranked_media_templates_template_id",
+                        name: "fk_reviews_templates_template_id",
                         column: x => x.template_id,
                         principalTable: "templates",
                         principalColumn: "id",
@@ -128,25 +128,25 @@ namespace MediaRankerServer.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ranked_media_scores",
+                name: "review_fields",
                 columns: table => new
                 {
-                    ranked_media_id = table.Column<long>(type: "bigint", nullable: false),
+                    review_id = table.Column<long>(type: "bigint", nullable: false),
                     template_field_id = table.Column<long>(type: "bigint", nullable: false),
                     value = table.Column<short>(type: "smallint", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_ranked_media_scores", x => new { x.ranked_media_id, x.template_field_id });
-                    table.CheckConstraint("ck_ranked_media_scores_value", "value BETWEEN 1 AND 10");
+                    table.PrimaryKey("pk_review_fields", x => new { x.review_id, x.template_field_id });
+                    table.CheckConstraint("ck_review_fields_value", "value BETWEEN 1 AND 10");
                     table.ForeignKey(
-                        name: "fk_ranked_media_scores_ranked_media_ranked_media_id",
-                        column: x => x.ranked_media_id,
-                        principalTable: "ranked_media",
+                        name: "fk_review_fields_reviews_review_id",
+                        column: x => x.review_id,
+                        principalTable: "reviews",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "fk_ranked_media_scores_template_fields_template_field_id",
+                        name: "fk_review_fields_template_fields_template_field_id",
                         column: x => x.template_field_id,
                         principalTable: "template_fields",
                         principalColumn: "id",
@@ -176,35 +176,35 @@ namespace MediaRankerServer.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "ix_ranked_media_media_id",
-                table: "ranked_media",
+                name: "ix_review_fields_field",
+                table: "review_fields",
+                column: "template_field_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_reviews_media_id",
+                table: "reviews",
                 column: "media_id");
 
             migrationBuilder.CreateIndex(
-                name: "ix_ranked_media_template_id",
-                table: "ranked_media",
+                name: "ix_reviews_template_id",
+                table: "reviews",
                 column: "template_id");
 
             migrationBuilder.CreateIndex(
-                name: "ix_ranked_media_user",
-                table: "ranked_media",
+                name: "ix_reviews_user",
+                table: "reviews",
                 column: "user_id");
 
             migrationBuilder.CreateIndex(
-                name: "ix_ranked_media_user_template",
-                table: "ranked_media",
+                name: "ix_reviews_user_template",
+                table: "reviews",
                 columns: new[] { "user_id", "template_id" });
 
             migrationBuilder.CreateIndex(
-                name: "uq_ranked_media_user_media_template",
-                table: "ranked_media",
-                columns: new[] { "user_id", "media_id", "template_id" },
+                name: "uq_reviews_user_media",
+                table: "reviews",
+                columns: new[] { "user_id", "media_id" },
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "ix_ranked_media_scores_field",
-                table: "ranked_media_scores",
-                column: "template_field_id");
 
             migrationBuilder.CreateIndex(
                 name: "ix_template_fields_template_id",
@@ -238,10 +238,10 @@ namespace MediaRankerServer.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "ranked_media_scores");
+                name: "review_fields");
 
             migrationBuilder.DropTable(
-                name: "ranked_media");
+                name: "reviews");
 
             migrationBuilder.DropTable(
                 name: "template_fields");

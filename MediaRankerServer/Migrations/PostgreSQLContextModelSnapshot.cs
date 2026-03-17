@@ -97,7 +97,7 @@ namespace MediaRankerServer.Migrations
                     b.ToTable("media_types", (string)null);
                 });
 
-            modelBuilder.Entity("MediaRankerServer.Modules.Rankings.Entities.RankedMedia", b =>
+            modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Entities.Review", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -148,35 +148,35 @@ namespace MediaRankerServer.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id")
-                        .HasName("pk_ranked_media");
+                        .HasName("pk_reviews");
 
                     b.HasIndex("MediaId")
-                        .HasDatabaseName("ix_ranked_media_media_id");
+                        .HasDatabaseName("ix_reviews_media_id");
 
                     b.HasIndex("TemplateId")
-                        .HasDatabaseName("ix_ranked_media_template_id");
+                        .HasDatabaseName("ix_reviews_template_id");
 
                     b.HasIndex("UserId")
-                        .HasDatabaseName("ix_ranked_media_user");
+                        .HasDatabaseName("ix_reviews_user");
 
                     b.HasIndex("UserId", "MediaId")
                         .IsUnique()
-                        .HasDatabaseName("uq_ranked_media_user_media");
+                        .HasDatabaseName("uq_reviews_user_media");
 
                     b.HasIndex("UserId", "TemplateId")
-                        .HasDatabaseName("ix_ranked_media_user_template");
+                        .HasDatabaseName("ix_reviews_user_template");
 
-                    b.ToTable("ranked_media", null, t =>
+                    b.ToTable("reviews", null, t =>
                         {
-                            t.HasCheckConstraint("ck_ranked_media_overall_score", "overall_score BETWEEN 1 AND 10");
+                            t.HasCheckConstraint("ck_reviews_overall_score", "overall_score BETWEEN 1 AND 10");
                         });
                 });
 
-            modelBuilder.Entity("MediaRankerServer.Modules.Rankings.Entities.RankedMediaScore", b =>
+            modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Entities.ReviewField", b =>
                 {
-                    b.Property<long>("RankedMediaId")
+                    b.Property<long>("ReviewId")
                         .HasColumnType("bigint")
-                        .HasColumnName("ranked_media_id");
+                        .HasColumnName("review_id");
 
                     b.Property<long>("TemplateFieldId")
                         .HasColumnType("bigint")
@@ -186,15 +186,15 @@ namespace MediaRankerServer.Migrations
                         .HasColumnType("smallint")
                         .HasColumnName("value");
 
-                    b.HasKey("RankedMediaId", "TemplateFieldId")
-                        .HasName("pk_ranked_media_scores");
+                    b.HasKey("ReviewId", "TemplateFieldId")
+                        .HasName("pk_review_fields");
 
                     b.HasIndex("TemplateFieldId")
-                        .HasDatabaseName("ix_ranked_media_scores_field");
+                        .HasDatabaseName("ix_review_fields_field");
 
-                    b.ToTable("ranked_media_scores", null, t =>
+                    b.ToTable("review_fields", null, t =>
                         {
-                            t.HasCheckConstraint("ck_ranked_media_scores_value", "value BETWEEN 1 AND 10");
+                            t.HasCheckConstraint("ck_review_fields_value", "value BETWEEN 1 AND 10");
                         });
                 });
 
@@ -300,44 +300,44 @@ namespace MediaRankerServer.Migrations
                     b.Navigation("MediaType");
                 });
 
-            modelBuilder.Entity("MediaRankerServer.Modules.Rankings.Entities.RankedMedia", b =>
+            modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Entities.Review", b =>
                 {
                     b.HasOne("MediaRankerServer.Modules.Media.Entities.MediaEntity", "Media")
-                        .WithMany("RankedMedia")
+                        .WithMany("Reviews")
                         .HasForeignKey("MediaId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_ranked_media_media_media_id");
+                        .HasConstraintName("fk_reviews_media_media_id");
 
                     b.HasOne("MediaRankerServer.Modules.Templates.Entities.Template", "Template")
-                        .WithMany("RankedMedia")
+                        .WithMany("Reviews")
                         .HasForeignKey("TemplateId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_ranked_media_templates_template_id");
+                        .HasConstraintName("fk_reviews_templates_template_id");
 
                     b.Navigation("Media");
 
                     b.Navigation("Template");
                 });
 
-            modelBuilder.Entity("MediaRankerServer.Modules.Rankings.Entities.RankedMediaScore", b =>
+            modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Entities.ReviewField", b =>
                 {
-                    b.HasOne("MediaRankerServer.Modules.Rankings.Entities.RankedMedia", "RankedMedia")
+                    b.HasOne("MediaRankerServer.Modules.Reviews.Entities.Review", "Review")
                         .WithMany("Scores")
-                        .HasForeignKey("RankedMediaId")
+                        .HasForeignKey("ReviewId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_ranked_media_scores_ranked_media_ranked_media_id");
+                        .HasConstraintName("fk_review_fields_reviews_review_id");
 
                     b.HasOne("MediaRankerServer.Modules.Templates.Entities.TemplateField", "TemplateField")
-                        .WithMany("RankedMediaScores")
+                        .WithMany("ReviewFields")
                         .HasForeignKey("TemplateFieldId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_ranked_media_scores_template_fields_template_field_id");
+                        .HasConstraintName("fk_review_fields_template_fields_template_field_id");
 
-                    b.Navigation("RankedMedia");
+                    b.Navigation("Review");
 
                     b.Navigation("TemplateField");
                 });
@@ -368,10 +368,10 @@ namespace MediaRankerServer.Migrations
 
             modelBuilder.Entity("MediaRankerServer.Modules.Media.Entities.MediaEntity", b =>
                 {
-                    b.Navigation("RankedMedia");
+                    b.Navigation("Reviews");
                 });
 
-            modelBuilder.Entity("MediaRankerServer.Modules.Rankings.Entities.RankedMedia", b =>
+            modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Entities.Review", b =>
                 {
                     b.Navigation("Scores");
                 });
@@ -380,12 +380,12 @@ namespace MediaRankerServer.Migrations
                 {
                     b.Navigation("Fields");
 
-                    b.Navigation("RankedMedia");
+                    b.Navigation("Reviews");
                 });
 
             modelBuilder.Entity("MediaRankerServer.Modules.Templates.Entities.TemplateField", b =>
                 {
-                    b.Navigation("RankedMediaScores");
+                    b.Navigation("ReviewFields");
                 });
 #pragma warning restore 612, 618
         }
