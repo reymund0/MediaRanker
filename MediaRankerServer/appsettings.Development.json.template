@@ -8,7 +8,12 @@
   "AWS": {
     "Region": "<your-aws-region>",
     "CognitoUserPoolId": "<your-cognito-user-pool-id>",
-    "CognitoClientId": "<your-cognito-client-id>"
+    "CognitoClientId": "<your-cognito-client-id>",
+    "S3": {
+      "Buckets": {
+        "MediaCover": "<your-media-cover-bucket-name>"
+      }
+    }
   },
   "ConnectionStrings": {
     "DefaultConnection": "Host=localhost;Port=5432;Database=mediarank;Username=<your-username>;Password=<your-password>;Timeout=15;Command Timeout=30"

@@ -2,10 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 using MediaRankerServer.Modules.Reviews.Entities;
+using MediaRankerServer.Shared.Data.Interfaces;
 
 namespace MediaRankerServer.Modules.Media.Entities;
 
-public class MediaEntity
+public class MediaEntity : ITimestampedEntity
 {
     public long Id { get; set; }
 
@@ -27,30 +28,16 @@ public class MediaEntity
 
             builder.HasKey(m => m.Id);
 
-            builder.Property(m => m.Id)
-                .HasColumnName("id");
+            builder.Property(m => m.Id);
 
             builder.Property(m => m.Title)
-                .HasColumnName("title")
                 .IsRequired();
 
             builder.Property(m => m.MediaTypeId)
-                .HasColumnName("media_type_id")
                 .IsRequired();
 
             builder.Property(m => m.ReleaseDate)
-                .HasColumnName("release_date")
                 .HasColumnType("date")
-                .IsRequired();
-
-            builder.Property(m => m.CreatedAt)
-                .HasColumnName("created_at")
-                .HasDefaultValueSql("NOW()")
-                .IsRequired();
-
-            builder.Property(m => m.UpdatedAt)
-                .HasColumnName("updated_at")
-                .HasDefaultValueSql("NOW()")
                 .IsRequired();
 
             // Relationships
