@@ -8,7 +8,9 @@ public static class FilesModule
 {
     public static IServiceCollection AddFilesModule(this IServiceCollection services)
     {
-        services.AddScoped<IFileService, S3FileService>();
+        services.AddScoped<S3FileService>();
+        services.AddScoped<IFileService>(sp => sp.GetRequiredService<S3FileService>());
+        services.AddScoped<IFileCleanupService>(sp => sp.GetRequiredService<S3FileService>());
         
         return services;
     }

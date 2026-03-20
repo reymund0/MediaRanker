@@ -25,7 +25,7 @@ public class TemplateService(
             .Where(t => t.Id < 0 || t.UserId == userId)
             .ToListAsync(cancellationToken);
 
-        return [..templates.Select(TemplateMapper.Map)];
+        return [..templates.Select(TemplateDtoMapper.Map)];
     }
     
     public async Task<TemplateDto?> GetTemplateByIdAsync(long templateId, CancellationToken cancellationToken)
@@ -37,7 +37,7 @@ public class TemplateService(
             .Where(t => t.Id == templateId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        return template is null ? null : TemplateMapper.Map(template);
+        return template is null ? null : TemplateDtoMapper.Map(template);
     }
 
     public async Task<TemplateDto> CreateTemplateAsync(string userId, TemplateUpsertRequest request, CancellationToken cancellationToken = default)

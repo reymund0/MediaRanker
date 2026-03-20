@@ -4,6 +4,6 @@ namespace MediaRankerServer.Modules.Media.Services;
 
 public interface IMediaCoverService
 {
-  Task<GenerateUploadCoverUrlResponse> GenerateUploadCoverUrlAsync(GenerateUploadCoverUrlRequest request, CancellationToken cancellationToken);
-  Task CompleteUploadCoverAsync(CompleteUploadCoverRequest request, CancellationToken cancellationToken);
+  Task<GenerateUploadCoverUrlResponse> GenerateUploadCoverUrlAsync(string userId, GenerateUploadCoverUrlRequest request, CancellationToken cancellationToken);
+  Task CompleteUploadCoverAsync(string userId, long uploadId, CancellationToken cancellationToken);
 }

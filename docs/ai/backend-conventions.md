@@ -21,4 +21,5 @@ The server is organized into feature modules under `MediaRankerServer/Modules/`.
 
 ## Validation
 - Request validation lives in FluentValidation `AbstractValidator<T>` classes (e.g., `TemplateUpsertRequestValidator`).
+- Keep lightweight validators and mappers colocated with their related request/contract class (same file or same folder) so discovery stays straightforward.
 - Services/controllers resolve `IValidator<T>` via DI and throw `DomainException` with the existing `type` values (e.g., `template_validation_error`) when validation fails so ProblemDetails stays consistent.

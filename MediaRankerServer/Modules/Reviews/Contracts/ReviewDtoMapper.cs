@@ -2,7 +2,7 @@ using MediaRankerServer.Modules.Reviews.Entities;
 
 namespace MediaRankerServer.Modules.Reviews.Contracts;
 
-public static class ReviewMapper
+public static class ReviewDtoMapper
 {
   public static ReviewDto Map(Review review)
   {

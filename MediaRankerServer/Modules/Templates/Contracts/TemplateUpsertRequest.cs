@@ -1,3 +1,5 @@
+using FluentValidation;
+
 namespace MediaRankerServer.Modules.Templates.Contracts;
 
 public class TemplateUpsertRequest
@@ -7,4 +9,64 @@ public class TemplateUpsertRequest
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public List<TemplateFieldUpsertRequest> Fields { get; set; } = [];
+}
+
+public class TemplateFieldUpsertRequest
+{
+    public long? Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public int Position { get; set; }
+}
+
+
+public class TemplateUpsertRequestValidator : AbstractValidator<TemplateUpsertRequest>
+{
+    public TemplateUpsertRequestValidator()
+    {
+        RuleFor(request => request.MediaTypeId)
+            .NotEmpty()
+            .WithMessage("Media type is required.");
+
+        RuleFor(request => request.Name)
+            .Must(name => !string.IsNullOrWhiteSpace(name))
+            .WithMessage("Template name is required.");
+
+        RuleFor(request => request.Fields)
+            .Must(fields => fields is { Count: > 0 })
+            .WithMessage("Template must include at least one field.");
+
+        RuleFor(request => request.Fields)
+            .Must(HasValidNames)
+            .WithMessage("Template field names are required.")
+            .When(request => request.Fields is { Count: > 0 });
+
+        RuleFor(request => request.Fields)
+            .Must(HasNonEmptyUniqueFieldNames)
+            .WithMessage("Template field names must be non-empty and unique.")
+            .When(request => request.Fields is { Count: > 0 });
+
+        RuleFor(request => request.Fields)
+            .Must(HasUniquePositions)
+            .WithMessage("Template field positions must be unique.")
+            .When(request => request.Fields is { Count: > 0 });
+    }
+
+    private static bool HasValidNames(List<TemplateFieldUpsertRequest> fields)
+    {
+        return fields.All(field => !string.IsNullOrWhiteSpace(field.Name));
+    }
+
+    private static bool HasNonEmptyUniqueFieldNames(List<TemplateFieldUpsertRequest> fields)
+    {
+        return fields
+            .GroupBy(field => field.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+            .All(group => group.Key.Length > 0 && group.Count() == 1);
+    }
+
+    private static bool HasUniquePositions(List<TemplateFieldUpsertRequest> fields)
+    {
+        return fields
+            .GroupBy(field => field.Position)
+            .All(group => group.Count() == 1);
+    }
 }

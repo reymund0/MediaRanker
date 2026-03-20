@@ -1,5 +1,6 @@
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Services;
+using MediaRankerServer.Shared.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MediaRankerServer.Modules.Media.Controllers;
@@ -35,14 +36,16 @@ public class MediaController(IMediaService mediaService, IMediaCoverService medi
     [HttpPost("UploadCover")]
     public async Task<IActionResult> GenerateUploadCoverUrl([FromBody] GenerateUploadCoverUrlRequest request, CancellationToken cancellationToken)
     {
-        var url = await mediaCoverService.GenerateUploadCoverUrlAsync(request, cancellationToken);
+        var userId = User.GetAuthenticatedUserId();
+        var url = await mediaCoverService.GenerateUploadCoverUrlAsync(userId, request, cancellationToken);
         return Ok(url);
     }
 
-    [HttpPost("CompleteUploadCover")]
-    public async Task<IActionResult> CompleteUploadCover([FromBody] CompleteUploadCoverRequest request, CancellationToken cancellationToken)
+    [HttpPost("CompleteUploadCover/{uploadId:long}")]
+    public async Task<IActionResult> CompleteUploadCover(long uploadId, CancellationToken cancellationToken)
     {
-        await mediaCoverService.CompleteUploadCoverAsync(request, cancellationToken);
+        var userId = User.GetAuthenticatedUserId();
+        await mediaCoverService.CompleteUploadCoverAsync(userId, uploadId, cancellationToken);
         return Ok(true);
     }
 
