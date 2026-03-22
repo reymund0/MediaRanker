@@ -12,7 +12,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaRankerServer.IntegrationTests.Modules.Reviews;
 
-public class ReviewsCrudTests(PostgresContainerFixture fixture) : IntegrationTestBase(fixture)
+public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalStackContainerFixture localStackFixture) 
+    : IntegrationTestBase(postgresFixture, localStackFixture)
 {
     const string basePath = "/api/Reviews";
     private Review _testReviews = null!;

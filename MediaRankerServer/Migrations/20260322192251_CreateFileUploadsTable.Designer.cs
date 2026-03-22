@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MediaRankerServer.Migrations
 {
     [DbContext(typeof(PostgreSQLContext))]
-    [Migration("20260318192211_CreateFileUploadsTable")]
+    [Migration("20260322192251_CreateFileUploadsTable")]
     partial class CreateFileUploadsTable
     {
         /// <inheritdoc />
@@ -38,13 +38,19 @@ namespace MediaRankerServer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("actual_content_type");
 
-                    b.Property<long?>("ActualFileSize")
+                    b.Property<long?>("ActualFileSizeBytes")
                         .HasColumnType("bigint")
-                        .HasColumnName("actual_file_size");
+                        .HasColumnName("actual_file_size_bytes");
 
                     b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<long?>("EntityId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("entity_id");
 
                     b.Property<string>("EntityType")
                         .IsRequired()
@@ -56,9 +62,9 @@ namespace MediaRankerServer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("expected_content_type");
 
-                    b.Property<long>("ExpectedFileSize")
+                    b.Property<long>("ExpectedFileSizeBytes")
                         .HasColumnType("bigint")
-                        .HasColumnName("expected_file_size");
+                        .HasColumnName("expected_file_size_bytes");
 
                     b.Property<string>("FileKey")
                         .IsRequired()
@@ -78,8 +84,10 @@ namespace MediaRankerServer.Migrations
                         .HasColumnName("state");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("NOW()");
 
                     b.Property<string>("UserId")
                         .IsRequired()

@@ -14,9 +14,22 @@ The project uses a **Tiered Testing Strategy** to balance confidence with mainta
 ## Tier 1: Integration Tests
 
 - **Project**: `MediaRankerServer.IntegrationTests`
-- **Stack**: xUnit, FluentAssertions, `Microsoft.AspNetCore.Mvc.Testing`, **PostgreSQL Testcontainers**, Respawn.
+- **Stack**: xUnit, FluentAssertions, `Microsoft.AspNetCore.Mvc.Testing`, **PostgreSQL Testcontainers**, **LocalStack Testcontainers** (AWS-backed flows), Respawn.
 - **Focus**: Essential "Happy Path" CRUD operations to ensure the API, Database, and Migrations are correctly wired.
 - **Base Class**: All integration tests must inherit from `IntegrationTestBase`.
+
+### External Service Simulation
+
+- Use LocalStack for AWS-backed integration behavior (for example S3 upload/metadata lifecycle).
+- Keep tests pointed to LocalStack endpoints and test credentials so integration suites do not call real AWS.
+
+### Configuration Layering (Hybrid Approach)
+
+Integration tests use a hybrid configuration strategy to ensure that settings required during the early stages of the ASP.NET Core bootstrap (like `AWS:Region`) are available:
+
+1.  **Host-Level Overrides**: Critical startup settings (e.g., `AWS:Region`) are injected in `CustomWebApplicationFactory.CreateHost` via `ConfigureHostConfiguration`.
+2.  **Test Settings File**: General integration defaults are defined in `appsettings.Integration.json` within the test project. This file is copied to the output directory and loaded at the web host level.
+3.  **Dynamic Container Settings**: Runtime values (like database connection strings and LocalStack URLs) are injected via `AddInMemoryCollection` in `ConfigureWebHost`.
 
 ### Database Isolation
 

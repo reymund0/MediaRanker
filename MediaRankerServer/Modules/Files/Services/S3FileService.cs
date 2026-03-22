@@ -35,6 +35,7 @@ public class S3FileService(
     var upload = new FileUpload
     {
       FileKey = fileKey,
+      UserId = request.UserId,
       EntityType = Enum.Parse<FileEntityType>(request.EntityType),
       EntityId = request.EntityId,
       FileName = request.FileName,
@@ -47,7 +48,7 @@ public class S3FileService(
     await dbContext.SaveChangesAsync(cancellationToken);
 
     // Generate upload URL
-    var uploadUrl = await s3Provider.CreateUploadUrlAsync(fileKey, request.ContentType);
+    var uploadUrl = await s3Provider.CreateUploadUrlAsync(fileKey, EntityTypeToBucket(upload.EntityType));
 
     return new StartUploadResponse
     {

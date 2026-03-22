@@ -4,7 +4,8 @@ using MediaRankerServer.IntegrationTests.Infrastructure;
 
 namespace MediaRankerServer.IntegrationTests.Modules.Media;
 
-public class MediaTypesTests(PostgresContainerFixture fixture) : IntegrationTestBase(fixture)
+public class MediaTypesTests(PostgresContainerFixture postgresFixture, LocalStackContainerFixture localStackFixture) 
+    : IntegrationTestBase(postgresFixture, localStackFixture)
 {
 
     [Fact]
