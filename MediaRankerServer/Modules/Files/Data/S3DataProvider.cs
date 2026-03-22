@@ -30,6 +30,17 @@ public class S3DataProvider(IAmazonS3 s3Client)
     return await s3Client.GetPreSignedURLAsync(request);
   }
 
+  public async Task DeleteObjectAsync(string objectKey, string bucketName, CancellationToken cancellationToken)
+  {
+    var request = new DeleteObjectRequest
+    {
+      BucketName = bucketName,
+      Key = objectKey
+    };
+
+    await s3Client.DeleteObjectAsync(request, cancellationToken);
+  }
+
   public async Task<GetObjectMetadataResponse> GetObjectMetadataAsync(string objectKey, string bucketName, CancellationToken cancellationToken)
   {
     var request = new GetObjectMetadataRequest

@@ -1,4 +1,5 @@
 using MediaRankerServer.Modules.Files.Events;
+using MediaRankerServer.Modules.Files.Entities;
 using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Shared.Exceptions;
 using MediatR;
@@ -11,7 +12,7 @@ internal class FileDeletedEventHandler(IFileCleanupService cleanupService, ILogg
     public async Task Handle(FileDeletedEvent notification, CancellationToken cancellationToken)
     {
         try {
-          await cleanupService.DeleteFileAsync(notification.FileKey, cancellationToken);
+          await cleanupService.DeleteFileAsync(notification.FileKey, Enum.Parse<FileEntityType>(notification.EntityType), cancellationToken);
         }
         catch (DomainException ex)
         {

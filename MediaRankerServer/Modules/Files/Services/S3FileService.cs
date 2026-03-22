@@ -6,6 +6,7 @@ using MediaRankerServer.Modules.Files.Contracts;
 using MediaRankerServer.Modules.Files.Data;
 using FluentValidation;
 using MediaRankerServer.Shared.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace MediaRankerServer.Modules.Files.Services;
 
@@ -16,7 +17,7 @@ public class S3FileService(
     PostgreSQLContext dbContext, 
     IConfiguration configuration) : IFileService, IFileCleanupService
 {
-  private readonly S3DataProvider _s3Service = new(s3Client);
+  private readonly S3DataProvider s3Provider = new(s3Client);
 
   public async Task<StartUploadResponse> StartUploadAsync(StartUploadRequest request, CancellationToken cancellationToken = default)
   {
@@ -46,7 +47,7 @@ public class S3FileService(
     await dbContext.SaveChangesAsync(cancellationToken);
 
     // Generate upload URL
-    var uploadUrl = await _s3Service.CreateUploadUrlAsync(fileKey, request.ContentType);
+    var uploadUrl = await s3Provider.CreateUploadUrlAsync(fileKey, request.ContentType);
 
     return new StartUploadResponse
     {
@@ -84,7 +85,7 @@ public class S3FileService(
     // Grab the object's metadata from S3, also doubles as validating the object exists.
     GetObjectMetadataResponse metadata;
     try {
-        metadata = await _s3Service.GetObjectMetadataAsync(upload.FileKey, EntityTypeToBucket(upload.EntityType), cancellationToken);
+        metadata = await s3Provider.GetObjectMetadataAsync(upload.FileKey, EntityTypeToBucket(upload.EntityType), cancellationToken);
     }
     catch
     {
@@ -127,14 +128,40 @@ public class S3FileService(
     return FileDtoMapper.Map(upload);
   }
 
-  public Task<string> GetFileUrlAsync(string fileKey, CancellationToken cancellationToken = default)
+  public async Task<string> GetFileUrlAsync(string fileKey, FileEntityType entityType)
   {
-    throw new NotImplementedException();
+    // Find the File Upload record based on fileKey and entityType to confirm it's uploaded already.
+    var file = await dbContext.FileUploads.FirstOrDefaultAsync(u => u.FileKey == fileKey && u.EntityType == entityType);
+    if (file == null)
+    {
+      throw new DomainException("File not found", "file_not_found");
+    }
+    else if (file.State != FileUploadState.Copied || file.State != FileUploadState.Uploaded)
+    {
+      throw new DomainException("File is not in a downloadable state", "file_invalid_state");
+    }
+
+    return await s3Provider.CreatePreviewUrlAsync(fileKey, EntityTypeToBucket(entityType), 3600);
   }
 
-  public Task DeleteFileAsync(string fileKey, CancellationToken cancellationToken = default)
+  public async Task DeleteFileAsync(string fileKey, FileEntityType entityType, CancellationToken cancellationToken = default)
   {
-    throw new NotImplementedException();
+    // Find the File Upload record based on fileKey and entityType to confirm it's uploaded already.
+    var file = await dbContext.FileUploads.FirstOrDefaultAsync(u => u.FileKey == fileKey && u.EntityType == entityType, cancellationToken);
+    if (file == null)
+    {
+      throw new DomainException("File not found", "file_not_found");
+    } 
+    else if (file.State != FileUploadState.Copied && file.State != FileUploadState.Uploaded)
+    {
+      throw new DomainException("File is not in a deletable state", "file_invalid_state");
+    }
+    
+    await s3Provider.DeleteObjectAsync(fileKey, EntityTypeToBucket(entityType), cancellationToken);
+    
+    // Transition state to Deleted.
+    file.State = FileUploadState.Deleted;
+    await dbContext.SaveChangesAsync(cancellationToken);
   }
 
   private string EntityTypeToBucket(FileEntityType entityType)

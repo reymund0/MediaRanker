@@ -1,3 +1,5 @@
+using MediaRankerServer.Modules.Files.Entities;
+
 namespace MediaRankerServer.Modules.Files.Services;
 
 /// <summary>
@@ -6,5 +8,5 @@ namespace MediaRankerServer.Modules.Files.Services;
 /// </summary>
 internal interface IFileCleanupService
 {
-    Task DeleteFileAsync(string fileKey, CancellationToken cancellationToken = default);
+    Task DeleteFileAsync(string fileKey, FileEntityType entityType, CancellationToken cancellationToken = default);
 }
