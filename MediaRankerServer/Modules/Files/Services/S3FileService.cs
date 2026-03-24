@@ -106,7 +106,7 @@ public class S3FileService(
   public async Task<FileDto> MarkUploadCopiedAsync(long uploadId, string userId, CancellationToken cancellationToken = default)
   {
     // Validate upload exists
-    var upload = dbContext.FileUploads.FirstOrDefault(u => u.Id == uploadId && u.UserId == userId);
+    var upload = await dbContext.FileUploads.FirstOrDefaultAsync(u => u.Id == uploadId && u.UserId == userId, cancellationToken);
     if (upload == null)
     {
       throw new DomainException("Upload not found", "upload_not_found");
@@ -137,7 +137,7 @@ public class S3FileService(
     {
       throw new DomainException("File not found", "file_not_found");
     }
-    else if (file.State != FileUploadState.Copied || file.State != FileUploadState.Uploaded)
+    else if (file.State != FileUploadState.Copied && file.State != FileUploadState.Uploaded)
     {
       throw new DomainException("File is not in a downloadable state", "file_invalid_state");
     }
