@@ -48,7 +48,7 @@ public class S3FileService(
     await dbContext.SaveChangesAsync(cancellationToken);
 
     // Generate upload URL
-    var uploadUrl = await s3Provider.CreateUploadUrlAsync(fileKey, EntityTypeToBucket(upload.EntityType));
+    var uploadUrl = s3Provider.CreateUploadUrl(fileKey, EntityTypeToBucket(upload.EntityType), upload.ExpectedContentType);
 
     return new StartUploadResponse
     {
@@ -129,20 +129,11 @@ public class S3FileService(
     return FileDtoMapper.Map(upload);
   }
 
-  public async Task<string> GetFileUrlAsync(string fileKey, FileEntityType entityType)
+  public string GetFileUrl(string fileKey, FileEntityType entityType)
   {
-    // Find the File Upload record based on fileKey and entityType to confirm it's uploaded already.
-    var file = await dbContext.FileUploads.FirstOrDefaultAsync(u => u.FileKey == fileKey && u.EntityType == entityType);
-    if (file == null)
-    {
-      throw new DomainException("File not found", "file_not_found");
-    }
-    else if (file.State != FileUploadState.Copied && file.State != FileUploadState.Uploaded)
-    {
-      throw new DomainException("File is not in a downloadable state", "file_invalid_state");
-    }
-
-    return await s3Provider.CreatePreviewUrlAsync(fileKey, EntityTypeToBucket(entityType), 3600);
+    // For performance reasons we do not check if the file exists or is in a valid state.
+    // The calling app is responsible for ensuring a valid fileKey is supplied.
+    return s3Provider.CreatePreviewUrl(fileKey, EntityTypeToBucket(entityType), 3600);
   }
 
   public async Task DeleteFileAsync(string fileKey, FileEntityType entityType, CancellationToken cancellationToken = default)

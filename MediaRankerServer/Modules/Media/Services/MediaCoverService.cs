@@ -75,15 +75,14 @@ public class MediaCoverService(
         return await fileService.MarkUploadCopiedAsync(uploadId, userId, cancellationToken);
     }
 
-    public async Task DeleteCoverFileAsync(long uploadId, CancellationToken cancellationToken)
+    public async Task DeleteCoverFileAsync(string fileKey, CancellationToken cancellationToken)
     {
-        // Media upload records are currently identified by their ID when stored in MediaEntity.
         // We delete by publishing a FileDeletedEvent which S3FileService (or cleanup) handles.
-        await mediator.Publish(new FileDeletedEvent(uploadId.ToString(), FileEntityType.MediaCover.ToString()), cancellationToken);
+        await mediator.Publish(new FileDeletedEvent(fileKey, FileEntityType.MediaCover.ToString()), cancellationToken);
     }
 
-    public async Task<string> GetCoverUrlAsync(string fileKey, CancellationToken cancellationToken)
+    public string GetCoverUrl(string fileKey)
     {
-        return await fileService.GetFileUrlAsync(fileKey, FileEntityType.MediaCover);
+        return fileService.GetFileUrl(fileKey, FileEntityType.MediaCover);
     }
 }

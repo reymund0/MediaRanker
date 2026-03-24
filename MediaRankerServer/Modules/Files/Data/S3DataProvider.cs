@@ -5,7 +5,7 @@ namespace MediaRankerServer.Modules.Files.Data;
 
 public class S3DataProvider(IAmazonS3 s3Client)
 {
-  public async Task<string> CreatePreviewUrlAsync(string objectKey, string bucketName, int expiresInSeconds = 3600)
+  public string CreatePreviewUrl(string objectKey, string bucketName, int expiresInSeconds = 3600)
   {
     var request = new GetPreSignedUrlRequest
     {
@@ -14,20 +14,21 @@ public class S3DataProvider(IAmazonS3 s3Client)
       Expires = DateTime.UtcNow.AddSeconds(expiresInSeconds)
     };
 
-    return await s3Client.GetPreSignedURLAsync(request);
+    return s3Client.GetPreSignedURL(request);
   }
 
-  public async Task<string> CreateUploadUrlAsync(string objectKey, string bucketName, int expiresInSeconds = 300)
+  public string CreateUploadUrl(string objectKey, string bucketName, string contentType, int expiresInSeconds = 300)
   {
     var request = new GetPreSignedUrlRequest
     {
       BucketName = bucketName,
       Key = objectKey,
       Expires = DateTime.UtcNow.AddSeconds(expiresInSeconds),
-      Verb = HttpVerb.PUT // Indicates this is an upload request
+      Verb = HttpVerb.PUT,
+      ContentType = contentType
     };
 
-    return await s3Client.GetPreSignedURLAsync(request);
+    return s3Client.GetPreSignedURL(request);
   }
 
   public async Task DeleteObjectAsync(string objectKey, string bucketName, CancellationToken cancellationToken)

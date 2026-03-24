@@ -28,11 +28,7 @@ public class MediaService(
             .Include(m => m.MediaType)
             .ToListAsync(cancellationToken);
 
-        var mediaDtos = await Task.WhenAll(
-            media.Select(m => MediaDtoMapper.MapAsync(m, coverService, cancellationToken))
-        );
-
-        return [.. mediaDtos];
+        return [.. media.Select(m => MediaDtoMapper.Map(m, coverService))];
     }
 
     public async Task<MediaDto?> GetMediaByIdAsync(long mediaId, CancellationToken cancellationToken)
@@ -42,7 +38,7 @@ public class MediaService(
             .Include(m => m.MediaType)
             .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
 
-        return media is null ? null : await MediaDtoMapper.MapAsync(media, coverService, cancellationToken);
+        return media is null ? null : MediaDtoMapper.Map(media, coverService);
     }
 
     public async Task<MediaDto> CreateMediaAsync(string userId, MediaUpsertRequest request, CancellationToken cancellationToken = default)
@@ -112,8 +108,14 @@ public class MediaService(
 
         // Get updated cover file info if provided.
         FileDto? coverFile = null;
-        if (request.CoverUploadId.HasValue)
+        if (request.CoverUploadId.HasValue && media.CoverFileUploadId != request.CoverUploadId.Value)
         {
+            // Delete the old cover file if it exists.
+            if (!string.IsNullOrEmpty(media.CoverFileKey))
+            {
+                await coverService.DeleteCoverFileAsync(media.CoverFileKey, cancellationToken);
+            }
+            
             coverFile = await coverService.CopyCoverFileAsync(userId, request.CoverUploadId.Value, cancellationToken);
         }
 
@@ -139,9 +141,9 @@ public class MediaService(
             ?? throw new DomainException("Media not found.", "media_not_found");
 
         // Delete the cover file if it exists
-        if (media.CoverFileUploadId.HasValue)
+        if (!string.IsNullOrEmpty(media.CoverFileKey))
         {
-            await coverService.DeleteCoverFileAsync(media.CoverFileUploadId.Value, cancellationToken);
+            await coverService.DeleteCoverFileAsync(media.CoverFileKey, cancellationToken);
         }
 
         dbContext.Media.Remove(media);

@@ -8,6 +8,6 @@ public interface IMediaCoverService
   Task<GenerateUploadCoverUrlResponse> GenerateUploadCoverUrlAsync(string userId, GenerateUploadCoverUrlRequest request, CancellationToken cancellationToken);
   Task CompleteUploadCoverAsync(string userId, long uploadId, CancellationToken cancellationToken);
   Task<FileDto> CopyCoverFileAsync(string userId, long uploadId, CancellationToken cancellationToken);
-  Task DeleteCoverFileAsync(long uploadId, CancellationToken cancellationToken);
-  Task<string> GetCoverUrlAsync(string fileKey, CancellationToken cancellationToken);
+  Task DeleteCoverFileAsync(string fileKey, CancellationToken cancellationToken);
+  string GetCoverUrl(string fileKey);
 }

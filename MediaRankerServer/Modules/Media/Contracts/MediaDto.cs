@@ -16,12 +16,12 @@ public class MediaDto
 
 public static class MediaDtoMapper
 {
-    public static async Task<MediaDto> MapAsync(MediaEntity media, IMediaCoverService coverService, CancellationToken cancellationToken = default)
+    public static MediaDto Map(MediaEntity media, IMediaCoverService coverService)
     {
         string? mediaCoverUrl = null;
         if (media.CoverFileKey != null)
         {
-            mediaCoverUrl = await coverService.GetCoverUrlAsync(media.CoverFileKey, cancellationToken);
+            mediaCoverUrl = coverService.GetCoverUrl(media.CoverFileKey);
         }
         return new MediaDto
         {

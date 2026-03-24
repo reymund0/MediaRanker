@@ -67,10 +67,14 @@ builder.Services.AddCors(options =>
 
 // Register AWS Services.
 var region = builder.Configuration["AWS:Region"];
-builder.Services.AddDefaultAWSOptions(new AWSOptions
-{
-    Region = RegionEndpoint.GetBySystemName(region)
-});
+var accessKey = builder.Configuration["AWS:AccessKey"];
+var secretKey = builder.Configuration["AWS:SecretKey"];
+
+var awsOptions = builder.Configuration.GetAWSOptions();
+awsOptions.Region = RegionEndpoint.GetBySystemName(region);
+awsOptions.Credentials = new Amazon.Runtime.BasicAWSCredentials(accessKey, secretKey);
+
+builder.Services.AddDefaultAWSOptions(awsOptions);
 
 builder.Services.AddAWSService<IAmazonS3>();
 
