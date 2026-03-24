@@ -9,5 +9,4 @@ public interface IMediaCoverService
   Task CompleteUploadCoverAsync(string userId, long uploadId, CancellationToken cancellationToken);
   Task<FileDto> CopyCoverFileAsync(string userId, long uploadId, CancellationToken cancellationToken);
   Task DeleteCoverFileAsync(string fileKey, CancellationToken cancellationToken);
-  string GetCoverUrl(string fileKey);
 }

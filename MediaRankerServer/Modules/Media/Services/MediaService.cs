@@ -2,6 +2,7 @@ using FluentValidation;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Entities;
 using MediaRankerServer.Modules.Files.Contracts;
+using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,7 @@ namespace MediaRankerServer.Modules.Media.Services;
 public class MediaService(
     PostgreSQLContext dbContext,
     IMediaCoverService coverService,
+    IFileService fileService,
     IValidator<MediaUpsertRequest> mediaUpsertRequestValidator
 ) : IMediaService
 {
@@ -28,7 +30,7 @@ public class MediaService(
             .Include(m => m.MediaType)
             .ToListAsync(cancellationToken);
 
-        return [.. media.Select(m => MediaDtoMapper.Map(m, coverService))];
+        return [.. media.Select(m => MediaDtoMapper.Map(m, fileService))];
     }
 
     public async Task<MediaDto?> GetMediaByIdAsync(long mediaId, CancellationToken cancellationToken)
@@ -38,7 +40,7 @@ public class MediaService(
             .Include(m => m.MediaType)
             .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
 
-        return media is null ? null : MediaDtoMapper.Map(media, coverService);
+        return media is null ? null : MediaDtoMapper.Map(media, fileService);
     }
 
     public async Task<MediaDto> CreateMediaAsync(string userId, MediaUpsertRequest request, CancellationToken cancellationToken = default)

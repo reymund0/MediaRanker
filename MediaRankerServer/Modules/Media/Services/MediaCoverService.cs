@@ -80,9 +80,4 @@ public class MediaCoverService(
         // We delete by publishing a FileDeletedEvent which S3FileService (or cleanup) handles.
         await mediator.Publish(new FileDeletedEvent(fileKey, FileEntityType.MediaCover.ToString()), cancellationToken);
     }
-
-    public string GetCoverUrl(string fileKey)
-    {
-        return fileService.GetFileUrl(fileKey, FileEntityType.MediaCover);
-    }
 }

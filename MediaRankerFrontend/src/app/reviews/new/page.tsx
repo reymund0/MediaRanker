@@ -40,7 +40,7 @@ export default function NewReviewPage() {
 
   useEffect(() => {
     if (unreviewedMedia) {
-      setUnreviewedMediaOptions(unreviewedMedia.map(item => ({ id: item.id, label: item.title })));
+      setUnreviewedMediaOptions(unreviewedMedia.map(item => ({ id: item.id, label: item.title, imageUrl: item.coverImageUrl })));
     }
   }, [unreviewedMedia]);
   

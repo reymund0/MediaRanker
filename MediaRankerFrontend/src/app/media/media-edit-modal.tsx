@@ -54,7 +54,7 @@ export function MediaEditModal({
     mode: "onChange",
   });
 
-  const { handleSubmit, control, setValue } = methods;
+  const { handleSubmit } = methods;
   const { showSuccess, showError } = useAlert();
 
   const { mutateAsync: generateUploadUrl } = useMutation<

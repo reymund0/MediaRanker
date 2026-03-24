@@ -25,4 +25,5 @@ public class ReviewDto
   public string MediaTitle {get; set;} = null!;
   public long MediaTypeId {get; set;}
   public string MediaTypeName {get; set;} = null!;
+  public string? MediaCoverImageUrl {get; set;}
 }

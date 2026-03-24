@@ -3,6 +3,7 @@ using MediaRankerServer.Modules.Media.Services;
 using MediaRankerServer.Modules.Reviews.Entities;
 using MediaRankerServer.Modules.Templates.Services;
 using MediaRankerServer.Modules.Reviews.Contracts;
+using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,8 @@ public class ReviewService(
   PostgreSQLContext dbContext,
   IValidator<ReviewUpsertRequest> reviewUpsertRequestValidator,
   IMediaService mediaService,
-  ITemplateService templatesService
+  ITemplateService templatesService,
+  IFileService fileService
   ) : IReviewService
 {
     public async Task<List<ReviewDto>> GetReviewsAsync(string userId, CancellationToken cancellationToken = default)
@@ -25,7 +27,7 @@ public class ReviewService(
             .Include(rm => rm.Media.MediaType)
             .Where(rm => rm.UserId == userId)
             .ToListAsync(cancellationToken);
-        return [.. userReviews.Select(ReviewDtoMapper.Map)];
+        return [.. userReviews.Select(r => ReviewDtoMapper.Map(r, fileService))];
     }
     
     public async Task<List<UnreviewedMediaDto>> GetUnreviewedMediaByTypeAsync(string userId, long mediaTypeId, CancellationToken cancellationToken = default)
@@ -36,7 +38,7 @@ public class ReviewService(
             .Include(m => m.MediaType)
             .Where(m => !m.Reviews.Any(rm => rm.UserId == userId))
             .ToListAsync(cancellationToken);
-        return [.. userUnreviewedMedia.Select(UnreviewedMediaDtoMapper.Map)];
+        return [.. userUnreviewedMedia.Select(m => UnreviewedMediaDtoMapper.Map(m, fileService))];
     }
 
     public async Task<ReviewDto> CreateReviewAsync(string userId, ReviewUpsertRequest request, CancellationToken cancellationToken = default)
@@ -201,6 +203,6 @@ public class ReviewService(
                 .ThenInclude(m => m.MediaType)
             .Include(rm => rm.Template)
             .FirstOrDefaultAsync(rm => rm.Id == reviewId, cancellationToken);
-        return review is null ? null : ReviewDtoMapper.Map(review);
+        return review is null ? null : ReviewDtoMapper.Map(review, fileService);
     }
 }

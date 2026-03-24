@@ -14,6 +14,7 @@ export interface ReviewDto {
   mediaTitle: string;
   mediaTypeId: number;
   mediaTypeName: string;
+  mediaCoverImageUrl: string | null;
 }
 
 export interface ReviewFieldDto {
@@ -29,4 +30,5 @@ export interface UnreviewedMediaDto {
   id: number;
   title: string;
   releaseDate: string;
+  coverImageUrl: string | null;
 }

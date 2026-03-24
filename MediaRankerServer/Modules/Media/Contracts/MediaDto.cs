@@ -1,5 +1,6 @@
+using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Modules.Media.Entities;
-using MediaRankerServer.Modules.Media.Services;
+using MediaRankerServer.Modules.Files.Entities;
 
 namespace MediaRankerServer.Modules.Media.Contracts;
 
@@ -16,13 +17,14 @@ public class MediaDto
 
 public static class MediaDtoMapper
 {
-    public static MediaDto Map(MediaEntity media, IMediaCoverService coverService)
+    public static MediaDto Map(MediaEntity media, IFileService fileService)
     {
         string? mediaCoverUrl = null;
         if (media.CoverFileKey != null)
         {
-            mediaCoverUrl = coverService.GetCoverUrl(media.CoverFileKey);
+            mediaCoverUrl = fileService.GetFileUrl(media.CoverFileKey, FileEntityType.MediaCover);
         }
+        
         return new MediaDto
         {
             Id = media.Id,
