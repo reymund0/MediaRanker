@@ -1,13 +1,12 @@
-using System;
-using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MediaRankerServer.Modules.Media.Entities;
 using MediaRankerServer.Modules.Reviews.Entities;
+using MediaRankerServer.Shared.Data.Interfaces;
 
 namespace MediaRankerServer.Modules.Templates.Entities;
 
-public class Template
+public class Template : ITimestampedEntity
 {
     public long Id { get; set; }
     public string UserId { get; set; } = null!;
@@ -31,32 +30,17 @@ public class Template
 
             builder.HasKey(t => t.Id);
 
-            builder.Property(t => t.Id)
-                .HasColumnName("id");
+            builder.Property(t => t.Id);
 
             builder.Property(t => t.UserId)
-                .HasColumnName("user_id")
                 .IsRequired();
 
-            builder.Property(t => t.MediaTypeId)
-                .HasColumnName("media_type_id");
+            builder.Property(t => t.MediaTypeId);
 
             builder.Property(t => t.Name)
-                .HasColumnName("name")
                 .IsRequired();
 
-            builder.Property(t => t.Description)
-                .HasColumnName("description");
-
-            builder.Property(t => t.CreatedAt)
-                .HasColumnName("created_at")
-                .HasDefaultValueSql("NOW()")
-                .IsRequired();
-
-            builder.Property(t => t.UpdatedAt)
-                .HasColumnName("updated_at")
-                .HasDefaultValueSql("NOW()")
-                .IsRequired();
+            builder.Property(t => t.Description);
 
             // Relationships
             builder.HasOne(t => t.MediaType)

@@ -11,7 +11,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaRankerServer.IntegrationTests.Modules.Media;
 
-public class MediaCrudTests(PostgresContainerFixture fixture) : IntegrationTestBase(fixture)
+public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStackContainerFixture localStackFixture) 
+    : IntegrationTestBase(postgresFixture, localStackFixture)
 {
     private MediaEntity _testMedia = null!;
     

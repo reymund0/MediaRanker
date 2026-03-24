@@ -15,11 +15,9 @@ public class MediaType
 
             builder.HasKey(mt => mt.Id);
 
-            builder.Property(mt => mt.Id)
-                .HasColumnName("id");
+            builder.Property(mt => mt.Id);
 
             builder.Property(mt => mt.Name)
-                .HasColumnName("name")
                 .IsRequired()
                 .HasMaxLength(50);
 

@@ -25,7 +25,7 @@ public class ReviewService(
             .Include(rm => rm.Media.MediaType)
             .Where(rm => rm.UserId == userId)
             .ToListAsync(cancellationToken);
-        return [.. userReviews.Select(ReviewMapper.Map)];
+        return [.. userReviews.Select(ReviewDtoMapper.Map)];
     }
     
     public async Task<List<UnreviewedMediaDto>> GetUnreviewedMediaByTypeAsync(string userId, long mediaTypeId, CancellationToken cancellationToken = default)
@@ -36,7 +36,7 @@ public class ReviewService(
             .Include(m => m.MediaType)
             .Where(m => !m.Reviews.Any(rm => rm.UserId == userId))
             .ToListAsync(cancellationToken);
-        return [.. userUnreviewedMedia.Select(UnreviewedMediaMapper.Map)];
+        return [.. userUnreviewedMedia.Select(UnreviewedMediaDtoMapper.Map)];
     }
 
     public async Task<ReviewDto> CreateReviewAsync(string userId, ReviewUpsertRequest request, CancellationToken cancellationToken = default)
@@ -201,6 +201,6 @@ public class ReviewService(
                 .ThenInclude(m => m.MediaType)
             .Include(rm => rm.Template)
             .FirstOrDefaultAsync(rm => rm.Id == reviewId, cancellationToken);
-        return review is null ? null : ReviewMapper.Map(review);
+        return review is null ? null : ReviewDtoMapper.Map(review);
     }
 }

@@ -18,10 +18,10 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     private Respawner? _respawner;
     private NpgsqlConnection? _connection;
 
-    protected IntegrationTestBase(PostgresContainerFixture fixture)
+    protected IntegrationTestBase(PostgresContainerFixture postgresFixture, LocalStackContainerFixture localStackFixture)
     {
-        _connectionString = fixture.GetConnectionString();
-        Factory = new CustomWebApplicationFactory<Program>(_connectionString);
+        _connectionString = postgresFixture.GetConnectionString();
+        Factory = new CustomWebApplicationFactory<Program>(_connectionString, localStackFixture.GetS3ServiceUrl());
         Client = Factory.CreateClient();
     }
 

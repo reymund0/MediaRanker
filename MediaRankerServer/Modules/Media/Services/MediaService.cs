@@ -15,7 +15,7 @@ public class MediaService(
     public Task<List<MediaTypeDto>> GetMediaTypesAsync(CancellationToken cancellationToken = default)
     {
         return dbContext.MediaTypes
-            .Select(mt => MediaTypeMapper.Map(mt))
+            .Select(mt => MediaTypeDtoMapper.Map(mt))
             .ToListAsync(cancellationToken);
     }
 
@@ -26,7 +26,7 @@ public class MediaService(
             .Include(m => m.MediaType)
             .ToListAsync(cancellationToken);
 
-        return [.. media.Select(m => MediaMapper.Map(m))];
+        return [.. media.Select(MediaDtoMapper.Map)];
     }
 
     public async Task<MediaDto?> GetMediaByIdAsync(long mediaId, CancellationToken cancellationToken)
@@ -36,7 +36,7 @@ public class MediaService(
             .Include(m => m.MediaType)
             .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
 
-        return media is null ? null : MediaMapper.Map(media);
+        return media is null ? null : MediaDtoMapper.Map(media);
     }
 
     public async Task<MediaDto> CreateMediaAsync(MediaUpsertRequest request, CancellationToken cancellationToken = default)
@@ -119,7 +119,7 @@ public class MediaService(
             .AsNoTracking()
             .FirstOrDefaultAsync(mt => mt.Id == id, cancellationToken);
 
-        return mediaType == null ? null : MediaTypeMapper.Map(mediaType);
+        return mediaType == null ? null : MediaTypeDtoMapper.Map(mediaType);
     }
 
     private void ValidateMediaRequestOrThrow(MediaUpsertRequest request)

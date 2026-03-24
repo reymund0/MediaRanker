@@ -2,16 +2,18 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 using MediaRankerServer.Modules.Reviews.Entities;
+using MediaRankerServer.Shared.Data.Interfaces;
 
 namespace MediaRankerServer.Modules.Templates.Entities;
 
-public class TemplateField
+public class TemplateField : ITimestampedEntity
 {
     public long Id { get; set; }
     public long TemplateId { get; set; }
-
     public string Name { get; set; } = null!;
     public int Position { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
 
     public Template Template { get; set; } = null!;
     public ICollection<ReviewField> ReviewFields { get; set; } = [];
@@ -24,19 +26,15 @@ public class TemplateField
 
             builder.HasKey(tf => tf.Id);
 
-            builder.Property(tf => tf.Id)
-                .HasColumnName("id");
+            builder.Property(tf => tf.Id);
 
             builder.Property(tf => tf.TemplateId)
-                .HasColumnName("template_id")
                 .IsRequired();
 
             builder.Property(tf => tf.Name)
-                .HasColumnName("name")
                 .IsRequired();
 
             builder.Property(tf => tf.Position)
-                .HasColumnName("position")
                 .IsRequired();
 
             // Relationships

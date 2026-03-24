@@ -22,6 +22,85 @@ namespace MediaRankerServer.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("MediaRankerServer.Modules.Files.Entities.FileUpload", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ActualContentType")
+                        .HasColumnType("text")
+                        .HasColumnName("actual_content_type");
+
+                    b.Property<long?>("ActualFileSizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("actual_file_size_bytes");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<long?>("EntityId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("entity_id");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("entity_type");
+
+                    b.Property<string>("ExpectedContentType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("expected_content_type");
+
+                    b.Property<long>("ExpectedFileSizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("expected_file_size_bytes");
+
+                    b.Property<string>("FileKey")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("file_key");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("file_name");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("Uploading")
+                        .HasColumnName("state");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_file_uploads");
+
+                    b.HasIndex("EntityType", "FileKey")
+                        .IsUnique()
+                        .HasDatabaseName("uq_file_uploads_entity_type_file_key");
+
+                    b.ToTable("file_uploads", (string)null);
+                });
+
             modelBuilder.Entity("MediaRankerServer.Modules.Media.Entities.MediaEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -266,6 +345,12 @@ namespace MediaRankerServer.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("NOW()");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -278,6 +363,12 @@ namespace MediaRankerServer.Migrations
                     b.Property<long>("TemplateId")
                         .HasColumnType("bigint")
                         .HasColumnName("template_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("NOW()");
 
                     b.HasKey("Id")
                         .HasName("pk_template_fields");

@@ -1,19 +1,18 @@
-using FluentValidation;
 using FluentValidation.AspNetCore;
 using Scalar.AspNetCore;
 using MediaRankerServer.Shared.Data;
-using MediaRankerServer.Modules.Media.Entities;
-using MediaRankerServer.Modules.Reviews.Entities;
 using MediaRankerServer.Shared.Extensions;
-using MediaRankerServer.Modules.Templates.Contracts;
 using MediaRankerServer.Modules.Templates;
 using MediaRankerServer.Modules.Media;
 using MediaRankerServer.Modules.Reviews;
+using MediaRankerServer.Modules.Files;
 using MediaRankerServer.Modules.Test;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Serilog;
+using Amazon;
+using Amazon.S3;
+using Amazon.Extensions.NETCore.Setup;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,12 +37,13 @@ builder.Services.AddControllers(options =>
     // Default to requiring authentication for all controllers.
     options.Filters.Add(new AuthorizeFilter());
 });
+
+// Register Library Services.
 builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddValidatorsFromAssemblyContaining<TemplateUpsertRequestValidator>();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddProblemDetailsHandling();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
 // Configure DbContext.
 builder.Services.AddDbContext<PostgreSQLContext>(options =>
 {
@@ -65,38 +65,23 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Register Cognito authentication middleware.
+// Register AWS Services.
 var region = builder.Configuration["AWS:Region"];
-var userPoolId = builder.Configuration["AWS:CognitoUserPoolId"];
-var clientId = builder.Configuration["AWS:CognitoClientId"];
-var authority = $"https://cognito-idp.{region}.amazonaws.com/{userPoolId}";
+builder.Services.AddDefaultAWSOptions(new AWSOptions
+{
+    Region = RegionEndpoint.GetBySystemName(region)
+});
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.Authority = authority;
-        options.RequireHttpsMetadata = true; // IDK if I'll need this.
+builder.Services.AddAWSService<IAmazonS3>();
 
-        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuer = authority,
-
-            ValidateAudience = true,
-            ValidAudience = clientId,
-
-            ValidateLifetime = true,
-
-            ValidateIssuerSigningKey = true,
-            ClockSkew = TimeSpan.FromMinutes(5), // Adjust as needed for token expiration tolerance
-            NameClaimType = "sub"
-        };
-    });
+// Register Cognito authentication extension.
+builder.Services.AddCognitoAuthentication(builder.Configuration);
 
 // Register Module Services.
 builder.Services.AddTemplatesModule();
 builder.Services.AddMediaModule();
 builder.Services.AddReviewsModule();
+builder.Services.AddFilesModule();
 builder.Services.AddTestModule();
 
 var app = builder.Build();

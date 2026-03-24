@@ -3,10 +3,11 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 using MediaRankerServer.Modules.Media.Entities;
 using MediaRankerServer.Modules.Templates.Entities;
+using MediaRankerServer.Shared.Data.Interfaces;
 
 namespace MediaRankerServer.Modules.Reviews.Entities;
 
-public class Review
+public class Review : ITimestampedEntity
 {
     public long Id { get; set; }
     public string UserId { get; set; } = null!;
@@ -41,43 +42,25 @@ public class Review
 
             builder.HasKey(rm => rm.Id);
 
-            builder.Property(rm => rm.Id)
-                .HasColumnName("id");
+            builder.Property(rm => rm.Id);
 
             builder.Property(rm => rm.UserId)
-                .HasColumnName("user_id")
                 .IsRequired();
 
             builder.Property(rm => rm.MediaId)
-                .HasColumnName("media_id")
                 .IsRequired();
 
             builder.Property(rm => rm.TemplateId)
-                .HasColumnName("template_id")
                 .IsRequired();
 
             builder.Property(rm => rm.OverallScore)
-                .HasColumnName("overall_score")
                 .IsRequired();
 
-            builder.Property(rm => rm.ReviewTitle)
-                .HasColumnName("review_title");
+            builder.Property(rm => rm.ReviewTitle);
 
-            builder.Property(rm => rm.Notes)
-                .HasColumnName("notes");
+            builder.Property(rm => rm.Notes);
 
-            builder.Property(rm => rm.ConsumedAt)
-                .HasColumnName("consumed_at");
-
-            builder.Property(rm => rm.CreatedAt)
-                .HasColumnName("created_at")
-                .HasDefaultValueSql("NOW()")
-                .IsRequired();
-
-            builder.Property(rm => rm.UpdatedAt)
-                .HasColumnName("updated_at")
-                .HasDefaultValueSql("NOW()")
-                .IsRequired();
+            builder.Property(rm => rm.ConsumedAt);
 
             // Relationships
             builder.HasOne(rm => rm.Media)

@@ -27,14 +27,11 @@ public class ReviewField
 
             builder.HasKey(rms => new { rms.ReviewId, rms.TemplateFieldId });
 
-            builder.Property(rms => rms.ReviewId)
-                .HasColumnName("review_id");
+            builder.Property(rms => rms.ReviewId);
 
-            builder.Property(rms => rms.TemplateFieldId)
-                .HasColumnName("template_field_id");
+            builder.Property(rms => rms.TemplateFieldId);
 
             builder.Property(rms => rms.Value)
-                .HasColumnName("value")
                 .IsRequired();
 
             // Relationships

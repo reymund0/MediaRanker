@@ -75,10 +75,12 @@ Do not edit build artifacts:
 ### Testing Conventions
 
 - **Unit Tests**: Use xUnit + FluentAssertions + Moq. Focus on pure logic, mapping, and extensions.
-- **Integration Tests**: Use Testcontainers (PostgreSQL) + Respawn.
+- **Integration Tests**: Use Testcontainers (PostgreSQL + LocalStack for AWS-backed flows) + Respawn.
   - Inherit from `IntegrationTestBase`.
   - Use `Fixture.CreateClient()` for authenticated requests (defaults to `test-user-1`).
   - Tests are migration-driven; the fixture handles schema migration and data seeding.
+  - Use LocalStack for AWS-backed integration behavior (e.g. S3).
+  - Hybrid configuration: `AWS:Region` is set via host-level in-memory collection; other settings come from `appsettings.Integration.json`.
   - Assert ProblemDetails shape for error paths.
 
 ---
