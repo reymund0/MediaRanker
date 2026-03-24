@@ -6,7 +6,7 @@ import { FormDialog } from "@/lib/components/feedback/dialog/form-dialog";
 import { FormSelect } from "@/lib/components/inputs/select/form-select";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
 import { FormDatePicker } from "@/lib/components/date-picker/form-date-picker";
-import { BaseFileUpload } from "@/lib/components/file-upload/base-file-upload";
+import { FormFileUpload } from "@/lib/components/file-upload/form-file-upload";
 import { useMutation } from "@/lib/api/use-mutation";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import {
@@ -83,11 +83,6 @@ export function MediaEditModal({
     await completeUpload(uploadId);
   };
 
-  const onUploadSuccess = (uploadId: number) => {
-    showSuccess("Cover image uploaded successfully");
-    setValue("coverUploadId", uploadId, { shouldDirty: true });
-  };
-
   const onUploadError = (message: string) => {
     showError(message);
   };
@@ -128,12 +123,13 @@ export function MediaEditModal({
           disableFuture
         />
         <Box sx={{ display: "flex", justifyContent: "center" }}>
-          <BaseFileUpload
+          <FormFileUpload<MediaEditFormValues>
+            name="coverUploadId"
             label="Upload Cover Image"
             initialPreviewUrl={row.coverImageUrl}
             onGenerateUploadUrl={handleGenerateUploadUrl}
             onCompleteUpload={handleCompleteUpload}
-            onUploadSuccess={(uploadId: number) => onUploadSuccess(uploadId)}
+            onUploadSuccess={() => showSuccess("Cover image uploaded successfully")}
             onUploadError={onUploadError}
             previewSx={{ maxHeight: 200 }}
           />
