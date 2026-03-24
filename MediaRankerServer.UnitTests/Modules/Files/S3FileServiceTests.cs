@@ -100,8 +100,8 @@ public class S3FileServiceTests : IDisposable
             FileSizeBytes = 1024
         };
 
-        _mockS3Client.Setup(s => s.GetPreSignedURLAsync(It.IsAny<GetPreSignedUrlRequest>()))
-            .ReturnsAsync("https://s3.amazonaws.com/upload-url");
+        _mockS3Client.Setup(s => s.GetPreSignedURL(It.IsAny<GetPreSignedUrlRequest>()))
+            .Returns("https://s3.amazonaws.com/upload-url");
 
         // Act
         var response = await _service.StartUploadAsync(request);
@@ -256,29 +256,18 @@ public class S3FileServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetFileUrlAsync_HappyPath_ReturnsUrl()
+    public async Task GetFileUrl_HappyPath_ReturnsUrl()
     {
         // Arrange
         var upload = await SeedUploadAsync(FileUploadState.Copied);
-        _mockS3Client.Setup(s => s.GetPreSignedURLAsync(It.IsAny<GetPreSignedUrlRequest>()))
-            .ReturnsAsync("https://s3.amazonaws.com/preview-url");
+        _mockS3Client.Setup(s => s.GetPreSignedURL(It.IsAny<GetPreSignedUrlRequest>()))
+            .Returns("https://s3.amazonaws.com/preview-url");
 
         // Act
-        var url = await _service.GetFileUrlAsync(upload.FileKey, upload.EntityType);
+        var url = _service.GetFileUrl(upload.FileKey, upload.EntityType);
 
         // Assert
         url.Should().Be("https://s3.amazonaws.com/preview-url");
-    }
-
-    [Fact]
-    public async Task GetFileUrlAsync_WhenFileNotFound_ThrowsDomainException()
-    {
-        // Act
-        var act = () => _service.GetFileUrlAsync("non-existent", FileEntityType.MediaCover);
-
-        // Assert
-        await act.Should().ThrowAsync<DomainException>()
-            .Where(e => e.Type == "file_not_found");
     }
 
     [Fact]

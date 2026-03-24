@@ -201,7 +201,7 @@ public class MediaCoverServiceTests : IDisposable
     public async Task DeleteCoverFileAsync_PublishesFileDeletedEvent()
     {
         // Act
-        await _service.DeleteCoverFileAsync(123, CancellationToken.None);
+        await _service.DeleteCoverFileAsync("123", CancellationToken.None);
 
         // Assert
         _mockMediator.Verify(m => m.Publish(

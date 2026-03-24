@@ -3,6 +3,8 @@ using FluentValidation;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Services;
 using MediaRankerServer.Modules.Media.Entities;
+using MediaRankerServer.Modules.Files.Services;
+using MediaRankerServer.Modules.Files.Entities;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +17,7 @@ public class MediaServiceTests
 {
     private readonly PostgreSQLContext _context;
     private readonly Mock<IMediaCoverService> _mockCoverService;
+    private readonly Mock<IFileService> _mockFileService;
     private readonly Mock<IValidator<MediaUpsertRequest>> _mockValidator;
     private readonly MediaService _service;
     private const string DefaultUserId = "test-user-1";
@@ -27,12 +30,16 @@ public class MediaServiceTests
 
         _context = new PostgreSQLContext(options);
         _mockCoverService = new Mock<IMediaCoverService>();
+        
+        _mockFileService = new Mock<IFileService>();
+        _mockFileService.Setup(f => f.GetFileUrl(It.IsAny<string>(), It.IsAny<FileEntityType>()))
+            .Returns((string path, FileEntityType type) => path);
+            
         _mockValidator = new Mock<IValidator<MediaUpsertRequest>>();
-
         _mockValidator.Setup(v => v.Validate(It.IsAny<MediaUpsertRequest>()))
             .Returns(new FluentValidation.Results.ValidationResult());
 
-        _service = new MediaService(_context, _mockCoverService.Object, _mockValidator.Object);
+        _service = new MediaService(_context, _mockCoverService.Object, _mockFileService.Object, _mockValidator.Object);
     }
 
     [Fact]
@@ -128,9 +135,6 @@ public class MediaServiceTests
         _context.MediaTypes.Add(new MediaType { Id = -3, Name = "Movie" });
         await _context.SaveChangesAsync();
 
-        _mockCoverService.Setup(s => s.GetCoverUrlAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("http://fake-url");
-
         // Act
         var result = await _service.CreateMediaAsync(DefaultUserId, request);
 
@@ -182,9 +186,6 @@ public class MediaServiceTests
         _mockCoverService.Setup(s => s.CopyCoverFileAsync(DefaultUserId, 456, It.IsAny<CancellationToken>()))
             .ReturnsAsync(fileDto);
 
-        _mockCoverService.Setup(s => s.GetCoverUrlAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("http://fake-url");
-
         // Act
         await _service.UpdateMediaAsync(DefaultUserId, existingMedia.Id, request);
 
@@ -206,7 +207,8 @@ public class MediaServiceTests
             Title = "To Delete",
             MediaTypeId = -3,
             ReleaseDate = new DateOnly(2020, 1, 1),
-            CoverFileUploadId = 789
+            CoverFileUploadId = 789,
+            CoverFileKey = "covers/to_delete.png"
         };
         _context.Media.Add(media);
         await _context.SaveChangesAsync();
@@ -215,7 +217,7 @@ public class MediaServiceTests
         await _service.DeleteMediaAsync(media.Id);
 
         // Assert
-        _mockCoverService.Verify(s => s.DeleteCoverFileAsync(789, It.IsAny<CancellationToken>()), Times.Once);
+        _mockCoverService.Verify(s => s.DeleteCoverFileAsync("covers/to_delete.png", It.IsAny<CancellationToken>()), Times.Once);
         _context.Media.Should().NotContain(m => m.Id == media.Id);
     }
 }

@@ -14,6 +14,8 @@ using MediaRankerServer.Modules.Reviews.Entities;
 using MediaRankerServer.Modules.Reviews.Services;
 using MediaRankerServer.Modules.Media.Entities;
 using MediaRankerServer.Modules.Templates.Entities;
+using MediaRankerServer.Modules.Files.Services;
+using MediaRankerServer.Modules.Files.Entities;
 
 
 namespace MediaRankerServer.UnitTests.Modules.Reviews;
@@ -23,6 +25,7 @@ public class ReviewServiceTests : IDisposable
     private readonly Mock<IValidator<ReviewUpsertRequest>> _mockValidator;
     private readonly Mock<IMediaService> _mockMediaService;
     private readonly Mock<ITemplateService> _mockTemplatesService;
+    private readonly Mock<IFileService> _mockFileService;
     private readonly PostgreSQLContext _dbContext;
     private readonly ReviewService _service;
     private readonly ReviewUpsertRequest _defaultRequest;
@@ -32,7 +35,8 @@ public class ReviewServiceTests : IDisposable
         _mockValidator = new Mock<IValidator<ReviewUpsertRequest>>();
         _mockMediaService = new Mock<IMediaService>();
         _mockTemplatesService = new Mock<ITemplateService>();
-
+        _mockFileService = new Mock<IFileService>();
+        
         var options = new DbContextOptionsBuilder<PostgreSQLContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
@@ -42,7 +46,8 @@ public class ReviewServiceTests : IDisposable
             _dbContext,
             _mockValidator.Object,
             _mockMediaService.Object,
-            _mockTemplatesService.Object
+            _mockTemplatesService.Object,
+            _mockFileService.Object
         );
 
         _defaultRequest = new ReviewUpsertRequest
@@ -106,6 +111,8 @@ public class ReviewServiceTests : IDisposable
                     new TemplateFieldDto { Id = 2, Name = "Acting", Position = 2 }
                 ]
             });
+        _mockFileService.Setup(f => f.GetFileUrl(It.IsAny<string>(), It.IsAny<FileEntityType>()))
+            .Returns("https://example.com/cover.jpg");
     }
 
     [Fact]
