@@ -1,3 +1,4 @@
+using FluentValidation;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Modules.Files.Contracts;
@@ -9,10 +10,21 @@ using MediatR;
 
 namespace MediaRankerServer.Modules.Media.Services;
 
-public class MediaCoverService(IFileService fileService, PostgreSQLContext dbContext, IMediator mediator) : IMediaCoverService
+public class MediaCoverService(
+    IFileService fileService, 
+    PostgreSQLContext dbContext, 
+    IMediator mediator,
+    IValidator<GenerateUploadCoverUrlRequest> validator) : IMediaCoverService
 {
     public async Task<GenerateUploadCoverUrlResponse> GenerateUploadCoverUrlAsync(string userId, GenerateUploadCoverUrlRequest request, CancellationToken cancellationToken)
     {
+        // Validate request
+        var validationResult = await validator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            throw new DomainException(validationResult.Errors[0].ErrorMessage, "media_cover_validation_error");
+        }
+
         // If mediaId was provided ensure it exists.
         if (request.MediaId.HasValue)
         {
@@ -56,5 +68,22 @@ public class MediaCoverService(IFileService fileService, PostgreSQLContext dbCon
         }
         
         return;
+    }
+
+    public async Task<FileDto> CopyCoverFileAsync(string userId, long uploadId, CancellationToken cancellationToken)
+    {
+        return await fileService.MarkUploadCopiedAsync(uploadId, userId, cancellationToken);
+    }
+
+    public async Task DeleteCoverFileAsync(long uploadId, CancellationToken cancellationToken)
+    {
+        // Media upload records are currently identified by their ID when stored in MediaEntity.
+        // We delete by publishing a FileDeletedEvent which S3FileService (or cleanup) handles.
+        await mediator.Publish(new FileDeletedEvent(uploadId.ToString(), FileEntityType.MediaCover.ToString()), cancellationToken);
+    }
+
+    public async Task<string> GetCoverUrlAsync(string fileKey, CancellationToken cancellationToken)
+    {
+        return await fileService.GetFileUrlAsync(fileKey, FileEntityType.MediaCover);
     }
 }

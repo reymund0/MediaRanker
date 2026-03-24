@@ -8,7 +8,7 @@ public interface IMediaService
     Task<MediaTypeDto?> GetMediaTypeByIdAsync(long id, CancellationToken cancellationToken = default);
     Task<List<MediaDto>> GetAllMediaAsync(CancellationToken cancellationToken = default);
     Task<MediaDto?> GetMediaByIdAsync(long id, CancellationToken cancellationToken = default);
-    Task<MediaDto> CreateMediaAsync(MediaUpsertRequest request, CancellationToken cancellationToken = default);
-    Task<MediaDto> UpdateMediaAsync(long mediaId, MediaUpsertRequest request, CancellationToken cancellationToken = default);
+    Task<MediaDto> CreateMediaAsync(string userId, MediaUpsertRequest request, CancellationToken cancellationToken = default);
+    Task<MediaDto> UpdateMediaAsync(string userId, long mediaId, MediaUpsertRequest request, CancellationToken cancellationToken = default);
     Task DeleteMediaAsync(long mediaId, CancellationToken cancellationToken = default);
 }

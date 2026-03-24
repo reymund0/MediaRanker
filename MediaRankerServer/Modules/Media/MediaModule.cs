@@ -13,6 +13,7 @@ public static class MediaModule
         services.AddScoped<IMediaCoverService, MediaCoverService>();
         services.AddScoped<IMediaService, MediaService>();
         services.AddScoped<IValidator<MediaUpsertRequest>, MediaUpsertRequestValidator>();
+        services.AddScoped<IValidator<GenerateUploadCoverUrlRequest>, GenerateUploadCoverUrlRequestValidator>();
 
         return services;
     }

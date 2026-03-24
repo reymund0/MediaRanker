@@ -1,3 +1,4 @@
+using FluentValidation;
 using MediaRankerServer.Modules.Media.Services;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Entities;
@@ -20,6 +21,7 @@ public class MediaCoverServiceTests : IDisposable
     private readonly PostgreSQLContext _dbContext;
     private readonly Mock<IFileService> _mockFileService;
     private readonly Mock<IMediator> _mockMediator;
+    private readonly Mock<IValidator<GenerateUploadCoverUrlRequest>> _mockValidator;
     private readonly MediaCoverService _service;
 
     private const string DefaultUserId = "test-user-1";
@@ -33,11 +35,16 @@ public class MediaCoverServiceTests : IDisposable
 
         _mockFileService = new Mock<IFileService>();
         _mockMediator = new Mock<IMediator>();
+        _mockValidator = new Mock<IValidator<GenerateUploadCoverUrlRequest>>();
+
+        _mockValidator.Setup(v => v.ValidateAsync(It.IsAny<GenerateUploadCoverUrlRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FluentValidation.Results.ValidationResult());
 
         _service = new MediaCoverService(
             _mockFileService.Object,
             _dbContext,
-            _mockMediator.Object
+            _mockMediator.Object,
+            _mockValidator.Object
         );
     }
 
@@ -171,6 +178,34 @@ public class MediaCoverServiceTests : IDisposable
 
         _mockMediator.Verify(m => m.Publish(
             It.Is<FileDeletedEvent>(e => e.FileKey == "key1" && e.EntityType == FileEntityType.MediaCover.ToString()), 
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CopyCoverFileAsync_CallsFileServiceAndReturnsFileDto()
+    {
+        // Arrange
+        var fileDto = new FileDto { UploadId = 1, FileKey = "key1" };
+        _mockFileService.Setup(f => f.MarkUploadCopiedAsync(1, DefaultUserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(fileDto);
+
+        // Act
+        var result = await _service.CopyCoverFileAsync(DefaultUserId, 1, CancellationToken.None);
+
+        // Assert
+        result.Should().BeEquivalentTo(fileDto);
+        _mockFileService.Verify(f => f.MarkUploadCopiedAsync(1, DefaultUserId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteCoverFileAsync_PublishesFileDeletedEvent()
+    {
+        // Act
+        await _service.DeleteCoverFileAsync(123, CancellationToken.None);
+
+        // Assert
+        _mockMediator.Verify(m => m.Publish(
+            It.Is<FileDeletedEvent>(e => e.FileKey == "123" && e.EntityType == FileEntityType.MediaCover.ToString()), 
             It.IsAny<CancellationToken>()), Times.Once);
     }
 }

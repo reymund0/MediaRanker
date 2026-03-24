@@ -1,6 +1,7 @@
 using FluentValidation;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Entities;
+using MediaRankerServer.Modules.Files.Contracts;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +10,7 @@ namespace MediaRankerServer.Modules.Media.Services;
 
 public class MediaService(
     PostgreSQLContext dbContext,
+    IMediaCoverService coverService,
     IValidator<MediaUpsertRequest> mediaUpsertRequestValidator
 ) : IMediaService
 {
@@ -26,7 +28,11 @@ public class MediaService(
             .Include(m => m.MediaType)
             .ToListAsync(cancellationToken);
 
-        return [.. media.Select(MediaDtoMapper.Map)];
+        var mediaDtos = await Task.WhenAll(
+            media.Select(m => MediaDtoMapper.MapAsync(m, coverService, cancellationToken))
+        );
+
+        return [.. mediaDtos];
     }
 
     public async Task<MediaDto?> GetMediaByIdAsync(long mediaId, CancellationToken cancellationToken)
@@ -36,10 +42,10 @@ public class MediaService(
             .Include(m => m.MediaType)
             .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
 
-        return media is null ? null : MediaDtoMapper.Map(media);
+        return media is null ? null : await MediaDtoMapper.MapAsync(media, coverService, cancellationToken);
     }
 
-    public async Task<MediaDto> CreateMediaAsync(MediaUpsertRequest request, CancellationToken cancellationToken = default)
+    public async Task<MediaDto> CreateMediaAsync(string userId, MediaUpsertRequest request, CancellationToken cancellationToken = default)
     {
         ValidateMediaRequestOrThrow(request);
 
@@ -56,11 +62,23 @@ public class MediaService(
             throw new DomainException("Media already exists for the selected title, media type, and release date.", "media_conflict");
         }
 
+        // Get uploaded cover file info if provided.
+        FileDto? coverFile = null;
+        if (request.CoverUploadId.HasValue)
+        {
+            coverFile = await coverService.CopyCoverFileAsync(userId, request.CoverUploadId.Value, cancellationToken);
+        }
+
         var media = new MediaEntity
         {
             Title = normalizedTitle,
             MediaTypeId = request.MediaTypeId,
-            ReleaseDate = request.ReleaseDate
+            ReleaseDate = request.ReleaseDate,
+            CoverFileUploadId = coverFile?.UploadId,
+            CoverFileKey = coverFile?.FileKey,
+            CoverFileName = coverFile?.FileName,
+            CoverFileContentType = coverFile?.ContentType,
+            CoverFileSizeBytes = coverFile?.FileSizeBytes,
         };
 
         dbContext.Media.Add(media);
@@ -70,7 +88,7 @@ public class MediaService(
             ?? throw new DomainException("Media was created but could not be loaded.", "media_load_failed");
     }
 
-    public async Task<MediaDto> UpdateMediaAsync(long mediaId, MediaUpsertRequest request, CancellationToken cancellationToken = default)
+    public async Task<MediaDto> UpdateMediaAsync(string userId, long mediaId, MediaUpsertRequest request, CancellationToken cancellationToken = default)
     {
         ValidateMediaRequestOrThrow(request);
 
@@ -92,10 +110,21 @@ public class MediaService(
             throw new DomainException("Media already exists for the selected title, media type, and release date.", "media_conflict");
         }
 
+        // Get updated cover file info if provided.
+        FileDto? coverFile = null;
+        if (request.CoverUploadId.HasValue)
+        {
+            coverFile = await coverService.CopyCoverFileAsync(userId, request.CoverUploadId.Value, cancellationToken);
+        }
+
         media.Title = normalizedTitle;
         media.MediaTypeId = request.MediaTypeId;
         media.ReleaseDate = request.ReleaseDate;
-        media.UpdatedAt = DateTimeOffset.UtcNow;
+        media.CoverFileUploadId = coverFile?.UploadId;
+        media.CoverFileKey = coverFile?.FileKey;
+        media.CoverFileName = coverFile?.FileName;
+        media.CoverFileContentType = coverFile?.ContentType;
+        media.CoverFileSizeBytes = coverFile?.FileSizeBytes;
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -108,6 +137,12 @@ public class MediaService(
         var media = await dbContext.Media
             .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken)
             ?? throw new DomainException("Media not found.", "media_not_found");
+
+        // Delete the cover file if it exists
+        if (media.CoverFileUploadId.HasValue)
+        {
+            await coverService.DeleteCoverFileAsync(media.CoverFileUploadId.Value, cancellationToken);
+        }
 
         dbContext.Media.Remove(media);
         await dbContext.SaveChangesAsync(cancellationToken);
