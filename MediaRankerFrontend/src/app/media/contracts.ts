@@ -7,6 +7,7 @@ export interface MediaDto {
   createdAt: string;
   updatedAt: string;
   mediaType: MediaTypeDto;
+  coverImageUrl?: string;
 }
 
 export interface MediaUpsertRequest {
@@ -14,4 +15,17 @@ export interface MediaUpsertRequest {
   title: string;
   mediaTypeId: number;
   releaseDate: string;
+  coverUploadId?: number;
+}
+
+export interface GenerateUploadCoverUrlRequest {
+  mediaId: number | null;
+  fileName: string;
+  contentType: string;
+  fileSizeBytes: number;
+}
+
+export interface GenerateUploadCoverUrlResponse {
+  url: string;
+  uploadId: number;
 }

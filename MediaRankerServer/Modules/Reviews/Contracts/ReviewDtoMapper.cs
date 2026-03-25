@@ -1,11 +1,19 @@
 using MediaRankerServer.Modules.Reviews.Entities;
+using MediaRankerServer.Modules.Files.Entities;
+using MediaRankerServer.Modules.Files.Services;
 
 namespace MediaRankerServer.Modules.Reviews.Contracts;
 
 public static class ReviewDtoMapper
 {
-  public static ReviewDto Map(Review review)
+  public static ReviewDto Map(Review review, IFileService fileService)
   {
+    string? mediaCoverImageUrl = null;
+    if (review.Media.CoverFileKey != null)
+    {
+      mediaCoverImageUrl = fileService.GetFileUrl(review.Media.CoverFileKey, FileEntityType.MediaCover);
+    }
+    
     return new ReviewDto
     {
       Id = review.Id,
@@ -16,13 +24,14 @@ public static class ReviewDtoMapper
       ConsumedAt = review.ConsumedAt,
       CreatedAt = review.CreatedAt,
       UpdatedAt = review.UpdatedAt,
-      Fields = review.Fields.Select(MapField).ToList(),
+      Fields = [.. review.Fields.Select(MapField)],
       TemplateId = review.TemplateId,
       TemplateName = review.Template.Name,
       MediaId = review.MediaId,
       MediaTitle = review.Media.Title,
       MediaTypeId = review.Media.MediaTypeId,
-      MediaTypeName = review.Media.MediaType.Name
+      MediaTypeName = review.Media.MediaType.Name,
+      MediaCoverImageUrl = mediaCoverImageUrl
     };
   }
 

@@ -1,6 +1,7 @@
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import { Chip, IconButton, Stack, Typography } from "@mui/material";
+import ImageIcon from "@mui/icons-material/Image";
+import { Chip, IconButton, Stack, Typography, Box } from "@mui/material";
 import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import { format, parseISO } from "date-fns";
 import { MediaDto } from "./contracts";
@@ -33,10 +34,33 @@ export function buildMediaColumns({
 }: BuildMediaColumnsParams): GridColDef<MediaRow>[] {
   return [
     {
+      field: "coverImageUrl",
+      headerName: "",
+      width: 90,
+      sortable: false,
+      disableColumnMenu: true,
+      renderCell: (params: GridRenderCellParams<MediaRow, string | undefined>) => (
+        <Box>
+          {params.value ? (
+            <Box
+              component="img"
+              src={params.value}
+              sx={{
+                width: "100%",
+                maxHeight: 100,
+                objectFit: "scale-down",
+              }}
+            />
+          ) : (
+            <ImageIcon sx={{ width: "100%", height: "100%", maxHeight: 100, color: "text.disabled" }} />
+          )}
+        </Box>
+      ),
+    },
+    {
       field: "title",
       headerName: "Title",
       flex: 3,
-      sortable: false,
       renderCell: (params: GridRenderCellParams<MediaRow, string>) => (
         <Stack
           direction="row"
@@ -58,7 +82,6 @@ export function buildMediaColumns({
       headerName: "Release Date",
       type: "date",
       flex: 1,
-      sortable: false,
       renderCell: (params: GridRenderCellParams<MediaRow, Date | null>) => (
         <Typography color="text.secondary">
           {params.value ? format(params.value, "PPP") : "-"}
@@ -70,7 +93,6 @@ export function buildMediaColumns({
       headerName: "Updated At",
       type: "dateTime",
       flex: 1,
-      sortable: false,
       renderCell: (params: GridRenderCellParams<MediaRow, Date | null>) => (
         <Typography color="text.secondary">
           {params.value ? format(params.value, "PPp") : "-"}
@@ -80,8 +102,8 @@ export function buildMediaColumns({
     {
       field: "actions",
       headerName: "Actions",
-      sortable: false,
       width: 90,
+      sortable: false,
       filterable: false,
       disableColumnMenu: true,
       renderCell: (params: GridRenderCellParams<MediaRow>) => {

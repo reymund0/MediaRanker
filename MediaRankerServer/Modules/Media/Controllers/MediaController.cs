@@ -20,14 +20,15 @@ public class MediaController(IMediaService mediaService, IMediaCoverService medi
     public async Task<IActionResult> UpsertMedia([FromBody] MediaUpsertRequest request, CancellationToken cancellationToken)
     {
         MediaDto media;
+        var userId = User.GetAuthenticatedUserId();
 
         if (request.Id is null)
         {
-            media = await mediaService.CreateMediaAsync(request, cancellationToken);
+            media = await mediaService.CreateMediaAsync(userId, request, cancellationToken);
         }
         else
         {
-            media = await mediaService.UpdateMediaAsync(request.Id.Value, request, cancellationToken);
+            media = await mediaService.UpdateMediaAsync(userId, request.Id.Value, request, cancellationToken);
         }
 
         return Ok(media);
@@ -36,6 +37,7 @@ public class MediaController(IMediaService mediaService, IMediaCoverService medi
     [HttpPost("UploadCover")]
     public async Task<IActionResult> GenerateUploadCoverUrl([FromBody] GenerateUploadCoverUrlRequest request, CancellationToken cancellationToken)
     {
+        Console.WriteLine($"[DEBUG] MediaController.GenerateUploadCoverUrl - FileName: '{request.FileName}', ContentType: '{request.ContentType}', Size: {request.FileSizeBytes}");
         var userId = User.GetAuthenticatedUserId();
         var url = await mediaCoverService.GenerateUploadCoverUrlAsync(userId, request, cancellationToken);
         return Ok(url);
