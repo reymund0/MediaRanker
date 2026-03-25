@@ -44,6 +44,21 @@ Do not edit build artifacts:
 - Keep persistence concerns in entities/configurations/migrations.
 - Prefer incremental refactors over broad rewrites.
 
+### File Upload Lifecycle (Files Module)
+
+- Uploads are module-driven and two-phase:
+  1. Frontend requests an upload URL from a feature module endpoint.
+  2. Module validates and calls `IFileService.StartUploadAsync(...)` to create upload state + pre-signed URL.
+  3. Frontend uploads file directly using the pre-signed URL.
+  4. Frontend calls module endpoint to complete upload.
+  5. Module validates and calls `IFileService.FinishUploadAsync(...)` (`Uploading` -> `Uploaded`).
+  6. Frontend submits module save/upsert with `uploadId` attached.
+
+- `Uploaded` files are temporary and may be deleted by daily cleanup.
+- Feature modules must call `IFileService.MarkUploadCopiedAsync(uploadId, userId, ...)` and persist required `FileDto` data in module-owned entities during save flows.
+- If a module does not copy upload data from the Files module, it risks losing file references during cleanup.
+- Files module owns upload state lifecycle (`Uploading`, `Uploaded`, `Copied`, `Deleted`); feature modules own domain validation and when uploads are attached to domain models.
+
 ### Seed + Migration Conventions
 
 - Seed artifacts live in `MediaRankerServer/Data/Seeds` (current seed file: `SeedSystemTemplates.sql`).

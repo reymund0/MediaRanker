@@ -23,3 +23,17 @@ The server is organized into feature modules under `MediaRankerServer/Modules/`.
 - Request validation lives in FluentValidation `AbstractValidator<T>` classes (e.g., `TemplateUpsertRequestValidator`).
 - Keep lightweight validators and mappers colocated with their related request/contract class (same file or same folder) so discovery stays straightforward.
 - Services/controllers resolve `IValidator<T>` via DI and throw `DomainException` with the existing `type` values (e.g., `template_validation_error`) when validation fails so ProblemDetails stays consistent.
+
+## File Upload Lifecycle (Module + Files Module)
+- The upload flow is two-phase and module-driven:
+  1. Frontend asks a module endpoint to start an upload.
+  2. Module validates request and calls `IFileService.StartUploadAsync(...)` to get `UploadId` + pre-signed upload URL.
+  3. Frontend uploads the binary directly to S3 using the pre-signed URL.
+  4. Frontend calls a module endpoint to confirm upload completion.
+  5. Module validates and calls `IFileService.FinishUploadAsync(...)`, transitioning `FileUploadState` from `Uploading` to `Uploaded`.
+  6. Frontend later submits the module save/upsert request with the `uploadId` attached.
+
+- Files in `Uploaded` state are temporary and may be removed by daily cleanup if never copied into module-owned data.
+- Each module must copy file metadata it needs by calling `IFileService.MarkUploadCopiedAsync(uploadId, userId, ...)` during its own save flow, then persist the returned `FileDto` data in module-owned entities.
+- If a module does not copy upload data out of the Files module, it risks losing the file reference during cleanup.
+- The Files module owns upload state tracking (`Uploading`, `Uploaded`, `Copied`, `Deleted`); feature modules own business validation and when upload IDs become part of domain models.
