@@ -1,20 +1,32 @@
 import { FormControl, FormHelperText, InputLabel, MenuItem, Select, SelectProps } from "@mui/material";
 import { CircularProgress } from "@mui/material";
+import React from 'react';
 
 export type BaseSelectValue = string | number;
 
-export type BaseSelectOption = {
+export type BaseSelectOption<T = unknown> = {
   id: BaseSelectValue;
   label: string;
+  metadata?: T;
 }
 
-export type BaseSelectProps = {
-  options: BaseSelectOption[];
+export type BaseSelectProps<T = unknown> = {
+  options: BaseSelectOption<T>[];
   errorMessage?: string;
   isLoading?: boolean;
+  renderOptionContent?: (option: BaseSelectOption<T>) => React.ReactNode;
 } & Omit<SelectProps<BaseSelectValue>, "labelId" | "error">;
 
-export function BaseSelect({ options, variant, errorMessage, label, isLoading, ...props }: BaseSelectProps) {
+export function BaseSelect<T = unknown>({ 
+  options, 
+  variant, 
+  errorMessage, 
+  label, 
+  isLoading, 
+  renderOptionContent,
+  ...props 
+}: BaseSelectProps<T>) {
+
   const labelId = `${label || 'select'}-label`;
   return (
     <FormControl
@@ -32,7 +44,7 @@ export function BaseSelect({ options, variant, errorMessage, label, isLoading, .
       >
         {options.map((option) => (
           <MenuItem key={option.id} value={option.id}>
-            {option.label}
+            {renderOptionContent ? renderOptionContent(option) : option.label}
           </MenuItem>
         ))}
       </Select>

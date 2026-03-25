@@ -40,12 +40,13 @@ export default function NewReviewPage() {
 
   useEffect(() => {
     if (unreviewedMedia) {
-      setUnreviewedMediaOptions(unreviewedMedia.map(item => ({ id: item.id, label: item.title, imageUrl: item.coverImageUrl })));
+      setUnreviewedMediaOptions(unreviewedMedia.map(item => ({ 
+        id: item.id, 
+        label: item.title, 
+        metadata: { imageUrl: item.coverImageUrl } 
+      })));
     }
   }, [unreviewedMedia]);
-  
-
-
 
   return (
     <Box>
@@ -79,11 +80,34 @@ export default function NewReviewPage() {
               { unreviewedMediaError ? (
                 <ErrorCard title="Error loading unreviewed media" message={unreviewedMediaError.message} />
               ) : (
-                <BaseAutocomplete
+                <BaseAutocomplete<{ imageUrl: string | null }>
                   label="Search for media"
-                  options={unreviewedMediaOptions}
+                  options={unreviewedMediaOptions as any}
                   onChange={(e) => setSelectedUnreviewedMedia(e.target.value)}
                   isLoading={unreviewedMediaLoading}
+                  renderOptionContent={(option) => (
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, minHeight: 40 }}>
+                      {option.metadata?.imageUrl ? (
+                        <Box
+                          component="img"
+                          src={option.metadata.imageUrl}
+                          alt={option.label}
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            objectFit: "cover",
+                            borderRadius: 1,
+                            flexShrink: 0,
+                          }}
+                        />
+                      ) : (
+                        <Box sx={{ width: 32, height: 32, bgcolor: 'action.hover', borderRadius: 1, flexShrink: 0 }} />
+                      )}
+                      <Typography variant="body2" noWrap>
+                        {option.label}
+                      </Typography>
+                    </Box>
+                  )}
                 />
               )}
             </Box>

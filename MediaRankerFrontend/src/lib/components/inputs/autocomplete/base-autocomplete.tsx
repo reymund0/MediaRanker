@@ -1,18 +1,20 @@
 import { Autocomplete, Box, CircularProgress, ListItem, TextField, TextFieldProps, Typography } from "@mui/material";
 import { BaseSelectOption } from "../select/base-select";
 
-export type BaseAutocompleteOption = BaseSelectOption & {
-  imageUrl?: string | null;
-};
-
-export type BaseAutocompleteProps = {
-  options: BaseAutocompleteOption[];
+export type BaseAutocompleteProps<T = unknown> = {
+  options: BaseSelectOption<T>[];
   isLoading?: boolean;
+  renderOptionContent?: (option: BaseSelectOption<T>) => React.ReactNode;
 } & TextFieldProps;
 
-export function BaseAutocomplete({ options, isLoading, ...props }: BaseAutocompleteProps) {
+export function BaseAutocomplete<T = unknown>({ 
+  options, 
+  isLoading, 
+  renderOptionContent,
+  ...props 
+}: BaseAutocompleteProps<T>) {
   return (
-    <Autocomplete<BaseAutocompleteOption>
+    <Autocomplete<BaseSelectOption<T>>
       fullWidth
       options={options}
       getOptionLabel={(option) => option.label}
@@ -24,24 +26,13 @@ export function BaseAutocomplete({ options, isLoading, ...props }: BaseAutocompl
 
         return (
           <ListItem key={key} {...restOptionProps}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, minHeight: 40 }}>
-              {option.imageUrl ? (
-                <Box
-                  component="img"
-                  src={option.imageUrl}
-                  alt={option.label}
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    objectFit: "cover",
-                    borderRadius: 1,
-                  }}
-                />
-              ) : null}
+            {renderOptionContent ? (
+              renderOptionContent(option)
+            ) : (
               <Typography variant="body2" noWrap>
                 {option.label}
               </Typography>
-            </Box>
+            )}
           </ListItem>
         );
       }}
