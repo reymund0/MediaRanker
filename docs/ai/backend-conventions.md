@@ -24,6 +24,14 @@ The server is organized into feature modules under `MediaRankerServer/Modules/`.
 - Keep lightweight validators and mappers colocated with their related request/contract class (same file or same folder) so discovery stays straightforward.
 - Services/controllers resolve `IValidator<T>` via DI and throw `DomainException` with the existing `type` values (e.g., `template_validation_error`) when validation fails so ProblemDetails stays consistent.
 
+## Hosted Services (Scheduled Background Jobs)
+- Use `IHostedService`/`BackgroundService` for recurring server-side jobs (for example, daily cleanup) instead of controller-triggered execution.
+- Keep hosted services orchestration-focused: schedule/timing, scoped dependency resolution, logging, and cancellation handling.
+- Resolve scoped dependencies per run via `IServiceScopeFactory`; do not inject scoped services directly into hosted service constructors.
+- Keep business/domain logic in module services and event handlers; hosted services should invoke those abstractions rather than duplicate rules.
+- Make job behavior configuration-driven with `IOptions<T>` (for example: enabled flag, thresholds, schedule-related settings).
+- Wrap each run in exception handling, log start/finish plus success/failure counts, and continue the schedule unless cancellation is requested.
+
 ## File Upload Lifecycle (Module + Files Module)
 - The upload flow is two-phase and module-driven:
   1. Frontend asks a module endpoint to start an upload.

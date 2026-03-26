@@ -44,6 +44,15 @@ Do not edit build artifacts:
 - Keep persistence concerns in entities/configurations/migrations.
 - Prefer incremental refactors over broad rewrites.
 
+### Hosted Services (Scheduled Jobs)
+
+- Use `IHostedService`/`BackgroundService` for recurring server-side jobs (for example, daily cleanup) instead of controller-triggered execution.
+- Keep hosted services orchestration-focused: schedule/timing, scoped dependency resolution, logging, and cancellation handling.
+- Resolve scoped services inside a created scope (`IServiceScopeFactory`) per run; do not capture scoped dependencies directly in singleton hosted services.
+- Keep domain/business rules in module services and event handlers; hosted services should invoke existing services/events rather than duplicate domain logic.
+- Make job behavior configuration-driven (`IOptions<T>`), including an enable/disable flag and thresholds/timing settings.
+- Wrap each run in exception handling, log start/finish with counts, and continue scheduling subsequent runs unless cancellation is requested.
+
 ### File Upload Lifecycle (Files Module)
 
 - Uploads are module-driven and two-phase:
