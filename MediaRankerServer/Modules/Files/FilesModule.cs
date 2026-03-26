@@ -17,6 +17,7 @@ public static class FilesModule
         services.AddScoped<S3FileService>();
         services.AddScoped<IFileService>(sp => sp.GetRequiredService<S3FileService>());
         services.AddScoped<IFileCleanupService>(sp => sp.GetRequiredService<S3FileService>());
+        services.AddScoped<FileUploadCleanupRunner>();
         services.AddScoped<IValidator<StartUploadRequest>>(sp => new StartUploadRequestValidator());
         services.AddScoped<IValidator<FinishUploadRequest>>(sp => new FinishUploadRequestValidator());
 
