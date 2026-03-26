@@ -44,6 +44,30 @@ Do not edit build artifacts:
 - Keep persistence concerns in entities/configurations/migrations.
 - Prefer incremental refactors over broad rewrites.
 
+### Hosted Services (Scheduled Jobs)
+
+- Use `IHostedService`/`BackgroundService` for recurring server-side jobs (for example, daily cleanup) instead of controller-triggered execution.
+- Keep hosted services orchestration-focused: schedule/timing, scoped dependency resolution, logging, and cancellation handling.
+- Resolve scoped services inside a created scope (`IServiceScopeFactory`) per run; do not capture scoped dependencies directly in singleton hosted services.
+- Keep domain/business rules in module services and event handlers; hosted services should invoke existing services/events rather than duplicate domain logic.
+- Make job behavior configuration-driven (`IOptions<T>`), including an enable/disable flag and thresholds/timing settings.
+- Wrap each run in exception handling, log start/finish with counts, and continue scheduling subsequent runs unless cancellation is requested.
+
+### File Upload Lifecycle (Files Module)
+
+- Uploads are module-driven and two-phase:
+  1. Frontend requests an upload URL from a feature module endpoint.
+  2. Module validates and calls `IFileService.StartUploadAsync(...)` to create upload state + pre-signed URL.
+  3. Frontend uploads file directly using the pre-signed URL.
+  4. Frontend calls module endpoint to complete upload.
+  5. Module validates and calls `IFileService.FinishUploadAsync(...)` (`Uploading` -> `Uploaded`).
+  6. Frontend submits module save/upsert with `uploadId` attached.
+
+- `Uploaded` files are temporary and may be deleted by daily cleanup.
+- Feature modules must call `IFileService.MarkUploadCopiedAsync(uploadId, userId, ...)` and persist required `FileDto` data in module-owned entities during save flows.
+- If a module does not copy upload data from the Files module, it risks losing file references during cleanup.
+- Files module owns upload state lifecycle (`Uploading`, `Uploaded`, `Copied`, `Deleted`); feature modules own domain validation and when uploads are attached to domain models.
+
 ### Seed + Migration Conventions
 
 - Seed artifacts live in `MediaRankerServer/Data/Seeds` (current seed file: `SeedSystemTemplates.sql`).

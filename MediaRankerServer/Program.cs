@@ -85,7 +85,7 @@ builder.Services.AddCognitoAuthentication(builder.Configuration);
 builder.Services.AddTemplatesModule();
 builder.Services.AddMediaModule();
 builder.Services.AddReviewsModule();
-builder.Services.AddFilesModule();
+builder.Services.AddFilesModule(builder.Configuration, builder.Environment);
 builder.Services.AddTestModule();
 
 var app = builder.Build();

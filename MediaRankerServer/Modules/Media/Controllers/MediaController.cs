@@ -37,7 +37,6 @@ public class MediaController(IMediaService mediaService, IMediaCoverService medi
     [HttpPost("UploadCover")]
     public async Task<IActionResult> GenerateUploadCoverUrl([FromBody] GenerateUploadCoverUrlRequest request, CancellationToken cancellationToken)
     {
-        Console.WriteLine($"[DEBUG] MediaController.GenerateUploadCoverUrl - FileName: '{request.FileName}', ContentType: '{request.ContentType}', Size: {request.FileSizeBytes}");
         var userId = User.GetAuthenticatedUserId();
         var url = await mediaCoverService.GenerateUploadCoverUrlAsync(userId, request, cancellationToken);
         return Ok(url);
