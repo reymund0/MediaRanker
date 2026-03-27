@@ -6,7 +6,7 @@ import { useMutation } from "@/lib/api/use-mutation";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import { BaseStarRanking } from "@/lib/components/inputs/rankings/base-star-ranking";
-import { Box, Divider, Typography } from "@mui/material";
+import { Box, Divider, Stack, Typography } from "@mui/material";
 
 export default function Test() {
   const userContext = useUser();
@@ -58,17 +58,20 @@ export default function Test() {
     <Box sx={{ p: 4, display: "flex", flexDirection: "column", gap: 4 }}>
       <Typography variant="h4">Test Page</Typography>
       
-      <Box>
+      <Stack spacing={2} direction="column">
         <Typography variant="h6" sx={{ mb: 2 }}>Ranking Component Demo</Typography>
-        <BaseStarRanking 
-          label="Media Rating" 
-          value={rating} 
-          onChange={setRating} 
-        />
+        
+        <Box sx={{ display: "flex", flexDirection: "column", width: "10%" }}>
+          <BaseStarRanking 
+            label="Media Rating" 
+            value={rating} 
+            onChange={setRating} 
+          />
+        </Box>
         <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
           Current State Value: {rating}
         </Typography>
-      </Box>
+      </Stack>
 
       <Divider />
 
