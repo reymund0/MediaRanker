@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MediaRankerFrontend
 
-## Getting Started
+Next.js frontend for MediaRanker — React 19, MUI component library, dark-mode theme, and Cognito-based authentication.
 
-First, run the development server:
+## Libraries
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+| Library | Used For | Why I chose this? |
+|---|---|---|
+| **Next.js 16** | React framework — App Router, SSR/SSG, file-based routing | Used at my prior company and enjoyed the developer experience |
+| **React 19** | UI library | My most familiar Web Framework|
+| **MUI (Material UI) 7** | Component library — buttons, text fields, dialogs, layout, theming | To provide a component library with a consistent look and feel so I don't have to build everything from scratch |
+| **MUI X Data Grid** | Feature-rich data grid for list views (templates, media, reviews) | |
+| **MUI X Date Pickers** | Date picker components for date input fields | |
+| **TanStack React Query** | Server-state management — caching, refetching, mutation lifecycle | A newer alternative to Apollo that I wanted to try because it looked more developer friendly |
+| **react-hook-form** | Form state management | Widely used library that integrates well with MUI |
+| **zod** | Schema-based form validation (integrated via `@hookform/resolvers`) | One of the most widely used validation libraries and I hadn't used it before |
+| **aws-amplify** | Cognito authentication flows — sign-up, login, token management | |
+| **dnd-kit** | Drag-and-drop interactions for sortable lists (e.g. template field ordering) | Out of the box animations and functionality so I didn't need to write this myself |
+| **date-fns** | Date formatting and timezone utilities | Wanted to simplify server-client date handling and the library seemed fairly straightforward |
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## App Routes
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Route | Description |
+|---|---|
+| `/auth/*` | Sign-up, login, confirm-signup (navbar hidden) |
+| `/home` | Landing page (placeholder, currently only used to sign out) |
+| `/templates` | Template management — CRUD via DataGrid |
+| `/media` | Media entry management — CRUD with cover image upload via DataGrid |
+| `/reviews` | Review creation and editing |
+| `/test` | Development-only test page |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Shared Component Library (`src/lib/components`)
 
-## Learn More
+Reusable components follow a **Base/Form** pattern:
+- **Base** components wrap MUI primitives with app-specific defaults and styling.
+- **Form** variants integrate with `react-hook-form` for controlled form usage.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Organized to match the MUI documentation structure for easier maintenance and discovery.
