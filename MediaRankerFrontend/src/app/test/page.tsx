@@ -5,7 +5,7 @@ import { useUser } from "@/lib/auth/user-provider";
 import { useMutation } from "@/lib/api/use-mutation";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
-import { BaseStarRanking } from "@/lib/components/inputs/rankings/base-star-ranking";
+import { BaseStarRating } from "@/lib/components/inputs/rating/base-star-rating";
 import { Box, Divider, Stack, Typography } from "@mui/material";
 
 export default function Test() {
@@ -62,7 +62,7 @@ export default function Test() {
         <Typography variant="h6" sx={{ mb: 2 }}>Ranking Component Demo</Typography>
         
         <Box sx={{ display: "flex", flexDirection: "column", width: "10%" }}>
-          <BaseStarRanking 
+          <BaseStarRating 
             label="Media Rating" 
             value={rating} 
             onChange={setRating} 

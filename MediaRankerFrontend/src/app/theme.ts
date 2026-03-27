@@ -2,21 +2,6 @@
 import { alpha, createTheme } from "@mui/material/styles";
 import { LinkBehavior } from "@/lib/components/navigation/linkBehavior";
 
-declare module "@mui/material/styles" {
-  interface Palette {
-    ranking: {
-      filled: string;
-      empty: string;
-    };
-  }
-  interface PaletteOptions {
-    ranking?: {
-      filled?: string;
-      empty?: string;
-    };
-  }
-}
-
 const palette = {
   primary: {
     main: "#7C3AED",
@@ -42,11 +27,7 @@ const palette = {
   action: {
     hover: "rgba(20, 184, 166, 0.12)",
     selected: "rgba(20, 184, 166, 0.24)",
-  },
-  ranking: {
-    filled: "#FACC15", // Yellow-400
-    empty: "#2A2F3A", // Matches divider
-  },
+  }
 } as const;
 
 const theme = createTheme({
@@ -58,7 +39,6 @@ const theme = createTheme({
     text: palette.text,
     divider: palette.divider,
     action: palette.action,
-    ranking: palette.ranking,
   },
   components: {
     MuiLink: {
