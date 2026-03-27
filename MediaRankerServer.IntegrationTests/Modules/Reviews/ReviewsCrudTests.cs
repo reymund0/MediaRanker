@@ -65,9 +65,9 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
     }
     
     [Fact]
-    public async Task GetReviews_ReturnsExistingRows()
+    public async Task GetReviewsByMediaType_ReturnsExistingRows()
     {
-        var response = await Client.GetAsync(basePath);
+        var response = await Client.GetAsync($"{basePath}/byMediaType/{_testMedia.MediaTypeId}");
         TestUtils.AssertSuccessResponse(response);
 
         var Reviews = await response.Content.ReadFromJsonAsync<List<ReviewDto>>();

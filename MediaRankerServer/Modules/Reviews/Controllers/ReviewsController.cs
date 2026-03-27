@@ -9,11 +9,11 @@ namespace MediaRankerServer.Modules.Reviews.Controllers;
 [ApiController]
 public class ReviewsController(IReviewService reviewService) : ControllerBase
 {
-    [HttpGet]
-    public async Task<IActionResult> GetReviews(CancellationToken cancellationToken)
+    [HttpGet("byMediaType/{mediaTypeId:long}")]
+    public async Task<IActionResult> GetReviewsByMediaType(long mediaTypeId, CancellationToken cancellationToken)
     {
       var userId = User.GetAuthenticatedUserId();
-      var reviews = await reviewService.GetReviewsAsync(userId, cancellationToken);
+      var reviews = await reviewService.GetReviewsByMediaTypeAsync(userId, mediaTypeId, cancellationToken);
       return Ok(reviews);
     }
 
