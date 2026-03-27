@@ -22,6 +22,7 @@ public class ReviewService(
         var userReviews = await dbContext.Reviews
             .AsNoTracking()
             .Include(r => r.Fields)
+                .ThenInclude(f => f.TemplateField)
             .Include(r => r.Media)
             .Include(r => r.Template)
             .Include(r => r.Media.MediaType)
@@ -200,6 +201,7 @@ public class ReviewService(
         var review = await dbContext.Reviews
             .AsNoTracking()
             .Include(rm => rm.Fields)
+                .ThenInclude(f => f.TemplateField)
             .Include(rm => rm.Media)
                 .ThenInclude(m => m.MediaType)
             .Include(rm => rm.Template)

@@ -4,3 +4,21 @@ export interface MediaTypeDto {
   id: number;
   name: string;
 }
+
+export interface TemplateFieldDto {
+  id: number;
+  name: string;
+  position: number;
+}
+
+export interface TemplateDto {
+  id: number;
+  isSystem: boolean;
+  userId: string;
+  name: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+  fields: TemplateFieldDto[];
+  mediaType: MediaTypeDto;
+}

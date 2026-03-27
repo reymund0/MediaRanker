@@ -1,25 +1,31 @@
 "use client";
 
-import { Button, Stack, Typography } from "@mui/material";
-import { ReviewDto } from "./contracts";
-import { ReviewCard } from "./review-card";
+import AddIcon from "@mui/icons-material/Add";
+import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import { Box, CircularProgress, IconButton, Stack, Typography } from "@mui/material";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@/lib/api/use-query";
-import { useEffect, useState } from "react";
+import { ReviewDto } from "./contracts";
+import { ReviewCard, CARD_WIDTH, CARD_GAP } from "./review-card";
+
+const SCROLL_AMOUNT = (CARD_WIDTH + CARD_GAP) * 3;
 
 export interface ReviewRowProps {
   label: string;
-  queryRoute: string;
-  enableNewReview?: boolean;
-  newReviewMediaTypeId?: number;
+  mediaTypeId: number;
 }
 
-export function ReviewRow({ label, enableNewReview, newReviewMediaTypeId, queryRoute }: ReviewRowProps) {
-
+export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
   const [reviews, setReviews] = useState<ReviewDto[]>([]);
+  const [hasNewCard, setHasNewCard] = useState(false);
 
-  const { data: reviewsData, isLoading: reviewsLoading, error: reviewsError } = useQuery<ReviewDto[]>({
-    route: queryRoute,
-    queryKey: ["reviews"]
+  const { data: reviewsData, isLoading, isError, error } = useQuery<ReviewDto[]>({
+    route: `/api/reviews/byMediaType/${mediaTypeId}`,
+    queryKey: ["reviews", mediaTypeId],
   });
 
   useEffect(() => {
@@ -28,28 +34,124 @@ export function ReviewRow({ label, enableNewReview, newReviewMediaTypeId, queryR
     }
   }, [reviewsData]);
 
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateScrollState();
+    el.addEventListener("scroll", updateScrollState);
+    const ro = new ResizeObserver(updateScrollState);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", updateScrollState);
+      ro.disconnect();
+    };
+  }, [reviews, hasNewCard, updateScrollState]);
+
+  const scrollLeft = () => {
+    scrollRef.current?.scrollBy({ left: -SCROLL_AMOUNT, behavior: "smooth" });
+  };
+
+  const scrollRight = () => {
+    scrollRef.current?.scrollBy({ left: SCROLL_AMOUNT, behavior: "smooth" });
+  };
+
+  const handleAddReview = () => {
+    if (hasNewCard) return;
+    setHasNewCard(true);
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ left: 0, behavior: "smooth" });
+    }, 50);
+  };
+
+  const handleNewCardSave = (review: ReviewDto) => {
+    setHasNewCard(false);
+    setReviews((prev) => [review, ...prev]);
+  };
+
+  const handleNewCardCancel = () => {
+    setHasNewCard(false);
+  };
+
+  const handleReviewUpdate = (updated: ReviewDto) => {
+    setReviews((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+  };
+
+  const handleReviewDelete = (reviewId: number) => {
+    setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+  };
+
   return (
-    <Stack direction={"column"} gap={2}>
-      <Stack direction={"row"} justifyContent={"space-between"}>
+    <Stack direction="column" gap={1.5}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between">
         <Typography variant="h6">{label}</Typography>
-        {enableNewReview && newReviewMediaTypeId && (
-          <Button variant="outlined">New Review</Button>
-        )}
+        <IconButton size="small" onClick={handleAddReview} disabled={hasNewCard}>
+          <AddIcon />
+        </IconButton>
       </Stack>
-      <Stack direction={"row"} gap={2}>
-        {reviewsLoading ? (
-          <Typography>Loading...</Typography>
-        ) : reviewsError ? (
-          <Typography>Error: {reviewsError.message}</Typography>
-        ) : (
-          reviews.length > 0 ? (
-            reviews.map((review) => (
-              <ReviewCard key={review.id} review={review} />
-            ))
+
+      <Stack direction="row" alignItems="center" gap={0.5}>
+        <IconButton size="small" onClick={scrollLeft} disabled={!canScrollLeft}>
+          <ArrowBackIosNewIcon fontSize="small" />
+        </IconButton>
+
+        <Box
+          ref={scrollRef}
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            gap: `${CARD_GAP}px`,
+            overflowX: "auto",
+            flex: 1,
+            scrollbarWidth: "none",
+            "&::-webkit-scrollbar": { display: "none" },
+            py: 1,
+          }}
+        >
+          {isLoading ? (
+            <Box sx={{ display: "flex", alignItems: "center", px: 2 }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : isError ? (
+            <Typography color="error" sx={{ px: 1 }}>
+              {error?.message ?? "Failed to load reviews"}
+            </Typography>
           ) : (
-            <Typography>No reviews found</Typography>
-          )
-        )}
+            <>
+              {hasNewCard && (
+                <ReviewCard
+                  mediaTypeId={mediaTypeId}
+                  isNew
+                  onSave={handleNewCardSave}
+                  onCancel={handleNewCardCancel}
+                />
+              )}
+              {reviews.map((review) => (
+                <ReviewCard
+                  key={review.id}
+                  review={review}
+                  onUpdate={handleReviewUpdate}
+                  onDelete={handleReviewDelete}
+                />
+              ))}
+              {!hasNewCard && reviews.length === 0 && (
+                <Typography color="text.secondary" sx={{ px: 1, py: 2 }}>
+                  No reviews yet — click + to add one.
+                </Typography>
+              )}
+            </>
+          )}
+        </Box>
+
+        <IconButton size="small" onClick={scrollRight} disabled={!canScrollRight}>
+          <ArrowForwardIosIcon fontSize="small" />
+        </IconButton>
       </Stack>
     </Stack>
   );

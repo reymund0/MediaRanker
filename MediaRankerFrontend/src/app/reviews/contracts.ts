@@ -18,12 +18,10 @@ export interface ReviewDto {
 }
 
 export interface ReviewFieldDto {
-  id: number;
   reviewId: number;
   templateFieldId: number;
-  score: number;
-  createdAt: string;
-  updatedAt: string;
+  templateFieldName: string;
+  value: number;
 }
 
 export interface UnreviewedMediaDto {
@@ -31,4 +29,19 @@ export interface UnreviewedMediaDto {
   title: string;
   releaseDate: string;
   coverImageUrl: string | null;
+}
+
+export interface ReviewFieldUpsertRequest {
+  templateFieldId: number;
+  value: number;
+}
+
+export interface ReviewUpsertRequest {
+  id: number | null;
+  mediaId: number;
+  templateId: number;
+  reviewTitle: string | null;
+  notes: string | null;
+  consumedAt: string | null;
+  fields: ReviewFieldUpsertRequest[];
 }
