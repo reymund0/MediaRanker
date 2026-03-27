@@ -18,6 +18,12 @@ Next.js frontend for MediaRanker — React 19, MUI component library, dark-mode 
 | **dnd-kit** | Drag-and-drop interactions for sortable lists (e.g. template field ordering) | Out of the box animations and functionality so I didn't need to write this myself |
 | **date-fns** | Date formatting and timezone utilities | Wanted to simplify server-client date handling and the library seemed fairly straightforward |
 
+## Configuration
+
+Copy `.env.example` to `.env.local` and fill in the required values.
+
+`.env.local` is gitignored — never commit credentials.
+
 ## App Routes
 
 | Route | Description |

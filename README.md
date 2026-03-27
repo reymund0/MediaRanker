@@ -1,6 +1,6 @@
 # MediaRanker
 
-A personal media reviewing and ranking web application. Built as a learning project to practice **Modular Monolith** architecture and **Domain-Driven Development** patterns such as **Event-Driven Architecture** and **Eventual Consistency**.
+A personal media reviewing and ranking web application. A customizable review and ranking system that allows users to define their own scoring criteria and compare media across flexible templates to empower users to have a more personalized and flexible review experience. Built as a learning project to practice **Modular Monolith** architecture and **Domain-Driven Development** patterns such as **Event-Driven Architecture** and **Eventual Consistency**.
 
 ## Screenshots (Coming Soon...)
 
@@ -58,6 +58,13 @@ A personal media reviewing and ranking web application. Built as a learning proj
 - Node.js (LTS)
 - Docker (for PostgreSQL via Docker Compose)
 - AWS credentials configured (Cognito + S3)
+
+### Configuration
+
+Before running, each project requires its own environment file:
+
+- **API** — Copy `MediaRankerServer/appsettings.Development.json.template` to `MediaRankerServer/appsettings.Development.json` and fill in your AWS and PostgreSQL credentials.
+- **Frontend** — Copy `MediaRankerFrontend/.env.example` to `MediaRankerFrontend/.env.local` and fill in your AWS credentials and API configuration.
 
 ### Running
 Currently the project is set up to run the API and frontend separately as I'm mid development. In the future I plan to containerize the entire application for easy deployment.

@@ -54,6 +54,12 @@ Manages the **file upload lifecycle** — upload state tracking, pre-signed URL 
 - Background cleanup job (`FileUploadCleanupJob`) removes stale uploads on a configurable schedule.
 - Feature modules must mark uploads as copied during their save flows to prevent cleanup.
 
+## Configuration
+
+Copy `appsettings.Development.json.template` to `appsettings.Development.json` and fill in the required values.
+
+`appsettings.Development.json` is gitignored — never commit credentials.
+
 ## Shared Layer
 
 Cross-cutting concerns used by all modules:
