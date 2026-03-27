@@ -27,7 +27,7 @@ const palette = {
   action: {
     hover: "rgba(20, 184, 166, 0.12)",
     selected: "rgba(20, 184, 166, 0.24)",
-  },
+  }
 } as const;
 
 const theme = createTheme({
