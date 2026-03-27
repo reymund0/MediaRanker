@@ -59,6 +59,39 @@ public class TemplatesTests(PostgresContainerFixture postgresFixture, LocalStack
     }
 
     [Fact]
+    public async Task GetTemplatesByMediaType_ReturnsTemplatesForMediaType()
+    {
+        // Arrange
+        var userId = TestAuthHandler.DefaultUserId;
+        var mediaTypeId = -1;
+
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+            
+            db.Templates.Add(new Template 
+            { 
+                UserId = userId, 
+                Name = "User Template", 
+                MediaTypeId = mediaTypeId
+            });
+            
+            await db.SaveChangesAsync();
+        }
+
+        // Act
+        var response = await Client.GetAsync($"/api/templates/{mediaTypeId}");
+
+        // Assert
+        response.EnsureSuccessStatusCode();
+        var templates = await response.Content.ReadFromJsonAsync<List<TemplateDto>>();
+        
+        templates.Should().NotBeNull();
+        templates.Should().Contain(t => t.UserId == userId);
+        templates.Should().Contain(t => t.MediaType.Id == mediaTypeId);
+    }
+
+    [Fact]
     public async Task CreateTemplate_WithValidRequest_PersistsTemplateAndFields()
     {
         // Arrange

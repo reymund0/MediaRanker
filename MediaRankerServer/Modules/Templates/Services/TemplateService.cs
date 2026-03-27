@@ -40,6 +40,18 @@ public class TemplateService(
         return template is null ? null : TemplateDtoMapper.Map(template);
     }
 
+    public async Task<List<TemplateDto>> GetTemplatesByMediaTypeAsync(string userId, long mediaTypeId, CancellationToken cancellationToken)
+    {
+        var templates = await dbContext.Templates
+            .AsNoTracking()
+            .Include(t => t.Fields)
+            .Include(t => t.MediaType)
+            .Where(t => t.MediaTypeId == mediaTypeId && (t.Id < 0 || t.UserId == userId))
+            .ToListAsync(cancellationToken);
+
+        return [..templates.Select(TemplateDtoMapper.Map)];
+    }
+
     public async Task<TemplateDto> CreateTemplateAsync(string userId, TemplateUpsertRequest request, CancellationToken cancellationToken = default)
     {
         await ValidateTemplateRequestOrThrow(request, cancellationToken);

@@ -17,15 +17,16 @@ public class ReviewService(
   IFileService fileService
   ) : IReviewService
 {
-    public async Task<List<ReviewDto>> GetReviewsAsync(string userId, CancellationToken cancellationToken = default)
+    public async Task<List<ReviewDto>> GetReviewsByMediaTypeAsync(string userId, long mediaTypeId, CancellationToken cancellationToken = default)
     {
         var userReviews = await dbContext.Reviews
             .AsNoTracking()
-            .Include(rm => rm.Fields)
-            .Include(rm => rm.Media)
-            .Include(rm => rm.Template)
-            .Include(rm => rm.Media.MediaType)
-            .Where(rm => rm.UserId == userId)
+            .Include(r => r.Fields)
+            .Include(r => r.Media)
+            .Include(r => r.Template)
+            .Include(r => r.Media.MediaType)
+            .Where(r => r.UserId == userId && r.Media.MediaTypeId == mediaTypeId)
+            .OrderBy(r => r.OverallScore)
             .ToListAsync(cancellationToken);
         return [.. userReviews.Select(r => ReviewDtoMapper.Map(r, fileService))];
     }
