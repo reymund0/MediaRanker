@@ -12,7 +12,6 @@ public class ReviewFieldUpsertRequest
 public class ReviewUpsertRequest
 {
   public long? Id { get; set; }
-  public string UserId { get; set; } = null!;
   public long MediaId { get; set; }
   public long TemplateId { get; set; }
   public string? ReviewTitle { get; set; }
@@ -26,7 +25,7 @@ public class ReviewUpsertRequestValidator : AbstractValidator<ReviewUpsertReques
 {
   public ReviewUpsertRequestValidator() {
     RuleFor(request => request.ConsumedAt)
-      .Must(date => date <= DateTime.Now)
+      .Must(date => date == null || date <= DateTimeOffset.Now)
       .WithMessage("Consumed at date cannot be in the future");
     
     RuleFor(request => request.Fields)
