@@ -16,7 +16,7 @@ Next.js frontend for MediaRanker
 | **zod** | Schema-based form validation (integrated via `@hookform/resolvers`) | One of the most widely adopted validation libraries that I hadn't used before |
 | **aws-amplify** | Cognito authentication flows — sign-up, login, token management | |
 | **dnd-kit** | Drag-and-drop interactions for sortable lists (e.g. template field ordering) | Out of the box animations and functionality so I didn't need to write this myself |
-| **date-fns** | Date formatting and timezone utilities | Wanted to simplify server-client date handling and the library looked easy to use |
+| **date-fns** | Date formatting and timezone utilities | To simplify server-client date handling and the library looked easy to use |
 
 ## Configuration
 
