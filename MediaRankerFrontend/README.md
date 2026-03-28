@@ -6,7 +6,7 @@ Next.js frontend for MediaRanker
 
 | Library | Used For | Why I chose this? |
 |---|---|---|
-| **Next.js 16** | React framework — App Router, SSR/SSG, file-based routing | Used at my prior company and enjoyed the developer experience |
+| **Next.js 16** | React framework — App Router, SSR/SSG, file-based routing | Used at a prior company and enjoyed the developer experience |
 | **React 19** | UI library | My most familiar Web Framework|
 | **MUI (Material UI) 7** | Component library — buttons, text fields, dialogs, layout, theming | To provide a component library with a consistent look and feel so I don't have to build everything from scratch |
 | **MUI X Data Grid** | Feature-rich data grid for list views (templates, media, reviews) | |
