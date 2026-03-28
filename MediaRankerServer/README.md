@@ -32,19 +32,11 @@ Manages **media entries** and **media types** (movies, video games, etc.).
 - Owns the cover image upload flow — coordinates with the Files module for pre-signed URL generation and upload lifecycle.
 - Includes SQL seed data for system-owned media types (negative IDs).
 
-#### Future Enhancements
-
-- Export Transform and Load (ETL) pipeline for importing media from external sources like IMDb for movies.
-
 ### Reviews
 
 User **reviews** scored against a template's fields. A review links a user, a media entry, and a template together.
 
 - Handles `TemplateFieldsDeletedEvent` to recalculate review scores and clean up orphaned review fields when template fields are removed.
-
-#### Future Enhancements
-
-- Add support head to head reviews. Did you like this movie more than that one? And assigning a h2h order to figure out what the user's favorite media within a type is.
 
 ### Files
 
