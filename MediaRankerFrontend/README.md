@@ -1,6 +1,6 @@
 # MediaRankerFrontend
 
-Next.js frontend for MediaRanker — React 19, MUI component library, dark-mode theme, and Cognito-based authentication.
+Next.js frontend for MediaRanker
 
 ## Libraries
 
