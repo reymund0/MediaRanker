@@ -28,7 +28,7 @@ Copy `.env.example` to `.env.local` and fill in the required values.
 
 | Route | Description |
 |---|---|
-| `/auth/*` | Sign-up, login, confirm-signup (navbar hidden) |
+| `/auth/*` | Sign-up, login, confirm-signup |
 | `/home` | Landing page (placeholder, currently only used to sign out) |
 | `/templates` | Template management — CRUD via DataGrid |
 | `/media` | Media entry management — CRUD with cover image upload via DataGrid |
