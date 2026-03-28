@@ -11,12 +11,12 @@ Next.js frontend for MediaRanker
 | **MUI (Material UI) 7** | Component library — buttons, text fields, dialogs, layout, theming | To provide a component library with a consistent look and feel so I don't have to build everything from scratch |
 | **MUI X Data Grid** | Feature-rich data grid for list views (templates, media, reviews) | |
 | **MUI X Date Pickers** | Date picker components for date input fields | |
-| **TanStack React Query** | Server-state management — caching, refetching, mutation lifecycle | A newer alternative to Apollo that I wanted to try because it looked more developer friendly |
+| **TanStack React Query** | Server-state management — caching, refetching, mutation lifecycle | A newer alternative to Apollo that I wanted to try because it looked developer friendly |
 | **react-hook-form** | Form state management | Widely used library that integrates well with MUI |
-| **zod** | Schema-based form validation (integrated via `@hookform/resolvers`) | One of the most widely used validation libraries and I hadn't used it before |
+| **zod** | Schema-based form validation (integrated via `@hookform/resolvers`) | One of the most widely used validation libraries that I hadn't used before |
 | **aws-amplify** | Cognito authentication flows — sign-up, login, token management | |
 | **dnd-kit** | Drag-and-drop interactions for sortable lists (e.g. template field ordering) | Out of the box animations and functionality so I didn't need to write this myself |
-| **date-fns** | Date formatting and timezone utilities | Wanted to simplify server-client date handling and the library seemed fairly straightforward |
+| **date-fns** | Date formatting and timezone utilities | Wanted to simplify server-client date handling and the library looked easy to use |
 
 ## Configuration
 
