@@ -50,6 +50,14 @@ A personal media reviewing and ranking web application. A customizable review an
 | `MediaRankerServer.IntegrationTests/` | Integration tests that run in docker to test PostgreSQL and AWS interactions (Testcontainers, Respawn, Localstack) |
 | `MediaRankerServer.UnitTests/` | Isolated unit tests (Moq, FluentAssertions) |
 
+## Future feature enhancements
+- A proper home page with fun things like "Your top 10 Reviews", "Things you consider Revisiting", "Recommendations", or "Your hot takes". 
+- Multi Tenancy (to separate admin views from client and restrict functionality accordingly serverside)
+- Head to Head ranking (Did you like this movie more than that one? And assigning a h2h order to figure out what the user's favorite media within a type is)
+- Export Transform and Load (ETL) pipeline for importing media from external sources like IMDb for movies or Steam for video games.
+- Split out files module into a full AWS microservice utilizing Lambdas and DynamoDB replacing FileUploads table.
+- 
+
 ## Local Development
 
 ### Prerequisites
