@@ -1,14 +1,34 @@
 # MediaRanker
 
-A personal media reviewing and ranking web application. A customizable review and ranking system that allows users to define their own scoring criteria and compare media across flexible templates to empower users to have a more personalized and flexible review experience. Built as a learning project to practice **Modular Monolith** architecture and **Domain-Driven Development** patterns such as **Event-Driven Architecture** and **Eventual Consistency**.
+A personal media reviewing and ranking web application where users can define their own scoring criteria and compare media across different categories. Written as a modular monolith using ASP.NET Core and Next.js with AWS integrations.
 
-## Screenshots (Coming Soon...)
+## Engineering Highlights
+- Modular Monolith architecture with feature-based modules for clear separation of concerns.
+- Events between modules to reduce coupling and support cross-module updates.
+- Integration with AWS Cognito to provide user authentication.
+- Direct browser uploads to S3 for media cover images.
+- ProblemDetails based API responses for consistent error handling.
+- Integration tests against PostgreSQL and AWS flows using Testcontainers, Respawn, and LocalStack.
+
+## Key Features Implemented
+- Review Template CRUD with ordered scoring fields.
+- Media CRUD with pre-signed S3 upload flow for cover images
+- Cognito based login and server authentication.
+
+## Future Features and Enhancements
+- A personalized dashboard displaying a user's top reviews, media to revisit, and recommendations. 
+- User specific head to head ranking between existing reviews.
+- Export Transform and Load (ETL) pipeline for importing media from external sources like IMDb for movies or Steam for video games.
+
+## Long Term Goals
+- Establish user roles to separate Admin screens and actions from general users. 
+- Extract Files module into a separate microservice utilizing AWS Lambdas and DynamoDB.
 
 ## Why This Stack
 
-- **ASP.NET Core (.NET 9)** — Practicing building APIs with the .NET ecosystem.
-- **Next.js 16 (React 19)** — My most experienced frontend framework; using it to stay sharp and explore newer React features.
-- **Modular Monolith** — Structured as feature-based modules within a single deployable to practice DDD concepts (bounded contexts, domain events, module boundaries) while using familiar technologies. Eventually I plan to extract specific modules into separate microservices.
+- **ASP.NET Core (.NET 9)** — To build a production style API in the .NET ecosystem while refreshing and deepening my C# experience after several years away from it.
+- **Next.js 16 (React 19)** —  Chosen for its built-in routing, server rendering capabilities, and strong developer experience for React applications.
+- **Modular Monolith** — To allow for simple deployment while enforcing feature boundaries and leaving room for future microservice extraction if justified.
 
 ## Architecture Overview
 
@@ -49,13 +69,6 @@ A personal media reviewing and ranking web application. A customizable review an
 | `MediaRankerFrontend/` | Next.js frontend — React 19, MUI, TanStack Query |
 | `MediaRankerServer.IntegrationTests/` | Integration tests that run in docker to test PostgreSQL and AWS interactions (Testcontainers, Respawn, Localstack) |
 | `MediaRankerServer.UnitTests/` | Isolated unit tests (Moq, FluentAssertions) |
-
-## Future feature enhancements
-- A proper home page with fun things like "Your top 10 Reviews", "Things you consider Revisiting", "Recommendations", or "Your hot takes". 
-- Multi Tenancy (to separate admin views from client and restrict functionality accordingly serverside)
-- Split out files module into a full AWS microservice utilizing Lambdas and DynamoDB replacing FileUploads table.
-- Export Transform and Load (ETL) pipeline for importing media from external sources like IMDb for movies or Steam for video games.
-- Head to Head ranking (Did you like this movie more than that one? And assigning a h2h order to figure out what the user's favorite media within a type is)
 
 ## Local Development
 
