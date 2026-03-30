@@ -109,7 +109,7 @@ const handleUpdate = (data: ReviewFormValues) => {
         gap={1.5}
         onSubmit={methods.handleSubmit(isNew ? handleInsert : handleUpdate)}
       >
-        <Typography variant="subtitle2" noWrap>
+        <Typography variant="subtitle1">
           {mediaTitle}
         </Typography>
         <FormTextField<ReviewFormValues>
@@ -131,7 +131,19 @@ const handleUpdate = (data: ReviewFormValues) => {
             label={field.name}
           />
         ))}
-        <Stack direction="row" justifyContent="flex-end" sx={{ mt: "auto", pt: 1 }}>
+        <Stack 
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          sx={{ mt: "auto", pt: 1 }}
+        >
+          { // New reviews already have a red X visible in the card.
+            !isNew && (
+              <Button size="small" variant="text" onClick={onUpdateCancel}>
+                Cancel
+              </Button>
+            )
+          }
           <Button
             type="submit"
             size="small"
@@ -142,13 +154,6 @@ const handleUpdate = (data: ReviewFormValues) => {
             Save
           </Button>
         </Stack>
-        { // New reviews already have a red X visible in the card.
-          !isNew && (
-            <Button size="small" variant="text" onClick={onUpdateCancel}>
-              Cancel
-            </Button>
-          )
-        }
       </Stack>
     </FormProvider>
   );

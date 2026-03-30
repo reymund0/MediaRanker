@@ -20,8 +20,6 @@ export const BaseStarRating = ({
   errorMessage,
   ...props
 }: BaseStarRankingProps) => {
-  const theme = useTheme();
-
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}> 
       {label && (
@@ -35,6 +33,12 @@ export const BaseStarRating = ({
         disabled={disabled}
         onChange={(_, newValue) => {
           if (newValue !== null) onChange(Math.round(newValue * 2));
+        }}
+        sx={{
+          // Prevent stars from darkening when disabled.
+          "&.Mui-disabled": {
+            opacity: 1,
+          },
         }}
         {...props}
       />
