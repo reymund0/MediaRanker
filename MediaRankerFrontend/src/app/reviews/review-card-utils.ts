@@ -1,3 +1,17 @@
+// ---------------------------------------------------------------------------
+// Layout constants
+// ---------------------------------------------------------------------------
+
+export const CARD_WIDTH = 260;
+export const CARD_GAP = 16;
+export const CARD_HEIGHT = 380;
+export const COVER_HEIGHT = Math.round(CARD_HEIGHT * 0.6);
+export const INFO_HEIGHT = CARD_HEIGHT - COVER_HEIGHT;
+
+// ---------------------------------------------------------------------------
+// Validation Schema
+// ---------------------------------------------------------------------------
+
 import { z } from "zod";
 
 export const ReviewEditSchema = z.object({
@@ -18,3 +32,4 @@ export const ReviewEditSchema = z.object({
 
 
 export type ReviewFormValues = z.infer<typeof ReviewEditSchema>;
+

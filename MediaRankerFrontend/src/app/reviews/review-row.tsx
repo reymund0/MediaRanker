@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@/lib/api/use-query";
 import { ReviewDto } from "./contracts";
 import { ReviewCard } from "./review-card";
-import { CARD_WIDTH, CARD_GAP } from "./review-card-constants";
+import { CARD_WIDTH, CARD_GAP } from "./review-card-utils";
 
 const SCROLL_AMOUNT = (CARD_WIDTH + CARD_GAP) * 3;
 

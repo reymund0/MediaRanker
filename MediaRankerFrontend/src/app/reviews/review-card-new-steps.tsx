@@ -8,7 +8,7 @@ import { UnreviewedMediaDto } from "./contracts";
 import { useQuery } from "@/lib/api/use-query";
 import { useState } from "react";
 import { useUser } from "@/lib/auth/user-provider";
-import { ReviewFormValues } from "./review-card-schema";
+import { ReviewFormValues } from "./review-card-utils";
 import { TemplateFieldDisplay } from "./review-card-edit";
 
 
@@ -49,7 +49,7 @@ export function ReviewCardNewSteps({
   });
   if (currentStep === "select-media") {
     return (
-      <Stack direction="column" sx={{ height: "100%", p: 1.5 }} gap={2} justifyContent="center">
+      <Stack direction="column" sx={{ height: "100%", px: 1.5 }} gap={2} justifyContent="center">
         <Typography variant="subtitle2">Select Media</Typography>
         <BaseAutocomplete<UnreviewedMediaDto>
           label="Search media"
@@ -62,9 +62,6 @@ export function ReviewCardNewSteps({
             }
           }}
         />
-        <Button size="small" variant="text" onClick={onCancel}>
-          Cancel
-        </Button>
       </Stack>
     );
   }

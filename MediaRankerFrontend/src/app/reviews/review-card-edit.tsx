@@ -1,12 +1,11 @@
 "use client";
 
 import { Button, Stack, Typography } from "@mui/material";
-import { FormProvider, useForm, UseFormReturn } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
 import { FormStarRating } from "@/lib/components/inputs/rating/form-star-rating";
-import { ReviewFormValues } from "./review-card-schema";
+import { ReviewFormValues, ReviewEditSchema } from "./review-card-utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ReviewEditSchema } from "./review-card-schema";
 import { ReviewDto, ReviewInsertRequest, ReviewUpdateRequest } from "./contracts";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import { useMutation } from "@/lib/api/use-mutation";

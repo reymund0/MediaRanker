@@ -8,10 +8,10 @@ import { ReviewCardPreview } from "./review-card-preview";
 import { ReviewCardDetailView } from "./review-card-detailed-view";
 import { ReviewCardEdit, TemplateFieldDisplay } from "./review-card-edit";
 import { ReviewCardNewSteps } from "./review-card-new-steps";
-import { CARD_WIDTH, CARD_HEIGHT } from "./review-card-constants";
+import { CARD_WIDTH, CARD_HEIGHT } from "./review-card-utils";
 import { useEffect, useState } from "react";
 import type { ReviewDto } from "./contracts";
-import { ReviewFormValues } from "./review-card-schema";
+import { ReviewFormValues } from "./review-card-utils";
 import { useMutation } from "@/lib/api/use-mutation";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 
@@ -38,7 +38,7 @@ export function ReviewCard({
   const { showSuccess, showError } = useAlert();
 
   const [isNewReview, setIsNewReview] = useState(!review);
-  const [cardState, setCardState] = useState<CardState>("view");
+  const [cardState, setCardState] = useState<CardState>(isNewReview ? "new" : "view");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);  
   const [currentReview, setCurrentReview] = useState<ReviewFormValues>();
   const [mediaTitle, setMediaTitle] = useState<string>("");
@@ -92,7 +92,7 @@ export function ReviewCard({
   };
 
   const renderTopRightAction = () => {
-    if (cardState !== "edit") return null;
+    if (cardState !== "detailed-view" && cardState !== "edit" && cardState !== "new") return null;
     if (isNewReview) {
       return (
         <IconButton
@@ -133,16 +133,6 @@ export function ReviewCard({
         }}
       >
         {renderTopRightAction()}
-        {cardState === "view" && review && (
-          <ReviewCardPreview review={review} onClick={() => setCardState("detailed-view")} />
-        )}
-        {cardState === "detailed-view" && review && (
-          <ReviewCardDetailView
-            review={review}
-            onBack={() => setCardState("view")}
-            onEdit={() => setCardState("edit")}
-          />
-        )}
         {cardState === "new" && (
           <ReviewCardNewSteps
             mediaTypeId={mediaTypeId}
@@ -153,6 +143,16 @@ export function ReviewCard({
               setCardState("edit");
             }}
             onCancel={onCancelInsertReview}
+          />
+        )}
+        {cardState === "view" && review && (
+          <ReviewCardPreview review={review} onClick={() => setCardState("detailed-view")} />
+        )}
+        {cardState === "detailed-view" && review && (
+          <ReviewCardDetailView
+            review={review}
+            onBack={() => setCardState("view")}
+            onEdit={() => setCardState("edit")}
           />
         )}
         {cardState === "edit" && (
