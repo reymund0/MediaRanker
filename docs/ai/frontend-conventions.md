@@ -28,10 +28,10 @@ This document contains non-always-on frontend details for MediaRanker.
   - Hide on `/auth/*`
   - Show on non-auth routes
 - Current top-level nav links:
-  - `/home`
-  - `/test`
+  - `/media`
+  - `/templates`
+  - `/reviews`
 - User menu includes:
-  - `/settings` placeholder route
   - logout action
 
 ## Alerts

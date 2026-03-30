@@ -44,7 +44,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(currentSession);
         // If user is authenticated and trying to access auth pages, redirect to home.
         if (AUTH_PATHS.includes(pathname)) {
-          router.replace("/home");
+          router.replace("/Reviews");
         }
       } catch {
         setUser(null);

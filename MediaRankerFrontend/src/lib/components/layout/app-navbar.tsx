@@ -10,11 +10,9 @@ type NavLink = {
 };
 
 const NAV_LINKS: NavLink[] = [
-  { label: "Home", href: "/home" },
   { label: "Media", href: "/media" },
   { label: "Templates", href: "/templates" },
   { label: "Reviews", href: "/reviews" },
-  { label: "Test", href: "/test" },
 ];
 
 export function AppNavbar() {
