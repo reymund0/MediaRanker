@@ -90,10 +90,22 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
 
   return (
     <Stack direction="column" gap={1.5}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between">
+      <Stack direction="row" alignItems="center" gap={1}>
         <Typography variant="h6">{label}</Typography>
-        <IconButton size="small" onClick={handleAddReview} disabled={hasNewCard}>
-          <AddIcon />
+        <IconButton
+          size="small"
+          onClick={handleAddReview}
+          disabled={hasNewCard}
+          color="primary"
+          sx={{
+            backgroundColor: "action.hover",
+            "&:hover": {
+              backgroundColor: "primary.main",
+              color: "primary.contrastText",
+            },
+          }}
+        >
+          <AddIcon fontSize="small" />
         </IconButton>
       </Stack>
 

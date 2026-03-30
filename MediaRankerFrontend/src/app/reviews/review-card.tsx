@@ -79,7 +79,7 @@ export function ReviewCard({
           flexShrink: 0,
         }}
       >
-        {![ "new", "edit", "detailed-view"].includes(cardState) && (
+      {["new", "edit", "detailed-view"].includes(cardState) && (
           <ReviewCardDeleteButton 
             review={review} 
             isNew={isNewReview}
