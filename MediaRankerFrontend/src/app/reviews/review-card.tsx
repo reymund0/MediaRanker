@@ -1,19 +1,15 @@
 "use client";
 
-import CancelIcon from "@mui/icons-material/Cancel";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import { Box, CircularProgress, IconButton } from "@mui/material";
-import { BaseDialog } from "@/lib/components/feedback/dialog/base-dialog";
+import { Box } from "@mui/material";
 import { ReviewCardPreview } from "./review-card-preview";
 import { ReviewCardDetailView } from "./review-card-detailed-view";
 import { ReviewCardEdit, TemplateFieldDisplay } from "./review-card-edit";
 import { ReviewCardNewSteps } from "./review-card-new-steps";
+import { ReviewCardDeleteButton } from "./review-card-delete-button";
 import { CARD_WIDTH, CARD_HEIGHT } from "./review-card-utils";
 import { useEffect, useState } from "react";
 import type { ReviewDto } from "./contracts";
 import { ReviewFormValues } from "./review-card-utils";
-import { useMutation } from "@/lib/api/use-mutation";
-import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 
 export interface ReviewCardProps {
   review?: ReviewDto;
@@ -35,16 +31,12 @@ export function ReviewCard({
   onDeleteReview
 }: ReviewCardProps) {
   
-  const { showSuccess, showError } = useAlert();
-
   const [isNewReview, setIsNewReview] = useState(!review);
   const [cardState, setCardState] = useState<CardState>(isNewReview ? "new" : "view");
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);  
   const [currentReview, setCurrentReview] = useState<ReviewFormValues>();
   const [mediaTitle, setMediaTitle] = useState<string>("");
   const [templateFields, setTemplateFields] = useState<TemplateFieldDisplay[]>([]);
 
-  // Initialize state based on supplied review. If not present we rely on the new process to fill this out.
   useEffect(() => {
     if (!review) {
       setIsNewReview(true);
@@ -70,51 +62,6 @@ export function ReviewCard({
       })));
     }
   }, [review]);
-  
-  const { mutate: deleteReview, isPending: isDeleting } = useMutation<number, void>({
-    route: (id) => `/api/reviews/${id}`,
-    method: "DELETE",
-  });
-
-  const handleDelete = () => {
-    if (review) {
-      deleteReview(review.id, {
-        onSuccess: () => {
-          showSuccess("Review deleted successfully");
-          onDeleteReview(review.id);
-        },
-        onError: (error) => {
-          showError("Failed to delete review - " + error);
-          console.error("Failed to delete review:", error);
-        }
-      });
-    }
-  };
-
-  const renderTopRightAction = () => {
-    if (cardState !== "detailed-view" && cardState !== "edit" && cardState !== "new") return null;
-    if (isNewReview) {
-      return (
-        <IconButton
-          size="small"
-          onClick={onCancelInsertReview}
-          sx={{ position: "absolute", top: 6, right: 6, zIndex: 1, color: "error.main" }}
-        >
-          <CancelIcon fontSize="small" />
-        </IconButton>
-      );
-    }
-    return (
-      <IconButton
-        size="small"
-        onClick={() => setShowDeleteConfirm(true)}
-        disabled={isDeleting}
-        sx={{ position: "absolute", top: 6, right: 6, zIndex: 1, color: "error.main" }}
-      >
-        {isDeleting ? <CircularProgress size={16} /> : <DeleteOutlineIcon fontSize="small" />}
-      </IconButton>
-    );
-  };
 
   return (
     <>
@@ -132,7 +79,14 @@ export function ReviewCard({
           flexShrink: 0,
         }}
       >
-        {renderTopRightAction()}
+        {![ "new", "edit", "detailed-view"].includes(cardState) && (
+          <ReviewCardDeleteButton 
+            review={review} 
+            isNew={isNewReview}
+            onDeleteReview={onDeleteReview} 
+            onCancelNew={onCancelInsertReview}
+          />
+        )}
         {cardState === "new" && (
           <ReviewCardNewSteps
             mediaTypeId={mediaTypeId}
@@ -167,20 +121,6 @@ export function ReviewCard({
           />
         )}
       </Box>
-
-      {showDeleteConfirm && review && (
-        <BaseDialog
-          open
-          title="Delete Review"
-          confirmLabel="Delete"
-          confirmLoading={isDeleting}
-          onConfirm={handleDelete}
-          onClose={() => setShowDeleteConfirm(false)}
-        >
-          Are you sure you want to delete your review for{" "}
-          <strong>{review.mediaTitle}</strong>?
-        </BaseDialog>
-      )}
     </>
   );
 }
