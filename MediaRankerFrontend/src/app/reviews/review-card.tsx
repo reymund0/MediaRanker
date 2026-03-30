@@ -4,7 +4,6 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { Box, CircularProgress, IconButton } from "@mui/material";
 import { BaseDialog } from "@/lib/components/feedback/dialog/base-dialog";
-import { useReviewCard } from "./use-review-card";
 import { ReviewCardPreview } from "./review-card-preview";
 import { ReviewCardDetailView } from "./review-card-detailed-view";
 import { ReviewCardEdit, TemplateFieldDisplay } from "./review-card-edit";
@@ -13,6 +12,8 @@ import { CARD_WIDTH, CARD_HEIGHT } from "./review-card-constants";
 import { useEffect, useState } from "react";
 import type { ReviewDto } from "./contracts";
 import { ReviewFormValues } from "./review-card-schema";
+import { useMutation } from "@/lib/api/use-mutation";
+import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 
 export interface ReviewCardProps {
   review?: ReviewDto;
@@ -23,26 +24,32 @@ export interface ReviewCardProps {
   onDeleteReview: (reviewId: number) => void;
 }
 
+type CardState = "view" | "detailed-view" | "new" | "edit";
 
-export function ReviewCard(props: ReviewCardProps) {
-  const {
-    cardState,
-    setCardState,
-    showDeleteConfirm,
-    setShowDeleteConfirm,
-    review,
-    isNew,
-    isDeleting,
-    handleDelete,
-  } = useReviewCard(props);
+export function ReviewCard({
+  review,
+  mediaTypeId,
+  onInsertReview,
+  onCancelInsertReview,
+  onUpdateReview,
+  onDeleteReview
+}: ReviewCardProps) {
+  
+  const { showSuccess, showError } = useAlert();
 
+  const [isNewReview, setIsNewReview] = useState(!review);
+  const [cardState, setCardState] = useState<CardState>("view");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);  
   const [currentReview, setCurrentReview] = useState<ReviewFormValues>();
   const [mediaTitle, setMediaTitle] = useState<string>("");
   const [templateFields, setTemplateFields] = useState<TemplateFieldDisplay[]>([]);
 
+  // Initialize state based on supplied review. If not present we rely on the new process to fill this out.
   useEffect(() => {
-    if (review) {
-      // Initialize state based on supplied review. If not present we rely on the new process to fill this out.
+    if (!review) {
+      setIsNewReview(true);
+    } else {
+      setIsNewReview(false);
       setCurrentReview({
         id: review.id,
         mediaId: review.mediaId,
@@ -63,41 +70,34 @@ export function ReviewCard(props: ReviewCardProps) {
       })));
     }
   }, [review]);
+  
+  const { mutate: deleteReview, isPending: isDeleting } = useMutation<number, void>({
+    route: (id) => `/api/reviews/${id}`,
+    method: "DELETE",
+  });
 
-  const RenderReviewEditCard = () => {
-    if (isNew && cardState !== "edit") {
-      return (
-        <ReviewCardNewSteps
-          mediaTypeId={props.mediaTypeId}
-          onNewReview={(review, mediaId, templateFields) => {
-            setMediaTitle(mediaId);
-            setTemplateFields(templateFields);
-            setCardState("edit");
-          }}
-          onCancel={props.onCancelInsertReview}
-        />
-      );
+  const handleDelete = () => {
+    if (review) {
+      deleteReview(review.id, {
+        onSuccess: () => {
+          showSuccess("Review deleted successfully");
+          onDeleteReview(review.id);
+        },
+        onError: (error) => {
+          showError("Failed to delete review - " + error);
+          console.error("Failed to delete review:", error);
+        }
+      });
     }
-    return (
-      <ReviewCardEdit
-        review={currentReview!}
-        mediaTitle={mediaTitle}
-        templateFields={templateFields}
-        isNew={isNew}
-        onInsert={props.onInsertReview}
-        onUpdate={props.onUpdateReview}
-        onUpdateCancel={() => setCardState("detailed-view")}
-      />
-    );
   };
 
   const renderTopRightAction = () => {
     if (cardState !== "edit") return null;
-    if (isNew) {
+    if (isNewReview) {
       return (
         <IconButton
           size="small"
-          onClick={props.onCancelInsertReview}
+          onClick={onCancelInsertReview}
           sx={{ position: "absolute", top: 6, right: 6, zIndex: 1, color: "error.main" }}
         >
           <CancelIcon fontSize="small" />
@@ -143,7 +143,29 @@ export function ReviewCard(props: ReviewCardProps) {
             onEdit={() => setCardState("edit")}
           />
         )}
-        {cardState === "edit" && RenderReviewEditCard()}
+        {cardState === "new" && (
+          <ReviewCardNewSteps
+            mediaTypeId={mediaTypeId}
+            onNewReview={(review, mediaId, templateFields) => {
+              setCurrentReview(review);
+              setMediaTitle(mediaId);
+              setTemplateFields(templateFields);
+              setCardState("edit");
+            }}
+            onCancel={onCancelInsertReview}
+          />
+        )}
+        {cardState === "edit" && (
+          <ReviewCardEdit
+            review={currentReview!}
+            mediaTitle={mediaTitle}
+            templateFields={templateFields}
+            isNew={isNewReview}
+            onInsert={onInsertReview}
+            onUpdate={onUpdateReview}
+            onUpdateCancel={() => setCardState("detailed-view")}
+          />
+        )}
       </Box>
 
       {showDeleteConfirm && review && (
@@ -152,7 +174,7 @@ export function ReviewCard(props: ReviewCardProps) {
           title="Delete Review"
           confirmLabel="Delete"
           confirmLoading={isDeleting}
-          onConfirm={() => props.onDeleteReview(review.id)}
+          onConfirm={handleDelete}
           onClose={() => setShowDeleteConfirm(false)}
         >
           Are you sure you want to delete your review for{" "}

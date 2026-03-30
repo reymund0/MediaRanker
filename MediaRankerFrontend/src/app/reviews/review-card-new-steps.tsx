@@ -18,13 +18,16 @@ type ReviewCardNewStepsProps = {
   onCancel: () => void;
 };
 
-type NewReviewStep = "select-media" | "select-template" | "edit";
+type NewReviewStep = "select-media" | "select-template";
 
 export function ReviewCardNewSteps({
   mediaTypeId,
   onCancel,
   onNewReview,
 }: ReviewCardNewStepsProps) {
+
+  console.log("ReviewCardNewSteps rendered")
+  console.log("mediaTypeId", mediaTypeId)
 
   const {userId} = useUser();
 
