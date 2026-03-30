@@ -6,17 +6,17 @@ ASP.NET Core Web API built as a **Modular Monolith** with feature-based modules,
 
 | Library | Used For | Why I chose this? |
 |---|---|---|
-| **EF Core + Npgsql** | ORM and PostgreSQL database provider | I haven't used EF Core in a while and wanted to practice rather than use Dapper |
-| **FluentValidation** | Declarative request validation with auto-validation pipeline | Developer friendly and commonly used validation library |
-| **MediatR** | In-process domain event publishing and handling between modules | Convenient to implement in a dotnet project. Eventually I consider using AWS EventBridge for cross-module events |
-| **Serilog** | Structured logging to console and rolling file sinks | Easy to configure and has great support for structured logging |
-| **AWSSDK.S3** | S3 operations — pre-signed URL generation, object deletion | |
-| **AWSSDK.Extensions.NETCore.Setup** | AWS service registration in the DI container | |
-| **JWT Bearer Authentication** | Validating Cognito-issued JWT tokens on API requests | |
+| **EF Core + Npgsql** | ORM and PostgreSQL database provider | For a code-first approach to PostgreSQL interactions and support for DI while improving my knowledge of EF Core |
+| **FluentValidation** | Declarative request validation with auto-validation pipeline | Provides a clean and consistent way to validate requests in APIs and services |
+| **MediatR** | In-process domain event publishing and handling between modules | Lightweight dotnet friendly library to implement events without need for an external service |
+| **Serilog** | Structured logging to console and rolling file sinks | Easy to configure and provides structured logging between API flows and background jobs |
+| **AWSSDK.S3** | S3 operations — pre-signed URL generation, object deletion | Industry standard for S3 interactions |
+| **AWSSDK.Extensions.NETCore.Setup** | AWS service registration in the DI container | To simplify configuring AWS services with DI |
+| **JWT Bearer Authentication** | Middleware for validating JWT tokens on API requests | To extract and validate Cognito-issued JWT tokens from requests |
 
 ## Modules
 
-Each module follows a consistent internal structure: `Controllers/`, `Services/`, `Entities/`, `Contracts/`, `Events/`, `EventHandlers/`, `Seeds/`, `Jobs/`, and `Data/`.
+Modules own their own controllers, services, entities, contracts, event handlers, and background jobs. Allowing feature logic to remain self-contained while enabling cross-module communication via service calls and domain events.
 
 ### Templates
 
@@ -60,7 +60,7 @@ Cross-cutting concerns used by all modules:
 |---|---|
 | `PostgreSQLContext` | Shared EF Core DbContext for all module entities |
 | `DomainException` | Expected domain exceptions with user friendly messages mapped to ProblemDetails responses |
-| `ProblemDetailsExtensions` | Centralized exception-to-ProblemDetails mapping to standardized API error responses along with DRY-ing controller code by removing repetitive try/catch blocks |
+| `ProblemDetailsExtensions` | Centralized exception-to-ProblemDetails mapping to standardized API error responses and controller exception handling |
 | `AuthenticationExtensions` | Cognito JWT Bearer configuration |
 | `ClaimsPrincipalExtensions` | Helper methods for extracting user identity from claims |
 | `ITimestampedEntity` | Interface for automatic `CreatedAt`/`UpdatedAt` tracking |
