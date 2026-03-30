@@ -16,6 +16,8 @@ interface ReviewCardDeleteButtonProps {
   onCancelNew: () => void;
 }
 
+const cornerButtonSx = { position: "absolute", top: 6, right: 6, zIndex: 1, color: "error.main" } as const;
+
 export function ReviewCardDeleteButton({ 
   review, 
   isNew, 
@@ -49,7 +51,7 @@ export function ReviewCardDeleteButton({
       <IconButton
         size="small"
         onClick={onCancelNew}
-        sx={{ position: "absolute", top: 6, right: 6, zIndex: 1, color: "error.main" }}
+        sx={cornerButtonSx}
       >
         <CancelIcon fontSize="small" />
       </IconButton>
@@ -67,7 +69,7 @@ export function ReviewCardDeleteButton({
           setShowDeleteConfirm(true);
         }}
         disabled={isDeleting}
-        sx={{ position: "absolute", top: 6, right: 6, zIndex: 1, color: "error.main" }}
+        sx={cornerButtonSx}
       >
         {isDeleting ? <CircularProgress size={16} /> : <DeleteOutlineIcon fontSize="small" />}
       </IconButton>

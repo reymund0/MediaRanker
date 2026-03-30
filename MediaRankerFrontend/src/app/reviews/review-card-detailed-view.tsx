@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Button, Grid, Stack, Typography } from "@mui/material";
+import { Button, Grid, Stack, Typography } from "@mui/material";
 import { BaseStarRating } from "@/lib/components/inputs/rating/base-star-rating";
 import { ReviewDto } from "./contracts";
 
@@ -27,27 +27,14 @@ export function ReviewCardDetailView({ review, onBack, onEdit }: ReviewCardDetai
         </Typography>
       )}
       <Grid container spacing={1.5}>
-        <Grid size={12}>
-          <Box 
-            sx={{ 
-              display: "flex", 
-              flexDirection: "column", 
-              alignItems: "center",
-              justifyContent: "center",
-              width: "100%",
-              py: 1
-            }}
-          >
-            <Typography variant="subtitle2" color="text.secondary" fontWeight={500}>
-              Overall
-            </Typography>
-            <BaseStarRating
-              value={review.overallScore}
-              onChange={() => {}}
-              disabled
-              size="medium"
-            />
-          </Box>
+        <Grid size={12} sx={{ py: 1 }}>
+          <BaseStarRating
+            label="Overall"
+            value={review.overallScore}
+            onChange={() => {}}
+            disabled
+            size="large"
+          />
         </Grid>
         {review.fields.map((field) => (
           <Grid key={field.templateFieldId} size={6}>

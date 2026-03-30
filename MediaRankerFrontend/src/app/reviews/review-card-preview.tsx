@@ -1,7 +1,7 @@
 "use client";
 
 import ImageNotSupportedIcon from "@mui/icons-material/ImageNotSupported";
-import { Box, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { BaseStarRating } from "@/lib/components/inputs/rating/base-star-rating";
 import { ReviewDto } from "./contracts";
 import { COVER_HEIGHT, INFO_HEIGHT } from "./review-card-utils";
@@ -40,18 +40,12 @@ export function ReviewCardPreview({ review, onClick }: ReviewCardPreviewProps) {
           <ImageNotSupportedIcon sx={{ fontSize: 56, color: "text.disabled" }} />
         )}
       </Box>
-      <Box
-        sx={{
-          height: INFO_HEIGHT,
-          px: 1.5,
-          py: 1,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: 0.5,
-          textAlign: "center",
-        }}
+      <Stack
+        direction="column"
+        justifyContent="center"
+        alignItems="center"
+        sx={{ height: INFO_HEIGHT, px: 1.5, py: 1, textAlign: "center" }}
+        gap={0.5}
       >
         <Typography 
           variant="subtitle2" 
@@ -67,7 +61,7 @@ export function ReviewCardPreview({ review, onClick }: ReviewCardPreviewProps) {
           disabled
           size="small"
         />
-      </Box>
+      </Stack>
     </Box>
   );
 }

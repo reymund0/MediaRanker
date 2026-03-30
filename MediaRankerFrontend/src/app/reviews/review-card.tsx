@@ -64,8 +64,7 @@ export function ReviewCard({
   }, [review]);
 
   return (
-    <>
-      <Box
+    <Box
         sx={{
           position: "relative",
           width: isExpanded ? EXPANDED_CARD_WIDTH : CARD_WIDTH,
@@ -126,7 +125,6 @@ export function ReviewCard({
             onUpdateCancel={() => setCardState("detailed-view")}
           />
         )}
-      </Box>
-    </>
+    </Box>
   );
 }
