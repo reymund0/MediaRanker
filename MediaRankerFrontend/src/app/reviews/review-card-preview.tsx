@@ -48,10 +48,17 @@ export function ReviewCardPreview({ review, onClick }: ReviewCardPreviewProps) {
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
+          alignItems: "center",
           gap: 0.5,
+          textAlign: "center",
         }}
       >
-        <Typography variant="subtitle2" noWrap title={review.mediaTitle}>
+        <Typography 
+          variant="subtitle2" 
+          noWrap 
+          title={review.mediaTitle}
+          sx={{ width: "100%" }}
+        >
           {review.mediaTitle}
         </Typography>
         <BaseStarRating

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Stack, Typography } from "@mui/material";
+import { Box, Button, Grid, Stack, Typography } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
 import { FormStarRating } from "@/lib/components/inputs/rating/form-star-rating";
@@ -124,13 +124,17 @@ const handleUpdate = (data: ReviewFormValues) => {
           multiline
           minRows={2}
         />
-        {templateFields.sort((a, b) => a.position - b.position).map((field) => (
-          <FormStarRating<ReviewFormValues>
-            key={field.id}
-            name={`fields.${field.id}`}
-            label={field.name}
-          />
-        ))}
+        <Grid container spacing={1.5}>
+          {templateFields.sort((a, b) => a.position - b.position).map((field) => (
+            <Grid key={field.id} size={6}>
+              <FormStarRating<ReviewFormValues>
+                name={`fields.${field.id}`}
+                label={field.name}
+                size="medium"
+              />
+            </Grid>
+          ))}
+        </Grid>
         <Stack 
           direction="row"
           justifyContent="space-between"

@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Button, Stack, Typography } from "@mui/material";
+import { Box, Button, Grid, Stack, Typography } from "@mui/material";
 import { BaseStarRating } from "@/lib/components/inputs/rating/base-star-rating";
 import { ReviewDto } from "./contracts";
 
@@ -12,7 +12,7 @@ type ReviewCardDetailViewProps = {
 
 export function ReviewCardDetailView({ review, onBack, onEdit }: ReviewCardDetailViewProps) {
   return (
-    <Stack direction="column" sx={{ height: "100%", p: 1.5, overflow: "auto" }} gap={1}>
+    <Stack direction="column" sx={{ height: "100%", p: 1.5, overflow: "auto" }} gap={1.5}>
       <Typography variant="subtitle1" fontWeight={600} noWrap>
         {review.mediaTitle}
       </Typography>
@@ -26,30 +26,41 @@ export function ReviewCardDetailView({ review, onBack, onEdit }: ReviewCardDetai
           {review.notes}
         </Typography>
       )}
-      <Box>
-        <Typography variant="caption" color="text.secondary">
-          Overall
-        </Typography>
-        <BaseStarRating
-          value={review.overallScore}
-          onChange={() => {}}
-          disabled
-          size="small"
-        />
-      </Box>
-      {review.fields.map((field) => (
-        <Box key={field.templateFieldId}>
-          <Typography variant="caption" color="text.secondary">
-            {field.templateFieldName}
-          </Typography>
-          <BaseStarRating
-            value={field.value}
-            onChange={() => {}}
-            disabled
-            size="small"
-          />
-        </Box>
-      ))}
+      <Grid container spacing={1.5}>
+        <Grid size={12}>
+          <Box 
+            sx={{ 
+              display: "flex", 
+              flexDirection: "column", 
+              alignItems: "center",
+              justifyContent: "center",
+              width: "100%",
+              py: 1
+            }}
+          >
+            <Typography variant="subtitle2" color="text.secondary" fontWeight={500}>
+              Overall
+            </Typography>
+            <BaseStarRating
+              value={review.overallScore}
+              onChange={() => {}}
+              disabled
+              size="medium"
+            />
+          </Box>
+        </Grid>
+        {review.fields.map((field) => (
+          <Grid key={field.templateFieldId} size={6}>
+            <BaseStarRating
+              label={field.templateFieldName}
+              value={field.value}
+              onChange={() => {}}
+              disabled
+              size="medium"
+            />
+          </Grid>
+        ))}
+      </Grid>
       <Stack
         direction="row"
         justifyContent="space-between"

@@ -115,8 +115,14 @@ export function ReviewCard({
             mediaTitle={mediaTitle}
             templateFields={templateFields}
             isNew={isNewReview}
-            onInsert={onInsertReview}
-            onUpdate={onUpdateReview}
+            onInsert={(review) => {
+              onInsertReview(review);
+              setCardState("detailed-view");
+            }}
+            onUpdate={(review) => {
+              onUpdateReview(review);
+              setCardState("detailed-view");
+            }}
             onUpdateCancel={() => setCardState("detailed-view")}
           />
         )}

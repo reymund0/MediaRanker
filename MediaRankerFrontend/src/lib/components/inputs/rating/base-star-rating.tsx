@@ -21,9 +21,9 @@ export const BaseStarRating = ({
   ...props
 }: BaseStarRankingProps) => {
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}> 
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, alignItems: "center" }}> 
       {label && (
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" color="text.secondary" textAlign="center">
           {label}
         </Typography>
       )}
