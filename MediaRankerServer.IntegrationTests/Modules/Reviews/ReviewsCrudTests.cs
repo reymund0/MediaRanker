@@ -97,14 +97,13 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
         dbContext.Reviews.Remove(_testReviews);
         dbContext.SaveChanges();
         
-        var request = new ReviewUpsertRequest
+        var request = new ReviewInsertRequest
         {
-            UserId = TestAuthHandler.DefaultUserId,
             MediaId = _testMedia.Id,
             TemplateId = _testTemplate.Id,
             Notes = "Test notes",
             ConsumedAt = DateTime.UtcNow,
-            Fields = [new ReviewFieldUpsertRequest
+            Fields = [new ReviewFieldInsertRequest
             {
                 TemplateFieldId = _testTemplate.Fields.First().Id,
                 Value = 5
@@ -121,21 +120,18 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
     [Fact]
     public async Task UpdateReviews_UpdatesExistingRecord()
     {
-        var request = new ReviewUpsertRequest
+        var request = new ReviewUpdateRequest
         {
             Id = _testReviews.Id,
-            UserId = TestAuthHandler.DefaultUserId,
-            MediaId = _testMedia.Id,
-            TemplateId = _testTemplate.Id,
             Notes = "Updated notes",
             ConsumedAt = DateTime.UtcNow,
-            Fields = [new ReviewFieldUpsertRequest
+            Fields = [new ReviewFieldUpdateRequest
             {
                 TemplateFieldId = _testTemplate.Fields.First().Id,
                 Value = 10
             }]
         };
-        var response = await Client.PostAsJsonAsync(basePath, request);
+        var response = await Client.PatchAsJsonAsync($"{basePath}/update", request);
         TestUtils.AssertSuccessResponse(response);
         
         var Reviews = await response.Content.ReadFromJsonAsync<ReviewDto>();

@@ -3,6 +3,8 @@ namespace MediaRankerServer.Modules.Reviews.Contracts;
 public class ReviewFieldDto {
   public long ReviewId { get; set; }
   public long TemplateFieldId { get; set; }
+  public string TemplateFieldName { get; set; } = null!;
+  public int TemplateFieldPosition { get; set; }
   public short Value { get; set; } 
 }
 

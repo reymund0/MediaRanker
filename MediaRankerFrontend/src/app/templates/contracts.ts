@@ -1,24 +1,4 @@
-import { MediaTypeDto } from '@/lib/contracts/shared';
-
-// DTOS
-
-export interface TemplateFieldDto {
-  id: number;
-  name: string;
-  position: number;
-}
-
-export interface TemplateDto {
-  id: number;
-  isSystem: boolean;
-  userId: string;
-  name: string;
-  description: string | null;
-  createdAt: string;
-  updatedAt: string;
-  fields: TemplateFieldDto[];
-  mediaType: MediaTypeDto;
-}
+export type { TemplateFieldDto, TemplateDto } from '@/lib/contracts/shared';
 
 // API Request Contracts
 

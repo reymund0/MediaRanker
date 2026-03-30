@@ -27,7 +27,8 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) =>
             path: "logs/app-log-.txt",
             rollingInterval: RollingInterval.Day,
             retainedFileCountLimit: 31,
-            shared: true
+            shared: true,
+            outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}"
         );
 });
 

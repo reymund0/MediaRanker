@@ -26,23 +26,23 @@ public class ReviewsController(IReviewService reviewService) : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> UpsertReviews([FromBody] ReviewUpsertRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> InsertReview([FromBody] ReviewInsertRequest request, CancellationToken cancellationToken)
     {
-      ReviewDto updatedReviews;
-
       var userId = User.GetAuthenticatedUserId();
-      if (request.Id is null)
-      {
-        updatedReviews = await reviewService.CreateReviewAsync(userId, request, cancellationToken);
-      } else {
-        updatedReviews = await reviewService.UpdateReviewAsync(userId, request.Id.Value, request, cancellationToken);
-      }
+      var newReview = await reviewService.CreateReviewAsync(userId, request, cancellationToken);
+      return Ok(newReview);
+    }
 
-      return Ok(updatedReviews);
+    [HttpPatch("update")]
+    public async Task<IActionResult> UpdateReview([FromBody] ReviewUpdateRequest request, CancellationToken cancellationToken)
+    {
+      var userId = User.GetAuthenticatedUserId();
+      var updatedReview = await reviewService.UpdateReviewAsync(userId, request.Id, request, cancellationToken);
+      return Ok(updatedReview);
     }
 
     [HttpDelete("{reviewId}")]
-    public async Task<IActionResult> DeleteReviews(long reviewId, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteReview(long reviewId, CancellationToken cancellationToken)
     {
       var userId = User.GetAuthenticatedUserId();
       await reviewService.DeleteReviewAsync(userId, reviewId, cancellationToken);
