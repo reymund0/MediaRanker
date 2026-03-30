@@ -10,7 +10,7 @@ import { TemplateDto } from "@/lib/contracts/shared";
 import { ReviewDto, ReviewUpsertRequest, UnreviewedMediaDto } from "./contracts";
 import { buildReviewSchema } from "./review-card-schema";
 import {
-  CardFace,
+  CardState,
   NewStep,
   ReviewCardProps,
   ReviewFormValues,
@@ -20,7 +20,7 @@ export function useReviewCard(props: ReviewCardProps) {
   const { showSuccess, showError } = useAlert();
 
   // ---- State ----
-  const [face, setFace] = useState<CardFace>(props.isNew ? "back-edit" : "front");
+  const [state, setState] = useState<CardState>(props.isNew ? "edit" : "view");
   const [newStep, setNewStep] = useState<NewStep>("select-media");
   const [selectedMedia, setSelectedMedia] = useState<UnreviewedMediaDto | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateDto | null>(null);
@@ -122,7 +122,7 @@ export function useReviewCard(props: ReviewCardProps) {
           props.onSave!(saved);
         } else {
           props.onUpdate!(saved);
-          setFace("back-view");
+          setState("detailed-view");
         }
       },
       onError: (err) => showError(err.message),
@@ -146,8 +146,8 @@ export function useReviewCard(props: ReviewCardProps) {
 
   return {
     // State
-    face,
-    setFace,
+    state,
+    setState,
     newStep,
     setNewStep,
     selectedMedia,

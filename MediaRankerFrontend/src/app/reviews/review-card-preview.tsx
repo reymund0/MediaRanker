@@ -6,15 +6,15 @@ import { BaseStarRating } from "@/lib/components/inputs/rating/base-star-rating"
 import { ReviewDto } from "./contracts";
 import { COVER_HEIGHT, INFO_HEIGHT } from "./review-card-constants";
 
-type ReviewCardFrontProps = {
+type ReviewCardPreviewProps = {
   review: ReviewDto;
-  onFlip: () => void;
+  onClick: () => void;
 };
 
-export function ReviewCardFront({ review, onFlip }: ReviewCardFrontProps) {
+export function ReviewCardPreview({ review, onClick }: ReviewCardPreviewProps) {
   return (
     <Box
-      onClick={onFlip}
+      onClick={onClick}
       sx={{ cursor: "pointer", height: "100%", display: "flex", flexDirection: "column" }}
     >
       <Box
@@ -30,11 +30,11 @@ export function ReviewCardFront({ review, onFlip }: ReviewCardFrontProps) {
         }}
       >
         {review.mediaCoverImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Box
+            component="img"
             src={review.mediaCoverImageUrl}
             alt={review.mediaTitle}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            sx={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         ) : (
           <ImageNotSupportedIcon sx={{ fontSize: 56, color: "text.disabled" }} />

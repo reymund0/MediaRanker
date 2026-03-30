@@ -4,13 +4,13 @@ import { Box, Button, Stack, Typography } from "@mui/material";
 import { BaseStarRating } from "@/lib/components/inputs/rating/base-star-rating";
 import { ReviewDto } from "./contracts";
 
-type ReviewCardBackViewProps = {
+type ReviewCardDetailViewProps = {
   review: ReviewDto;
   onBack: () => void;
   onEdit: () => void;
 };
 
-export function ReviewCardBackView({ review, onBack, onEdit }: ReviewCardBackViewProps) {
+export function ReviewCardDetailView({ review, onBack, onEdit }: ReviewCardDetailViewProps) {
   return (
     <Stack direction="column" sx={{ height: "100%", p: 1.5, overflow: "auto" }} gap={1}>
       <Typography variant="subtitle1" fontWeight={600} noWrap>

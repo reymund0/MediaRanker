@@ -14,7 +14,7 @@ export const INFO_HEIGHT = CARD_HEIGHT - COVER_HEIGHT;
 // Types
 // ---------------------------------------------------------------------------
 
-export type CardFace = "front" | "back-view" | "back-edit";
+export type CardState = "view" | "detailed-view" | "edit";
 export type NewStep = "select-media" | "select-template" | "edit";
 
 export type ReviewFormValues = {

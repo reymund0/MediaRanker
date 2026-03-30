@@ -7,7 +7,8 @@ import { Box, CircularProgress, IconButton, Stack, Typography } from "@mui/mater
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@/lib/api/use-query";
 import { ReviewDto } from "./contracts";
-import { ReviewCard, CARD_WIDTH, CARD_GAP } from "./review-card";
+import { ReviewCard } from "./review-card";
+import { CARD_WIDTH, CARD_GAP } from "./review-card-constants";
 
 const SCROLL_AMOUNT = (CARD_WIDTH + CARD_GAP) * 3;
 

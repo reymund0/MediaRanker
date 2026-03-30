@@ -5,18 +5,17 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { Box, CircularProgress, IconButton } from "@mui/material";
 import { BaseDialog } from "@/lib/components/feedback/dialog/base-dialog";
 import { useReviewCard } from "./use-review-card";
-import { ReviewCardFront } from "./review-card-front";
-import { ReviewCardBackView } from "./review-card-back-view";
-import { ReviewCardBackEdit } from "./review-card-back-edit";
+import { ReviewCardPreview } from "./review-card-preview";
+import { ReviewCardDetailView } from "./review-card-detailed-view";
+import { ReviewCardEdit } from "./review-card-edit";
 import { ReviewCardNewSteps } from "./review-card-new-steps";
 import { CARD_WIDTH, CARD_HEIGHT } from "./review-card-constants";
-export { CARD_WIDTH, CARD_GAP } from "./review-card-constants";
-export type { ReviewCardProps } from "./review-card-constants";
+import type { ReviewCardProps } from "./review-card-constants";
 
-export function ReviewCard(props: import("./review-card-constants").ReviewCardProps) {
+export function ReviewCard(props: ReviewCardProps) {
   const {
-    face,
-    setFace,
+    state,
+    setState,
     newStep,
     setNewStep,
     selectedMedia,
@@ -44,44 +43,39 @@ export function ReviewCard(props: import("./review-card-constants").ReviewCardPr
 
   const mediaTitle = isNew ? (selectedMedia?.title ?? "") : (review?.mediaTitle ?? "");
 
-  const renderBackEdit = () => {
+  const RenderReviewEditCard = () => {
     if (isNew && newStep !== "edit") {
       return (
         <ReviewCardNewSteps
           newStep={newStep}
+          setNewStep={setNewStep}
           unreviewedMedia={unreviewedMedia}
           unreviewedLoading={unreviewedLoading}
+          setSelectedMedia={setSelectedMedia}
           templates={templates}
           templatesLoading={templatesLoading}
+          setSelectedTemplate={setSelectedTemplate}
           selectedTemplateId={selectedTemplate?.id}
-          onMediaSelect={(media) => {
-            setSelectedMedia(media);
-            setNewStep("select-template");
-          }}
-          onTemplateSelect={(tmpl) => {
-            setSelectedTemplate(tmpl);
-            setNewStep("edit");
-          }}
-          onBackToMedia={() => setNewStep("select-media")}
+          onReadyForReview={() => setState("edit")}
           onCancel={props.onCancel!}
         />
       );
     }
     return (
-      <ReviewCardBackEdit
+      <ReviewCardEdit
         mediaTitle={mediaTitle}
         fieldList={fieldList}
         methods={methods}
         isSaving={isSaving}
         isNew={isNew}
         onSave={handleSave}
-        onCancel={() => setFace("back-view")}
+        onCancel={() => setState("detailed-view")}
       />
     );
   };
 
   const renderTopRightAction = () => {
-    if (face !== "back-edit") return null;
+    if (state !== "edit") return null;
     if (isNew) {
       return (
         <IconButton
@@ -122,17 +116,17 @@ export function ReviewCard(props: import("./review-card-constants").ReviewCardPr
         }}
       >
         {renderTopRightAction()}
-        {face === "front" && review && (
-          <ReviewCardFront review={review} onFlip={() => setFace("back-view")} />
+        {state === "view" && review && (
+          <ReviewCardPreview review={review} onClick={() => setState("detailed-view")} />
         )}
-        {face === "back-view" && review && (
-          <ReviewCardBackView
+        {state === "detailed-view" && review && (
+          <ReviewCardDetailView
             review={review}
-            onBack={() => setFace("front")}
-            onEdit={() => setFace("back-edit")}
+            onBack={() => setState("view")}
+            onEdit={() => setState("edit")}
           />
         )}
-        {face === "back-edit" && renderBackEdit()}
+        {state === "edit" && RenderReviewEditCard()}
       </Box>
 
       {showDeleteConfirm && review && (

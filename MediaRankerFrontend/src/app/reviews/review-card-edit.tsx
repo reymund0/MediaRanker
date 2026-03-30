@@ -11,7 +11,7 @@ type FieldItem = {
   name: string;
 };
 
-type ReviewCardBackEditProps = {
+type ReviewCardEditProps = {
   mediaTitle: string;
   fieldList: FieldItem[];
   methods: UseFormReturn<ReviewFormValues>;
@@ -21,7 +21,7 @@ type ReviewCardBackEditProps = {
   onCancel: () => void;
 };
 
-export function ReviewCardBackEdit({
+export function ReviewCardEdit({
   mediaTitle,
   fieldList,
   methods,
@@ -29,7 +29,7 @@ export function ReviewCardBackEdit({
   isNew,
   onSave,
   onCancel,
-}: ReviewCardBackEditProps) {
+}: ReviewCardEditProps) {
   return (
     <FormProvider {...methods}>
       <Stack

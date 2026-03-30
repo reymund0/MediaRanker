@@ -9,28 +9,30 @@ import { NewStep } from "./review-card-constants";
 
 type ReviewCardNewStepsProps = {
   newStep: NewStep;
+  setNewStep: (step: NewStep) => void;
   unreviewedMedia: UnreviewedMediaDto[] | undefined;
   unreviewedLoading: boolean;
+  setSelectedMedia: (media: UnreviewedMediaDto) => void;
   templates: TemplateDto[] | undefined;
   templatesLoading: boolean;
+  setSelectedTemplate: (template: TemplateDto) => void;
   selectedTemplateId: number | undefined;
-  onMediaSelect: (media: UnreviewedMediaDto) => void;
-  onTemplateSelect: (template: TemplateDto) => void;
-  onBackToMedia: () => void;
+  onReadyForReview: () => void;
   onCancel: () => void;
 };
 
 export function ReviewCardNewSteps({
   newStep,
+  setNewStep,
   unreviewedMedia,
   unreviewedLoading,
+  setSelectedMedia,
   templates,
   templatesLoading,
+  setSelectedTemplate,
   selectedTemplateId,
-  onMediaSelect,
-  onTemplateSelect,
-  onBackToMedia,
   onCancel,
+  onReadyForReview,
 }: ReviewCardNewStepsProps) {
   if (newStep === "select-media") {
     return (
@@ -42,7 +44,8 @@ export function ReviewCardNewSteps({
           isLoading={unreviewedLoading}
           onSelectOption={(option) => {
             if (option?.metadata) {
-              onMediaSelect(option.metadata);
+              setSelectedMedia(option.metadata);
+              setNewStep("select-template");
             }
           }}
         />
@@ -65,10 +68,13 @@ export function ReviewCardNewSteps({
           onChange={(e) => {
             const id = Number(e.target.value);
             const tmpl = templates?.find((t) => t.id === id) ?? null;
-            if (tmpl) onTemplateSelect(tmpl);
+            if (tmpl) {
+              setSelectedTemplate(tmpl);
+              onReadyForReview();
+            }
           }}
         />
-        <Button size="small" variant="text" onClick={onBackToMedia}>
+        <Button size="small" variant="text" onClick={onCancel}>
           Back
         </Button>
       </Stack>
