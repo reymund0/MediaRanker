@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useMutation } from "@/lib/api/use-mutation";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import { BaseDialog } from "@/lib/components/feedback/dialog/base-dialog";
-import { ReviewDto } from "./contracts";
+import { ReviewDto } from "../contracts";
 
 interface ReviewCardDeleteButtonProps {
   review?: ReviewDto;

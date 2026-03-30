@@ -3,7 +3,7 @@
 import { Box, CircularProgress, Stack, Typography } from "@mui/material";
 import { MediaTypeDto } from "@/lib/contracts/shared";
 import { useQuery } from "@/lib/api/use-query";
-import { ReviewRow } from "./review-row";
+import { ReviewRow } from "./_components/review-row";
 import { useUser } from "@/lib/auth/user-provider";
 
 export default function ReviewsPage() {

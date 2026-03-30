@@ -8,7 +8,7 @@ import { ReviewCardNewSteps } from "./review-card-new-steps";
 import { ReviewCardDeleteButton } from "./review-card-delete-button";
 import { CARD_WIDTH, CARD_HEIGHT, EXPANDED_CARD_WIDTH, EXPANDED_CARD_HEIGHT } from "./review-card-utils";
 import { useEffect, useState } from "react";
-import type { ReviewDto } from "./contracts";
+import type { ReviewDto } from "../contracts";
 import { ReviewFormValues } from "./review-card-utils";
 
 export interface ReviewCardProps {

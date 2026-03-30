@@ -6,7 +6,7 @@ import { FormTextField } from "@/lib/components/inputs/text-field/form-text-fiel
 import { FormStarRating } from "@/lib/components/inputs/rating/form-star-rating";
 import { ReviewFormValues, ReviewEditSchema } from "./review-card-utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ReviewDto, ReviewInsertRequest, ReviewUpdateRequest } from "./contracts";
+import { ReviewDto, ReviewInsertRequest, ReviewUpdateRequest } from "../contracts";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import { useMutation } from "@/lib/api/use-mutation";
 

@@ -2,7 +2,7 @@
 
 import { Button, Grid, Stack, Typography } from "@mui/material";
 import { BaseStarRating } from "@/lib/components/inputs/rating/base-star-rating";
-import { ReviewDto } from "./contracts";
+import { ReviewDto } from "../contracts";
 
 type ReviewCardDetailViewProps = {
   review: ReviewDto;

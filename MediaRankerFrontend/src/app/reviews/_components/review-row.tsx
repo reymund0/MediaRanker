@@ -6,7 +6,7 @@ import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import { Box, CircularProgress, IconButton, Stack, Typography } from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@/lib/api/use-query";
-import { ReviewDto } from "./contracts";
+import { ReviewDto } from "../contracts";
 import { ReviewCard } from "./review-card";
 import { CARD_WIDTH, CARD_GAP } from "./review-card-utils";
 

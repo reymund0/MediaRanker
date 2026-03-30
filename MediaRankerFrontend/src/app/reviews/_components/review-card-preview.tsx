@@ -3,7 +3,7 @@
 import ImageNotSupportedIcon from "@mui/icons-material/ImageNotSupported";
 import { Box, Stack, Typography } from "@mui/material";
 import { BaseStarRating } from "@/lib/components/inputs/rating/base-star-rating";
-import { ReviewDto } from "./contracts";
+import { ReviewDto } from "../contracts";
 import { COVER_HEIGHT, INFO_HEIGHT } from "./review-card-utils";
 
 type ReviewCardPreviewProps = {

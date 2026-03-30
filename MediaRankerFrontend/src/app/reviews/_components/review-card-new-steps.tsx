@@ -4,7 +4,7 @@ import { Button, Stack, Typography } from "@mui/material";
 import { BaseAutocomplete } from "@/lib/components/inputs/autocomplete/base-autocomplete";
 import { BaseSelect } from "@/lib/components/inputs/select/base-select";
 import { TemplateDto, TemplateFieldDto } from "@/lib/contracts/shared";
-import { UnreviewedMediaDto } from "./contracts";
+import { UnreviewedMediaDto } from "../contracts";
 import { useQuery } from "@/lib/api/use-query";
 import { useState } from "react";
 import { useUser } from "@/lib/auth/user-provider";
