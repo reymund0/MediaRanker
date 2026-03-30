@@ -2,28 +2,26 @@ using FluentValidation;
 
 namespace MediaRankerServer.Modules.Reviews.Contracts;
 
-public class ReviewFieldUpsertRequest
+public class ReviewFieldInsertRequest
 {
-  public long ReviewId { get; set; }
   public long TemplateFieldId { get; set; }
   public short Value { get; set; }
 }
 
-public class ReviewUpsertRequest
+public class ReviewInsertRequest
 {
-  public long? Id { get; set; }
   public long MediaId { get; set; }
   public long TemplateId { get; set; }
   public string? ReviewTitle { get; set; }
   public string? Notes { get; set; }
   public DateTimeOffset? ConsumedAt { get; set; }
-  public List<ReviewFieldUpsertRequest> Fields { get; set; } = [];    
+  public List<ReviewFieldInsertRequest> Fields { get; set; } = [];    
 }
 
 
-public class ReviewUpsertRequestValidator : AbstractValidator<ReviewUpsertRequest>
+public class ReviewInsertRequestValidator : AbstractValidator<ReviewInsertRequest>
 {
-  public ReviewUpsertRequestValidator() {
+  public ReviewInsertRequestValidator() {
     RuleFor(request => request.ConsumedAt)
       .Must(date => date == null || date <= DateTimeOffset.Now)
       .WithMessage("Consumed at date cannot be in the future");
@@ -41,7 +39,7 @@ public class ReviewUpsertRequestValidator : AbstractValidator<ReviewUpsertReques
       .WithMessage("Cannot score the same template field multiple times");
   }
 
-  private static bool HasUniqueTemplateFieldIds(List<ReviewFieldUpsertRequest> fields)
+  private static bool HasUniqueTemplateFieldIds(List<ReviewFieldInsertRequest> fields)
   {
     return fields.Select(field => field.TemplateFieldId).Distinct().Count() == fields.Count;
   }

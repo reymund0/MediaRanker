@@ -16,7 +16,8 @@ public static class ReviewsModule
         services.AddScoped<ITemplateService, TemplateService>();
         services.AddScoped<IMediaService, MediaService>();
         services.AddScoped<IFileService, S3FileService>();
-        services.AddScoped<IValidator<ReviewUpsertRequest>, ReviewUpsertRequestValidator>();
+        services.AddScoped<IValidator<ReviewInsertRequest>, ReviewInsertRequestValidator>();
+        services.AddScoped<IValidator<ReviewUpdateRequest>, ReviewUpdateRequestValidator>();
         return services;
     }
 }
