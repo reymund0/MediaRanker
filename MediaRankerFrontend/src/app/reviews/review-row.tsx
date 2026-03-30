@@ -128,17 +128,21 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
               {hasNewCard && (
                 <ReviewCard
                   mediaTypeId={mediaTypeId}
-                  isNew
-                  onSave={handleNewCardSave}
-                  onCancel={handleNewCardCancel}
+                  onInsertReview={handleNewCardSave}
+                  onCancelInsertReview={handleNewCardCancel}
+                  onUpdateReview={() => {}}
+                  onDeleteReview={() => {}}
                 />
               )}
               {reviews.map((review) => (
                 <ReviewCard
                   key={review.id}
                   review={review}
-                  onUpdate={handleReviewUpdate}
-                  onDelete={handleReviewDelete}
+                  mediaTypeId={mediaTypeId}
+                  onInsertReview={() => {}}
+                  onCancelInsertReview={() => {}}
+                  onUpdateReview={handleReviewUpdate}
+                  onDeleteReview={handleReviewDelete}
                 />
               ))}
               {!hasNewCard && reviews.length === 0 && (

@@ -7,80 +7,97 @@ import { BaseDialog } from "@/lib/components/feedback/dialog/base-dialog";
 import { useReviewCard } from "./use-review-card";
 import { ReviewCardPreview } from "./review-card-preview";
 import { ReviewCardDetailView } from "./review-card-detailed-view";
-import { ReviewCardEdit } from "./review-card-edit";
+import { ReviewCardEdit, TemplateFieldDisplay } from "./review-card-edit";
 import { ReviewCardNewSteps } from "./review-card-new-steps";
 import { CARD_WIDTH, CARD_HEIGHT } from "./review-card-constants";
-import type { ReviewCardProps } from "./review-card-constants";
+import { useEffect, useState } from "react";
+import type { ReviewDto } from "./contracts";
+import { ReviewFormValues } from "./review-card-schema";
+
+export interface ReviewCardProps {
+  review?: ReviewDto;
+  mediaTypeId: number;
+  onInsertReview: (review: ReviewDto) => void;
+  onCancelInsertReview: () => void;
+  onUpdateReview: (updated: ReviewDto) => void;
+  onDeleteReview: (reviewId: number) => void;
+}
+
 
 export function ReviewCard(props: ReviewCardProps) {
   const {
-    state,
-    setState,
-    newStep,
-    setNewStep,
-    selectedMedia,
-    setSelectedMedia,
-    selectedTemplate,
-    setSelectedTemplate,
+    cardState,
+    setCardState,
     showDeleteConfirm,
     setShowDeleteConfirm,
     review,
     isNew,
-    unreviewedMedia,
-    unreviewedLoading,
-    templates,
-    templatesLoading,
-    isSaving,
     isDeleting,
-    methods,
-    handleSave,
     handleDelete,
   } = useReviewCard(props);
 
-  const fieldList = isNew
-    ? (selectedTemplate?.fields ?? []).map((f) => ({ id: f.id, name: f.name }))
-    : (review?.fields ?? []).map((f) => ({ id: f.templateFieldId, name: f.templateFieldName }));
+  const [currentReview, setCurrentReview] = useState<ReviewFormValues>();
+  const [mediaTitle, setMediaTitle] = useState<string>("");
+  const [templateFields, setTemplateFields] = useState<TemplateFieldDisplay[]>([]);
 
-  const mediaTitle = isNew ? (selectedMedia?.title ?? "") : (review?.mediaTitle ?? "");
+  useEffect(() => {
+    if (review) {
+      // Initialize state based on supplied review. If not present we rely on the new process to fill this out.
+      setCurrentReview({
+        id: review.id,
+        mediaId: review.mediaId,
+        templateId: review.templateId,
+        reviewTitle: review.reviewTitle ?? undefined,
+        notes: review.notes ?? undefined,
+        fields: review.fields.sort((a, b) => a.templateFieldPosition - b.templateFieldPosition)
+          .reduce((acc, field) => {
+            acc[field.templateFieldId] = field.value;
+            return acc;
+          }, {} as Record<string, number>)
+      });
+      setMediaTitle(review.mediaTitle);
+      setTemplateFields(review.fields.map(field => ({
+        id: field.templateFieldId,
+        name: field.templateFieldName,
+        position: field.templateFieldPosition
+      })));
+    }
+  }, [review]);
 
   const RenderReviewEditCard = () => {
-    if (isNew && newStep !== "edit") {
+    if (isNew && cardState !== "edit") {
       return (
         <ReviewCardNewSteps
-          newStep={newStep}
-          setNewStep={setNewStep}
-          unreviewedMedia={unreviewedMedia}
-          unreviewedLoading={unreviewedLoading}
-          setSelectedMedia={setSelectedMedia}
-          templates={templates}
-          templatesLoading={templatesLoading}
-          setSelectedTemplate={setSelectedTemplate}
-          selectedTemplateId={selectedTemplate?.id}
-          onReadyForReview={() => setState("edit")}
-          onCancel={props.onCancel!}
+          mediaTypeId={props.mediaTypeId}
+          onNewReview={(review, mediaId, templateFields) => {
+            setMediaTitle(mediaId);
+            setTemplateFields(templateFields);
+            setCardState("edit");
+          }}
+          onCancel={props.onCancelInsertReview}
         />
       );
     }
     return (
       <ReviewCardEdit
+        review={currentReview!}
         mediaTitle={mediaTitle}
-        fieldList={fieldList}
-        methods={methods}
-        isSaving={isSaving}
+        templateFields={templateFields}
         isNew={isNew}
-        onSave={handleSave}
-        onCancel={() => setState("detailed-view")}
+        onInsert={props.onInsertReview}
+        onUpdate={props.onUpdateReview}
+        onUpdateCancel={() => setCardState("detailed-view")}
       />
     );
   };
 
   const renderTopRightAction = () => {
-    if (state !== "edit") return null;
+    if (cardState !== "edit") return null;
     if (isNew) {
       return (
         <IconButton
           size="small"
-          onClick={props.onCancel}
+          onClick={props.onCancelInsertReview}
           sx={{ position: "absolute", top: 6, right: 6, zIndex: 1, color: "error.main" }}
         >
           <CancelIcon fontSize="small" />
@@ -116,17 +133,17 @@ export function ReviewCard(props: ReviewCardProps) {
         }}
       >
         {renderTopRightAction()}
-        {state === "view" && review && (
-          <ReviewCardPreview review={review} onClick={() => setState("detailed-view")} />
+        {cardState === "view" && review && (
+          <ReviewCardPreview review={review} onClick={() => setCardState("detailed-view")} />
         )}
-        {state === "detailed-view" && review && (
+        {cardState === "detailed-view" && review && (
           <ReviewCardDetailView
             review={review}
-            onBack={() => setState("view")}
-            onEdit={() => setState("edit")}
+            onBack={() => setCardState("view")}
+            onEdit={() => setCardState("edit")}
           />
         )}
-        {state === "edit" && RenderReviewEditCard()}
+        {cardState === "edit" && RenderReviewEditCard()}
       </Box>
 
       {showDeleteConfirm && review && (
@@ -135,7 +152,7 @@ export function ReviewCard(props: ReviewCardProps) {
           title="Delete Review"
           confirmLabel="Delete"
           confirmLoading={isDeleting}
-          onConfirm={handleDelete}
+          onConfirm={() => props.onDeleteReview(review.id)}
           onClose={() => setShowDeleteConfirm(false)}
         >
           Are you sure you want to delete your review for{" "}

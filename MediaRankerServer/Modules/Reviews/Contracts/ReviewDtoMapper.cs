@@ -42,6 +42,7 @@ public static class ReviewDtoMapper
       ReviewId = field.ReviewId,
       TemplateFieldId = field.TemplateFieldId,
       TemplateFieldName = field.TemplateField.Name,
+      TemplateFieldPosition = field.TemplateField.Position,
       Value = field.Value
     };
   }

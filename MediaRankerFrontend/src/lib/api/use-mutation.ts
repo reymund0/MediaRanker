@@ -11,7 +11,7 @@ export interface UseMutationOptionsType<TRequest, TResponse> extends Omit<
   "mutationFn"
 > {
   route: string | ((data: TRequest) => string);
-  method: "POST" | "PUT" | "DELETE";
+  method: "POST" | "PUT" | "PATCH" | "DELETE";
   data?: TRequest;
 }
 

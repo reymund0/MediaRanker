@@ -3,7 +3,7 @@ import { ProblemDetails, ProblemDetailsError } from "./problem-details";
 
 export interface httpRequestOptions<TRequest> {
   route: string;
-  method: "GET" | "POST" | "PUT" | "DELETE";
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   data?: TRequest;
 }
 

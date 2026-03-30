@@ -21,6 +21,7 @@ export interface ReviewFieldDto {
   reviewId: number;
   templateFieldId: number;
   templateFieldName: string;
+  templateFieldPosition: number;
   value: number;
 }
 
@@ -36,10 +37,17 @@ export interface ReviewFieldUpsertRequest {
   value: number;
 }
 
-export interface ReviewUpsertRequest {
-  id: number | null;
+export interface ReviewInsertRequest {
   mediaId: number;
   templateId: number;
+  reviewTitle: string | null;
+  notes: string | null;
+  consumedAt: string | null;
+  fields: ReviewFieldUpsertRequest[];
+}
+
+export interface ReviewUpdateRequest {
+  id: number;
   reviewTitle: string | null;
   notes: string | null;
   consumedAt: string | null;

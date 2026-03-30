@@ -1,4 +1,5 @@
 import type { ReviewDto } from "./contracts";
+import { ReviewFormValues } from "./review-card-schema";
 
 // ---------------------------------------------------------------------------
 // Layout constants
@@ -15,32 +16,4 @@ export const INFO_HEIGHT = CARD_HEIGHT - COVER_HEIGHT;
 // ---------------------------------------------------------------------------
 
 export type CardState = "view" | "detailed-view" | "edit";
-export type NewStep = "select-media" | "select-template" | "edit";
 
-export type ReviewFormValues = {
-  reviewTitle?: string;
-  notes?: string;
-  fields: Record<string, number>;
-};
-
-type ExistingCardProps = {
-  review: ReviewDto;
-  isNew?: never;
-  mediaTypeId?: never;
-  onSave?: never;
-  onCancel?: never;
-  onUpdate: (updated: ReviewDto) => void;
-  onDelete: (reviewId: number) => void;
-};
-
-type NewCardProps = {
-  review?: never;
-  isNew: true;
-  mediaTypeId: number;
-  onSave: (review: ReviewDto) => void;
-  onCancel: () => void;
-  onUpdate?: never;
-  onDelete?: never;
-};
-
-export type ReviewCardProps = ExistingCardProps | NewCardProps;

@@ -3,38 +3,48 @@
 import { Button, Stack, Typography } from "@mui/material";
 import { BaseAutocomplete } from "@/lib/components/inputs/autocomplete/base-autocomplete";
 import { BaseSelect } from "@/lib/components/inputs/select/base-select";
-import { TemplateDto } from "@/lib/contracts/shared";
+import { TemplateDto, TemplateFieldDto } from "@/lib/contracts/shared";
 import { UnreviewedMediaDto } from "./contracts";
-import { NewStep } from "./review-card-constants";
+import { useQuery } from "@/lib/api/use-query";
+import { useState } from "react";
+import { useUser } from "@/lib/auth/user-provider";
+import { ReviewFormValues } from "./review-card-schema";
+import { TemplateFieldDisplay } from "./review-card-edit";
+
 
 type ReviewCardNewStepsProps = {
-  newStep: NewStep;
-  setNewStep: (step: NewStep) => void;
-  unreviewedMedia: UnreviewedMediaDto[] | undefined;
-  unreviewedLoading: boolean;
-  setSelectedMedia: (media: UnreviewedMediaDto) => void;
-  templates: TemplateDto[] | undefined;
-  templatesLoading: boolean;
-  setSelectedTemplate: (template: TemplateDto) => void;
-  selectedTemplateId: number | undefined;
-  onReadyForReview: () => void;
+  mediaTypeId: number;
+  onNewReview: (review: ReviewFormValues, mediaTitle: string, tempalteFields: TemplateFieldDisplay[]) => void;
   onCancel: () => void;
 };
 
+type NewReviewStep = "select-media" | "select-template" | "edit";
+
 export function ReviewCardNewSteps({
-  newStep,
-  setNewStep,
-  unreviewedMedia,
-  unreviewedLoading,
-  setSelectedMedia,
-  templates,
-  templatesLoading,
-  setSelectedTemplate,
-  selectedTemplateId,
+  mediaTypeId,
   onCancel,
-  onReadyForReview,
+  onNewReview,
 }: ReviewCardNewStepsProps) {
-  if (newStep === "select-media") {
+
+  const {userId} = useUser();
+
+  const [selectedUnreviewedMediaId, setSelectedUnreviewedMediaId] = useState<number | undefined>(undefined);
+  
+  const [currentStep, setCurrentStep] = useState<NewReviewStep>("select-media");
+
+
+  const { data: unreviewedMedia, isLoading: unreviewedLoading } = useQuery<UnreviewedMediaDto[]>({
+    route: `/api/reviews/unreviewedByType?mediaTypeId=${mediaTypeId ?? 0}`,
+    queryKey: ["unreviewed", mediaTypeId],
+    enabled: !!userId,
+  });
+
+  const { data: templates, isLoading: templatesLoading } = useQuery<TemplateDto[]>({
+    route: `/api/templates/${mediaTypeId ?? 0}`,
+    queryKey: ["templates-by-type", mediaTypeId],
+    enabled: !!userId && !!selectedUnreviewedMediaId,
+  });
+  if (currentStep === "select-media") {
     return (
       <Stack direction="column" sx={{ height: "100%", p: 1.5 }} gap={2} justifyContent="center">
         <Typography variant="subtitle2">Select Media</Typography>
@@ -44,8 +54,8 @@ export function ReviewCardNewSteps({
           isLoading={unreviewedLoading}
           onSelectOption={(option) => {
             if (option?.metadata) {
-              setSelectedMedia(option.metadata);
-              setNewStep("select-template");
+              setSelectedUnreviewedMediaId(option.metadata.id);
+              setCurrentStep("select-template");
             }
           }}
         />
@@ -56,7 +66,7 @@ export function ReviewCardNewSteps({
     );
   }
 
-  if (newStep === "select-template") {
+  if (currentStep === "select-template") {
     return (
       <Stack direction="column" sx={{ height: "100%", p: 1.5 }} gap={2} justifyContent="center">
         <Typography variant="subtitle2">Select Template</Typography>
@@ -64,13 +74,21 @@ export function ReviewCardNewSteps({
           label="Template"
           options={(templates ?? []).map((t) => ({ id: t.id, label: t.name, metadata: t }))}
           isLoading={templatesLoading}
-          value={selectedTemplateId ?? ""}
           onChange={(e) => {
             const id = Number(e.target.value);
             const tmpl = templates?.find((t) => t.id === id) ?? null;
             if (tmpl) {
-              setSelectedTemplate(tmpl);
-              onReadyForReview();
+              onNewReview({
+                fields: tmpl.fields.reduce((acc, field) => {
+                  acc[field.id] = 5;
+                  return acc;
+                }, {} as Record<string, number>),
+                id: 0,
+                mediaId: selectedUnreviewedMediaId!,
+                templateId: id,
+              }, 
+              unreviewedMedia?.find((m) => m.id === selectedUnreviewedMediaId)?.title ?? "", 
+              tmpl.fields);
             }
           }}
         />
