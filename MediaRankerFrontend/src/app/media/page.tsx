@@ -39,7 +39,7 @@ export default function MediaPage() {
   } = useQuery<MediaDto[]>({
     route: "/api/media",
     queryKey: ["media"],
-    enabled: !!userId,
+    enabled: !!userId && !editingRow,
   });
 
   const {

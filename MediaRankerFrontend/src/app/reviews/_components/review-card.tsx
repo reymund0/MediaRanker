@@ -12,7 +12,7 @@ import {
   EXPANDED_CARD_WIDTH,
   EXPANDED_CARD_HEIGHT,
 } from "./review-card-utils";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReviewDto } from "../contracts";
 import { ReviewFormValues } from "./review-card-utils";
 
@@ -45,6 +45,7 @@ export function ReviewCard({
   const [templateFields, setTemplateFields] = useState<TemplateFieldDisplay[]>(
     [],
   );
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
   const isExpanded = ["new", "edit", "detailed-view"].includes(cardState);
 
@@ -80,8 +81,25 @@ export function ReviewCard({
     loadReview();
   }, [review]);
 
+  useEffect(() => {
+    if (cardState !== "new" && cardState !== "detailed-view") {
+      return;
+    }
+
+    const frame = requestAnimationFrame(() => {
+      cardRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "nearest",
+      });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [cardState]);
+
   return (
     <Box
+      ref={cardRef}
       sx={{
         position: "relative",
         width: isExpanded ? EXPANDED_CARD_WIDTH : CARD_WIDTH,
@@ -102,6 +120,8 @@ export function ReviewCard({
         overflow: "hidden",
         bgcolor: "background.paper",
         flexShrink: 0,
+        scrollMarginTop: "96px",
+        scrollMarginBottom: "96px",
       }}
     >
       {isExpanded && (

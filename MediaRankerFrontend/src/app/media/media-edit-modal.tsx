@@ -135,7 +135,7 @@ export function MediaEditModal({
               showSuccess("Cover image uploaded successfully")
             }
             onUploadError={onUploadError}
-            previewSx={{ maxHeight: 200 }}
+            previewSx={{ height: 200 }}
           />
         </Box>
       </Stack>
