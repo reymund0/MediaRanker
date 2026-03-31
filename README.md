@@ -25,11 +25,11 @@ A personal media reviewing and ranking web application where users can define th
 
 ### Template Field Drag and Drop
 
-![Template Field Drag and Drop](docs/images/template-field-dnd.gif)
+<img src="docs/images/template-field-dnd.gif" alt="Template Field Drag and Drop" width="300" />
 
 ### Media Upload Cover
 
-![Media Upload Cover](docs/images/media-upload-cover.gif)
+<img src="docs/images/media-upload-cover.gif" alt="Media Upload Cover" width="600" />
 
 ## Future Features and Enhancements
 - A personalized dashboard displaying a user's top reviews, media to revisit, and recommendations. 
