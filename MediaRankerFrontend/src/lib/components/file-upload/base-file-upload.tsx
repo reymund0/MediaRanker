@@ -81,9 +81,10 @@ export function BaseFileUpload({
 
       // 4. Success callback
       onUploadSuccess?.(uploadId);
-    } catch (error: EXPLICIT_ANY) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "An error occurred during upload.";
       console.error("FileUpload error:", error);
-      onUploadError?.(error.message || "An error occurred during upload.");
+      onUploadError?.(errorMessage);
       // Reset preview on error if it was a new local one
       if (previewUrl && previewUrl.startsWith("blob:")) {
         setPreviewUrl(initialPreviewUrl || null);
