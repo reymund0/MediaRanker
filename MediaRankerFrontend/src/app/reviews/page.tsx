@@ -10,7 +10,11 @@ import { PageCard } from "@/lib/components/layout/page-card";
 export default function ReviewsPage() {
   const { userId } = useUser();
 
-  const { data: mediaTypes, isLoading, isError } = useQuery<MediaTypeDto[]>({
+  const {
+    data: mediaTypes,
+    isLoading,
+    isError,
+  } = useQuery<MediaTypeDto[]>({
     route: "/api/mediaTypes",
     queryKey: ["media-types"],
     enabled: !!userId,

@@ -3,7 +3,13 @@
 import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
-import { Box, CircularProgress, IconButton, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  CircularProgress,
+  IconButton,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@/lib/api/use-query";
 import { ReviewDto } from "../contracts";
@@ -25,7 +31,12 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
   const [reviews, setReviews] = useState<ReviewDto[]>([]);
   const [hasNewCard, setHasNewCard] = useState(false);
 
-  const { data: reviewsData, isLoading, isError, error } = useQuery<ReviewDto[]>({
+  const {
+    data: reviewsData,
+    isLoading,
+    isError,
+    error,
+  } = useQuery<ReviewDto[]>({
     route: `/api/reviews/byMediaType/${mediaTypeId}`,
     queryKey: ["reviews", mediaTypeId],
   });
@@ -116,7 +127,11 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
 
       <Stack direction="row" alignItems="center" gap={0.5}>
         {hasOverflow ? (
-          <IconButton size="small" onClick={scrollLeft} disabled={!canScrollLeft}>
+          <IconButton
+            size="small"
+            onClick={scrollLeft}
+            disabled={!canScrollLeft}
+          >
             <ArrowBackIosNewIcon fontSize="small" />
           </IconButton>
         ) : null}
@@ -174,7 +189,11 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
         </Box>
 
         {hasOverflow ? (
-          <IconButton size="small" onClick={scrollRight} disabled={!canScrollRight}>
+          <IconButton
+            size="small"
+            onClick={scrollRight}
+            disabled={!canScrollRight}
+          >
             <ArrowForwardIosIcon fontSize="small" />
           </IconButton>
         ) : null}

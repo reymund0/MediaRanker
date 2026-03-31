@@ -17,11 +17,11 @@ export function FormStarRating<TForm extends FieldValues>({
       name={name}
       control={control}
       render={({ field, fieldState }) => (
-        <BaseStarRating 
-          {...rest} 
-          {...field} 
-          label={label} 
-          errorMessage={fieldState.error?.message} 
+        <BaseStarRating
+          {...rest}
+          {...field}
+          label={label}
+          errorMessage={fieldState.error?.message}
         />
       )}
     />

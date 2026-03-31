@@ -131,7 +131,9 @@ export function MediaEditModal({
             initialPreviewUrl={row.coverImageUrl}
             onGenerateUploadUrl={handleGenerateUploadUrl}
             onCompleteUpload={handleCompleteUpload}
-            onUploadSuccess={() => showSuccess("Cover image uploaded successfully")}
+            onUploadSuccess={() =>
+              showSuccess("Cover image uploaded successfully")
+            }
             onUploadError={onUploadError}
             previewSx={{ maxHeight: 200 }}
           />

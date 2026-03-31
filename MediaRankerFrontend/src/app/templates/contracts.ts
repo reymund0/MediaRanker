@@ -1,4 +1,4 @@
-export type { TemplateFieldDto, TemplateDto } from '@/lib/contracts/shared';
+export type { TemplateFieldDto, TemplateDto } from "@/lib/contracts/shared";
 
 // API Request Contracts
 

@@ -7,13 +7,16 @@ import {
 } from "react-hook-form";
 import { BaseDialog, BaseDialogProps } from "./base-dialog";
 
-export interface FormDialogProps<T extends FieldValues> extends Omit<BaseDialogProps, 'onConfirm' | 'onClose'> {
+export interface FormDialogProps<T extends FieldValues> extends Omit<
+  BaseDialogProps,
+  "onConfirm" | "onClose"
+> {
   open: boolean;
   title: string;
   onCancel: () => void;
   onSubmit: () => void;
   methods: UseFormReturn<T>;
-};
+}
 
 export function FormDialog<T extends FieldValues>({
   open,

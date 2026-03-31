@@ -1,6 +1,14 @@
-import { FormControl, FormHelperText, InputLabel, MenuItem, Select, SelectProps, Typography } from "@mui/material";
+import {
+  FormControl,
+  FormHelperText,
+  InputLabel,
+  MenuItem,
+  Select,
+  SelectProps,
+  Typography,
+} from "@mui/material";
 import { CircularProgress } from "@mui/material";
-import React from 'react';
+import React from "react";
 
 export type BaseSelectValue = string | number;
 
@@ -8,7 +16,7 @@ export type BaseSelectOption<T = unknown> = {
   id: BaseSelectValue;
   label: string;
   metadata?: T;
-}
+};
 
 export type BaseSelectProps<T = unknown> = {
   options: BaseSelectOption<T>[];
@@ -17,30 +25,30 @@ export type BaseSelectProps<T = unknown> = {
   renderOptionContent?: (option: BaseSelectOption<T>) => React.ReactNode;
 } & Omit<SelectProps<BaseSelectValue>, "labelId" | "error">;
 
-export function BaseSelect<T = unknown>({ 
-  options, 
-  variant, 
-  errorMessage, 
-  label, 
-  isLoading, 
+export function BaseSelect<T = unknown>({
+  options,
+  variant,
+  errorMessage,
+  label,
+  isLoading,
   renderOptionContent,
-  ...props 
+  ...props
 }: BaseSelectProps<T>) {
-
-  const labelId = `${label || 'select'}-label`;
+  const labelId = `${label || "select"}-label`;
   return (
-    <FormControl
-      fullWidth
-      variant={variant}
-      error={!!errorMessage}
-    >
+    <FormControl fullWidth variant={variant} error={!!errorMessage}>
       {/* labelId is needed for MUI Labels to work properly */}
       <InputLabel id={labelId}>{isLoading ? undefined : label}</InputLabel>
-      <Select {...props} 
-        labelId={labelId} 
-        label={label} 
+      <Select
+        {...props}
+        labelId={labelId}
+        label={label}
         disabled={isLoading || props.disabled}
-        IconComponent={isLoading ? (iconProps) => <CircularProgress {...iconProps} size={20} /> : undefined}
+        IconComponent={
+          isLoading
+            ? (iconProps) => <CircularProgress {...iconProps} size={20} />
+            : undefined
+        }
       >
         {options.length === 0 && !isLoading ? (
           <MenuItem disabled>
@@ -50,7 +58,7 @@ export function BaseSelect<T = unknown>({
           </MenuItem>
         ) : (
           options.map((option) => (
-            <MenuItem key={option.id} value={option.id as any}>
+            <MenuItem key={option.id} value={option.id}>
               {renderOptionContent ? renderOptionContent(option) : option.label}
             </MenuItem>
           ))
@@ -58,5 +66,5 @@ export function BaseSelect<T = unknown>({
       </Select>
       {errorMessage && <FormHelperText>{errorMessage}</FormHelperText>}
     </FormControl>
-  )
+  );
 }

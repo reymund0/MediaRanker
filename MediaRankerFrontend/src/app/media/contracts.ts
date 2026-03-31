@@ -1,4 +1,4 @@
-import { MediaTypeDto } from '@/lib/contracts/shared';
+import { MediaTypeDto } from "@/lib/contracts/shared";
 
 export interface MediaDto {
   id: number;

@@ -40,7 +40,9 @@ export function buildMediaColumns({
       width: 90,
       sortable: false,
       disableColumnMenu: true,
-      renderCell: (params: GridRenderCellParams<MediaRow, string | undefined>) => (
+      renderCell: (
+        params: GridRenderCellParams<MediaRow, string | undefined>,
+      ) => (
         <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
           {params.value ? (
             <Box
@@ -55,14 +57,16 @@ export function buildMediaColumns({
               }}
             />
           ) : (
-            <ImageIcon sx={{
+            <ImageIcon
+              sx={{
                 width: 44,
                 height: 64,
                 borderRadius: 1,
                 objectFit: "cover",
                 display: "block",
                 color: "text.disabled",
-              }} />
+              }}
+            />
           )}
         </Box>
       ),

@@ -6,7 +6,11 @@ import { GridColDef } from "@mui/x-data-grid";
 import { useEffect, useMemo, useState } from "react";
 import { BaseDataGrid } from "@/lib/components/data-grid/base-data-grid";
 import { TemplateEditModal } from "./template-edit-modal";
-import { buildTemplateColumns, mapTemplateToRow, TemplateRow } from "./grid-utils";
+import {
+  buildTemplateColumns,
+  mapTemplateToRow,
+  TemplateRow,
+} from "./grid-utils";
 import { TemplateDto, TemplateUpsertRequest } from "./contracts";
 import { MediaTypeDto } from "@/lib/contracts/shared";
 import { useQuery } from "@/lib/api/use-query";
@@ -161,7 +165,7 @@ export default function TemplatesPage() {
         alignItems="center"
         justifyContent="space-between"
         sx={{ mb: 2 }}
-        >
+      >
         <Box>
           <Typography variant="h4" component="h1">
             Templates
@@ -181,38 +185,38 @@ export default function TemplatesPage() {
           border: "1px solid",
           borderColor: "divider",
           borderRadius: 2,
-          }}
+        }}
+      >
+        <BaseDataGrid
+          loading={isTemplatesLoading || isMediaTypesLoading}
+          error={isTemplatesError || isMediaTypesError}
+          rows={rows}
+          columns={columns}
+        />
+      </Box>
+      {editingRow && (
+        <TemplateEditModal
+          open={true}
+          row={editingRow}
+          onSubmit={submitEditing}
+          onCancel={cancelEditing}
+          mediaTypes={mediaTypes || []}
+        />
+      )}
+      {deleteRowId && (
+        <BaseDialog
+          open={true}
+          onConfirm={() => onDeleteConfirm(deleteRowId)}
+          onClose={() => setDeleteRowId(undefined)}
+          title="Delete Template"
+          confirmLabel="Delete"
+          confirmLoading={false}
         >
-          <BaseDataGrid
-            loading={isTemplatesLoading || isMediaTypesLoading}
-            error={isTemplatesError || isMediaTypesError}
-            rows={rows}
-            columns={columns}
-          />
-        </Box>
-        {editingRow && (
-          <TemplateEditModal
-            open={true}
-            row={editingRow}
-            onSubmit={submitEditing}
-            onCancel={cancelEditing}
-            mediaTypes={mediaTypes || []}
-          />
-        )}
-        {deleteRowId && (
-          <BaseDialog
-            open={true}
-            onConfirm={() => onDeleteConfirm(deleteRowId)}
-            onClose={() => setDeleteRowId(undefined)}
-            title="Delete Template"
-            confirmLabel="Delete"
-            confirmLoading={false}
-          >
-            {"Are you sure you want to delete " +
-              rows.find((r) => r.id === deleteRowId)?.name +
-              " template?"}
-          </BaseDialog>
-        )}
-      </PageCard>
+          {"Are you sure you want to delete " +
+            rows.find((r) => r.id === deleteRowId)?.name +
+            " template?"}
+        </BaseDialog>
+      )}
+    </PageCard>
   );
 }

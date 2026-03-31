@@ -185,7 +185,7 @@ export default function MediaPage() {
           columns={columns}
         />
       </Box>
-        
+
       {editingRow ? (
         <MediaEditModal
           open={true}

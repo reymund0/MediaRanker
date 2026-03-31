@@ -16,18 +16,27 @@ interface ReviewCardDeleteButtonProps {
   onCancelNew: () => void;
 }
 
-const cornerButtonSx = { position: "absolute", top: 6, right: 6, zIndex: 1, color: "error.main" } as const;
+const cornerButtonSx = {
+  position: "absolute",
+  top: 6,
+  right: 6,
+  zIndex: 1,
+  color: "error.main",
+} as const;
 
-export function ReviewCardDeleteButton({ 
-  review, 
-  isNew, 
-  onDeleteReview, 
-  onCancelNew 
+export function ReviewCardDeleteButton({
+  review,
+  isNew,
+  onDeleteReview,
+  onCancelNew,
 }: ReviewCardDeleteButtonProps) {
   const { showSuccess, showError } = useAlert();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const { mutate: deleteReview, isPending: isDeleting } = useMutation<number, void>({
+  const { mutate: deleteReview, isPending: isDeleting } = useMutation<
+    number,
+    void
+  >({
     route: (id) => `/api/reviews/${id}`,
     method: "DELETE",
   });
@@ -48,11 +57,7 @@ export function ReviewCardDeleteButton({
 
   if (isNew) {
     return (
-      <IconButton
-        size="small"
-        onClick={onCancelNew}
-        sx={cornerButtonSx}
-      >
+      <IconButton size="small" onClick={onCancelNew} sx={cornerButtonSx}>
         <CancelIcon fontSize="small" />
       </IconButton>
     );
@@ -71,7 +76,11 @@ export function ReviewCardDeleteButton({
         disabled={isDeleting}
         sx={cornerButtonSx}
       >
-        {isDeleting ? <CircularProgress size={16} /> : <DeleteOutlineIcon fontSize="small" />}
+        {isDeleting ? (
+          <CircularProgress size={16} />
+        ) : (
+          <DeleteOutlineIcon fontSize="small" />
+        )}
       </IconButton>
 
       {showDeleteConfirm && (

@@ -6,7 +6,11 @@ import { FormTextField } from "@/lib/components/inputs/text-field/form-text-fiel
 import { FormStarRating } from "@/lib/components/inputs/rating/form-star-rating";
 import { ReviewFormValues, ReviewEditSchema } from "./review-card-utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ReviewDto, ReviewInsertRequest, ReviewUpdateRequest } from "../contracts";
+import {
+  ReviewDto,
+  ReviewInsertRequest,
+  ReviewUpdateRequest,
+} from "../contracts";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import { useMutation } from "@/lib/api/use-mutation";
 
@@ -24,7 +28,7 @@ export interface ReviewCardEditProps {
   onInsert: (newReview: ReviewDto) => void;
   onUpdate: (updatedReview: ReviewDto) => void;
   onUpdateCancel: () => void;
-};
+}
 
 export function ReviewCardEdit({
   review,
@@ -34,18 +38,23 @@ export function ReviewCardEdit({
   onInsert,
   onUpdate,
   onUpdateCancel,
-  }: ReviewCardEditProps) {
-
-  const { mutate: insertReview, isPending: isInserting } = useMutation<ReviewInsertRequest, ReviewDto>({
+}: ReviewCardEditProps) {
+  const { mutate: insertReview, isPending: isInserting } = useMutation<
+    ReviewInsertRequest,
+    ReviewDto
+  >({
     route: "/api/reviews",
     method: "POST",
   });
 
-  const { mutate: updateReview, isPending: isUpdating } = useMutation<ReviewUpdateRequest, ReviewDto>({
+  const { mutate: updateReview, isPending: isUpdating } = useMutation<
+    ReviewUpdateRequest,
+    ReviewDto
+  >({
     route: "/api/reviews/update",
     method: "PATCH",
   });
-  
+
   const isLoading = isInserting || isUpdating;
 
   const { showSuccess, showError } = useAlert();
@@ -57,7 +66,6 @@ export function ReviewCardEdit({
 
   // Submit Handlers
   const handleInsert = (data: ReviewFormValues) => {
-
     const request: ReviewInsertRequest = {
       mediaId: data.mediaId!,
       templateId: data.templateId!,
@@ -79,26 +87,26 @@ export function ReviewCardEdit({
     });
   };
 
-const handleUpdate = (data: ReviewFormValues) => {
-  const request: ReviewUpdateRequest = {
-    id: Number(review.id),
-    reviewTitle: data.reviewTitle?.trim() || null,
-    notes: data.notes?.trim() || null,
-    consumedAt: null,
-    fields: Object.entries(data.fields).map(([id, value]) => ({
-      templateFieldId: Number(id),
-      value: value,
-    })),
-  };
+  const handleUpdate = (data: ReviewFormValues) => {
+    const request: ReviewUpdateRequest = {
+      id: Number(review.id),
+      reviewTitle: data.reviewTitle?.trim() || null,
+      notes: data.notes?.trim() || null,
+      consumedAt: null,
+      fields: Object.entries(data.fields).map(([id, value]) => ({
+        templateFieldId: Number(id),
+        value: value,
+      })),
+    };
 
-  updateReview(request, {
-    onSuccess: (saved) => {
-      showSuccess("Review updated");
-      onUpdate(saved);
-    },
-    onError: (err) => showError(err.message),
-  });
-};
+    updateReview(request, {
+      onSuccess: (saved) => {
+        showSuccess("Review updated");
+        onUpdate(saved);
+      },
+      onError: (err) => showError(err.message),
+    });
+  };
 
   return (
     <FormProvider {...methods}>
@@ -109,9 +117,7 @@ const handleUpdate = (data: ReviewFormValues) => {
         gap={1.5}
         onSubmit={methods.handleSubmit(isNew ? handleInsert : handleUpdate)}
       >
-        <Typography variant="subtitle1">
-          {mediaTitle}
-        </Typography>
+        <Typography variant="subtitle1">{mediaTitle}</Typography>
         <FormTextField<ReviewFormValues>
           name="reviewTitle"
           label="Review title"
@@ -125,23 +131,26 @@ const handleUpdate = (data: ReviewFormValues) => {
           minRows={2}
         />
         <Grid container spacing={1.5}>
-          {templateFields.sort((a, b) => a.position - b.position).map((field) => (
-            <Grid key={field.id} size={6}>
-              <FormStarRating<ReviewFormValues>
-                name={`fields.${field.id}`}
-                label={field.name}
-                size="medium"
-              />
-            </Grid>
-          ))}
+          {templateFields
+            .sort((a, b) => a.position - b.position)
+            .map((field) => (
+              <Grid key={field.id} size={6}>
+                <FormStarRating<ReviewFormValues>
+                  name={`fields.${field.id}`}
+                  label={field.name}
+                  size="medium"
+                />
+              </Grid>
+            ))}
         </Grid>
-        <Stack 
+        <Stack
           direction="row"
           justifyContent="space-between"
           alignItems="center"
           sx={{ mt: "auto", pt: 1 }}
         >
-          { // New reviews already have a red X visible in the card.
+          {
+            // New reviews already have a red X visible in the card.
             !isNew && (
               <Button size="small" variant="text" onClick={onUpdateCancel}>
                 Cancel

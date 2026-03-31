@@ -17,7 +17,7 @@ export interface BaseDialogProps extends Omit<DialogProps, "onClose"> {
   confirmLabel?: string;
   confirmLoading?: boolean;
   onConfirm: () => void;
-};
+}
 
 export function BaseDialog({
   open,

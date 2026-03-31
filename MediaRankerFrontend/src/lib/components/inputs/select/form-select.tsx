@@ -19,12 +19,12 @@ export function FormSelect<TForm extends FieldValues, TMeta = unknown>({
       name={name}
       control={control}
       render={({ field, fieldState }) => (
-        <BaseSelect<TMeta> 
-          {...rest} 
-          {...field} 
-          options={options} 
-          label={label} 
-          errorMessage={fieldState.error?.message} 
+        <BaseSelect<TMeta>
+          {...rest}
+          {...field}
+          options={options}
+          label={label}
+          errorMessage={fieldState.error?.message}
         />
       )}
     />

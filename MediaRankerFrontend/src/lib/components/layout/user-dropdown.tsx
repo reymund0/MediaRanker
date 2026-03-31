@@ -1,7 +1,7 @@
 "use client";
 
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
-import Logout from "@mui/icons-material/Logout"
+import Logout from "@mui/icons-material/Logout";
 import { handleSignOut } from "@/app/auth/helpers";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import {
