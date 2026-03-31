@@ -109,7 +109,7 @@ export function TemplateEditModal({
         <FormSelect<TemplateEditFormValues>
           name="mediaTypeId"
           label="Media type"
-          items={mediaTypes.map((mediaType) => ({
+          options={mediaTypes.map((mediaType) => ({
             id: mediaType.id,
             label: mediaType.name,
           }))}

@@ -1,4 +1,4 @@
-import { FormControl, FormHelperText, InputLabel, MenuItem, Select, SelectProps } from "@mui/material";
+import { FormControl, FormHelperText, InputLabel, MenuItem, Select, SelectProps, Typography } from "@mui/material";
 import { CircularProgress } from "@mui/material";
 import React from 'react';
 
@@ -42,11 +42,19 @@ export function BaseSelect<T = unknown>({
         disabled={isLoading || props.disabled}
         IconComponent={isLoading ? (iconProps) => <CircularProgress {...iconProps} size={20} /> : undefined}
       >
-        {options.map((option) => (
-          <MenuItem key={option.id} value={option.id}>
-            {renderOptionContent ? renderOptionContent(option) : option.label}
+        {options.length === 0 && !isLoading ? (
+          <MenuItem disabled>
+            <Typography variant="body2" color="text.secondary">
+              No options available
+            </Typography>
           </MenuItem>
-        ))}
+        ) : (
+          options.map((option) => (
+            <MenuItem key={option.id} value={option.id as any}>
+              {renderOptionContent ? renderOptionContent(option) : option.label}
+            </MenuItem>
+          ))
+        )}
       </Select>
       {errorMessage && <FormHelperText>{errorMessage}</FormHelperText>}
     </FormControl>

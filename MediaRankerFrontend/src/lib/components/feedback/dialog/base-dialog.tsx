@@ -5,10 +5,10 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  DialogProps,
 } from "@mui/material";
 
-export type BaseDialogProps = {
-  open: boolean;
+export interface BaseDialogProps extends Omit<DialogProps, "onClose"> {
   title: string;
   closeDisabled?: boolean;
   closeLabel?: string;
@@ -30,9 +30,16 @@ export function BaseDialog({
   confirmLoading,
   onConfirm,
   children,
+  ...dialogProps
 }: BaseDialogProps & { children: ReactNode }) {
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+      {...dialogProps}
+    >
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>{children}</DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>

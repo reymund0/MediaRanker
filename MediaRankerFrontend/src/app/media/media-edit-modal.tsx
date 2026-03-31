@@ -125,7 +125,7 @@ export function MediaEditModal({
         <Box sx={{ display: "flex", justifyContent: "center" }}>
           <FormFileUpload<MediaEditFormValues>
             name="coverUploadId"
-            label="Upload Cover Image"
+            label={`Upload ${row.coverImageUrl ? "New" : ""} Cover`}
             initialPreviewUrl={row.coverImageUrl}
             onGenerateUploadUrl={handleGenerateUploadUrl}
             onCompleteUpload={handleCompleteUpload}

@@ -5,7 +5,7 @@ export interface FormFileUploadProps<TFieldValues extends FieldValues = FieldVal
   name: keyof TFieldValues & string;
 }
 
-export function FormFileUpload<TFieldValues extends FieldValues = FieldValues>({ name, ...props }: FormFileUploadProps<TFieldValues>) {
+export function FormFileUpload<TFieldValues extends FieldValues = FieldValues>({ name, initialPreviewUrl, ...props }: FormFileUploadProps<TFieldValues>) {
   const { control, setValue } = useFormContext<TFieldValues>();
 
   return (
@@ -15,7 +15,7 @@ export function FormFileUpload<TFieldValues extends FieldValues = FieldValues>({
       render={({ field }) => (
         <BaseFileUpload
           {...props}
-          initialPreviewUrl={field.value}
+          initialPreviewUrl={initialPreviewUrl || field.value}
           onUploadSuccess={(uploadId) => {
             // Update form state with the uploadId
             setValue(name as any, uploadId as any, { 
