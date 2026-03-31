@@ -102,26 +102,28 @@ export function MediaEditModal({
   return (
     <FormDialog<MediaEditFormValues>
       open={open}
-      title="Edit Media"
+      title={`${row.id ? "Edit" : "Add"} Media`}
       onSubmit={handleSubmit(onSubmitClick)}
       onCancel={onCancel}
       methods={methods}
     >
       <Stack spacing={2} sx={{ mt: 1 }}>
         <FormTextField<MediaEditFormValues> name="title" label="Title" />
-        <FormSelect<MediaEditFormValues>
-          name="mediaTypeId"
-          label="Media type"
-          options={mediaTypes.map((mediaType) => ({
-            id: mediaType.id,
-            label: mediaType.name,
-          }))}
-        />
-        <FormDatePicker<MediaEditFormValues>
-          name="releaseDate"
-          label="Release date"
-          disableFuture
-        />
+        <Stack direction="row" spacing={2}>
+          <FormDatePicker<MediaEditFormValues>
+            name="releaseDate"
+            label="Release date"
+            disableFuture
+          />
+          <FormSelect<MediaEditFormValues>
+            name="mediaTypeId"
+            label="Media type"
+            options={mediaTypes.map((mediaType) => ({
+              id: mediaType.id,
+              label: mediaType.name,
+            }))}
+          />
+        </Stack>
         <Box sx={{ display: "flex", justifyContent: "center" }}>
           <FormFileUpload<MediaEditFormValues>
             name="coverUploadId"

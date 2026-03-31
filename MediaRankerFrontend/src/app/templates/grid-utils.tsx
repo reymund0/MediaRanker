@@ -4,6 +4,7 @@ import { Chip, IconButton, Stack, Typography } from "@mui/material";
 import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import { format, parseISO } from "date-fns";
 import { TemplateDto, TemplateFieldDto } from "./contracts";
+import DateTimeCell from "@/lib/components/data-grid/datetime-cell";
 
 export type TemplateRow = Omit<
   TemplateDto,
@@ -65,7 +66,7 @@ export function buildTemplateColumns({
     {
       field: "description",
       headerName: "Description",
-      flex: 5,
+      flex: 3,
       sortable: false,
       renderCell: (params: GridRenderCellParams<TemplateRow, string>) => (
         <Typography noWrap color="text.secondary">
@@ -76,7 +77,7 @@ export function buildTemplateColumns({
     {
       field: "fields",
       headerName: "Fields",
-      flex: 1,
+      flex: 1.5,
       sortable: false,
       renderCell: (
         params: GridRenderCellParams<TemplateRow, TemplateFieldRow[]>,
@@ -97,9 +98,7 @@ export function buildTemplateColumns({
       flex: 1,
       sortable: false,
       renderCell: (params: GridRenderCellParams<TemplateRow, Date | null>) => (
-        <Typography color="text.secondary">
-          {params.value ? format(params.value, "PPp") : "-"}
-        </Typography>
+        <DateTimeCell value={params.value} />
       ),
     },
     {

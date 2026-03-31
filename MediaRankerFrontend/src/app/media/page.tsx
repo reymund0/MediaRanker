@@ -1,7 +1,7 @@
 "use client";
 
 import AddIcon from "@mui/icons-material/Add";
-import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
+import { Box, Card, CardContent, Paper, Stack, Typography } from "@mui/material";
 import { GridColDef } from "@mui/x-data-grid";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@/lib/api/use-mutation";
@@ -149,7 +149,7 @@ export default function MediaPage() {
   });
 
   return (
-    <Box sx={{ flex: 1, px: 3, py: 3 }}>
+    <Box sx={{ flex: 1, py: 3, maxWidth: "1200px", width: "100%", mx: "auto" }}>
       <Card>
         <CardContent sx={{ p: 3 }}>
           <Stack
@@ -177,7 +177,6 @@ export default function MediaPage() {
               border: "1px solid",
               borderColor: "divider",
               borderRadius: 2,
-              overflow: "hidden",
             }}
           >
             <BaseDataGrid
@@ -187,7 +186,7 @@ export default function MediaPage() {
               columns={columns}
             />
           </Box>
-
+            
           {editingRow ? (
             <MediaEditModal
               open={true}
