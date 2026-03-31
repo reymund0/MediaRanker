@@ -11,8 +11,6 @@ export function FormSelect<TForm extends FieldValues, TMeta = unknown>({
   name,
   options,
   label,
-  variant,
-  fullWidth,
   ...rest
 }: FormSelectProps<TForm, TMeta>) {
   const { control } = useFormContext<TForm>();

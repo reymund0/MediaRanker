@@ -41,26 +41,29 @@ export function ReviewCard({
   const isExpanded = ["new", "edit", "detailed-view"].includes(cardState);
 
   useEffect(() => {
-    if (review) {
-      setCurrentReview({
-        id: review.id,
-        mediaId: review.mediaId,
-        templateId: review.templateId,
-        reviewTitle: review.reviewTitle ?? undefined,
-        notes: review.notes ?? undefined,
-        fields: review.fields.sort((a, b) => a.templateFieldPosition - b.templateFieldPosition)
-          .reduce((acc, field) => {
-            acc[field.templateFieldId] = field.value;
-            return acc;
-          }, {} as Record<string, number>)
-      });
-      setMediaTitle(review.mediaTitle);
-      setTemplateFields(review.fields.map(field => ({
-        id: field.templateFieldId,
-        name: field.templateFieldName,
-        position: field.templateFieldPosition
-      })));
+    const loadReview = async () => {
+        if (review) {
+        setCurrentReview({
+          id: review.id,
+          mediaId: review.mediaId,
+          templateId: review.templateId,
+          reviewTitle: review.reviewTitle ?? undefined,
+          notes: review.notes ?? undefined,
+          fields: review.fields.sort((a, b) => a.templateFieldPosition - b.templateFieldPosition)
+            .reduce((acc, field) => {
+              acc[field.templateFieldId] = field.value;
+              return acc;
+            }, {} as Record<string, number>)
+        });
+        setMediaTitle(review.mediaTitle);
+        setTemplateFields(review.fields.map(field => ({
+          id: field.templateFieldId,
+          name: field.templateFieldName,
+          position: field.templateFieldPosition
+        })));
+      }
     }
+    loadReview();
   }, [review]);
 
   return (
@@ -73,6 +76,15 @@ export function ReviewCard({
           borderRadius: 2,
           border: "1px solid",
           borderColor: "divider",
+          ...(cardState === "view"
+            ? {
+                transition: "border-color 160ms ease, border-width 160ms ease",
+                "&:hover": {
+                  borderColor: "primary.main",
+                  borderWidth: "1.5px",
+                },
+              }
+            : {}),
           overflow: "hidden",
           bgcolor: "background.paper",
           flexShrink: 0,

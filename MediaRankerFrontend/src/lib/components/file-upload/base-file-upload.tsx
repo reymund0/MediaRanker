@@ -1,9 +1,8 @@
 import { useState, useRef, ChangeEvent, useEffect } from "react";
-import { Button, CircularProgress, Stack, Typography, ButtonProps, Box, Card, CardMedia } from "@mui/material";
+import { CircularProgress, Stack, Typography, ButtonProps, Box, Card } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import ImageIcon from "@mui/icons-material/Image";
-import { SecondaryButton } from "../inputs/button/secondary-button";
-import { PrimaryButton } from "../inputs/button/primary-button";
+import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 
 export interface BaseFileUploadProps extends Omit<ButtonProps, "onChange"> {
   onGenerateUploadUrl: (file: File) => Promise<{ url: string; uploadId: number }>;
@@ -71,7 +70,7 @@ export function BaseFileUpload({
 
       // 4. Success callback
       onUploadSuccess?.(uploadId);
-    } catch (error: any) {
+    } catch (error: EXPLICIT_ANY) {
       console.error("FileUpload error:", error);
       onUploadError?.(error.message || "An error occurred during upload.");
       // Reset preview on error if it was a new local one

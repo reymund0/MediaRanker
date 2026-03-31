@@ -1,7 +1,6 @@
 "use client";
 
 import { Box, Typography, Rating, RatingProps } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 
 export type BaseStarRankingProps = Omit<RatingProps, 'value' | 'onChange'> & {
   value: number;

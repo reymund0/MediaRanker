@@ -31,9 +31,12 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
   });
 
   useEffect(() => {
-    if (reviewsData) {
-      setReviews(reviewsData);
-    }
+    const loadReviews = async () => {
+      if (reviewsData) {
+        setReviews(reviewsData);
+      }
+    };
+    loadReviews();
   }, [reviewsData]);
 
   const updateScrollState = useCallback(() => {

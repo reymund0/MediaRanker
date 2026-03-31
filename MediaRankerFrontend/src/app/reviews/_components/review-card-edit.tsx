@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Button, Grid, Stack, Typography } from "@mui/material";
+import { Button, Grid, Stack, Typography } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
 import { FormStarRating } from "@/lib/components/inputs/rating/form-star-rating";
