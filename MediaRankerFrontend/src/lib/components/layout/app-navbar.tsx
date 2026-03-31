@@ -70,17 +70,21 @@ export function AppNavbar() {
                 color="inherit"
                 sx={{
                   textTransform: "none",
-                  borderRadius: 1.5,
+                  borderRadius: 0,
                   px: 1.25,
                   py: 0.5,
                   fontSize: "0.95rem",
-                  fontWeight: isActive ? 1000 : 600,
-                  color: isActive ? "secondary.light" : "primary.contrastText",
+                  fontWeight: isActive ? 700 : 600,
+                  color: isActive ? "common.white" : "rgba(248,245,255,0.82)",
+                  borderBottom: "2px solid",
+                  borderBottomColor: isActive
+                    ? "rgba(248,245,255,0.94)"
+                    : "transparent",
                   transition: "background-color 120ms ease, color 120ms ease",
                   "&:hover": {
                     backgroundColor: isActive
-                      ? "action.selected"
-                      : "action.hover",
+                      ? "rgba(248,245,255,0.22)"
+                      : "rgba(248,245,255,0.14)",
                   },
                 }}
               >
