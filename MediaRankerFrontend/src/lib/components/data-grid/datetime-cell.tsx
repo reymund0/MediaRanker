@@ -4,7 +4,7 @@ interface DateTimeCellProps {
   value: Date | null | undefined;
 }
 
-export default function DateTimeCell({ value }: DateTimeCellProps) {
+export function DateTimeCell({ value }: DateTimeCellProps) {
   return (
     <Stack sx={{ lineHeight: 1.1 }}>
       <Typography variant="body2" color="text.secondary">

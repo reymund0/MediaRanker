@@ -15,6 +15,7 @@ import { MediaDto, MediaUpsertRequest } from "./contracts";
 import { MediaTypeDto } from "@/lib/contracts/shared";
 import { buildMediaColumns, MediaRow, mapMediaToRow } from "./grid-utils";
 import { MediaEditModal } from "./media-edit-modal";
+import { PageCard } from "@/lib/components/layout/page-card";
 
 export default function MediaPage() {
   const { showSuccess, showError } = useAlert();
@@ -149,70 +150,66 @@ export default function MediaPage() {
   });
 
   return (
-    <Box sx={{ flex: 1, py: 3, maxWidth: "1200px", width: "100%", mx: "auto" }}>
-      <Card>
-        <CardContent sx={{ p: 3 }}>
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-            sx={{ mb: 2 }}
-          >
-            <Box>
-              <Typography variant="h4" component="h1">
-                Media
-              </Typography>
-              <Typography color="text.secondary">
-                Manage your media catalog.
-              </Typography>
-            </Box>
+    <PageCard sx={{ maxWidth: "1100px" }}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{ mb: 2 }}
+      >
+        <Box>
+          <Typography variant="h4" component="h1">
+            Media
+          </Typography>
+          <Typography color="text.secondary">
+            Manage your media catalog.
+          </Typography>
+        </Box>
 
-            <PrimaryButton startIcon={<AddIcon />} onClick={addMedia}>
-              Add Media
-            </PrimaryButton>
-          </Stack>
+        <PrimaryButton startIcon={<AddIcon />} onClick={addMedia}>
+          Add Media
+        </PrimaryButton>
+      </Stack>
 
-          <Box
-            sx={{
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 2,
-            }}
-          >
-            <BaseDataGrid
-              loading={isMediaLoading || isMediaTypesLoading}
-              error={isMediaError || isMediaTypesError}
-              rows={rows}
-              columns={columns}
-            />
-          </Box>
-            
-          {editingRow ? (
-            <MediaEditModal
-              open={true}
-              row={editingRow}
-              mediaTypes={mediaTypes || []}
-              onSubmit={submitEditing}
-              onCancel={cancelEditing}
-            />
-          ) : null}
+      <Box
+        sx={{
+          border: "1px solid",
+          borderColor: "divider",
+          borderRadius: 2,
+        }}
+      >
+        <BaseDataGrid
+          loading={isMediaLoading || isMediaTypesLoading}
+          error={isMediaError || isMediaTypesError}
+          rows={rows}
+          columns={columns}
+        />
+      </Box>
+        
+      {editingRow ? (
+        <MediaEditModal
+          open={true}
+          row={editingRow}
+          mediaTypes={mediaTypes || []}
+          onSubmit={submitEditing}
+          onCancel={cancelEditing}
+        />
+      ) : null}
 
-          {deleteRowId !== undefined ? (
-            <BaseDialog
-              open={true}
-              onConfirm={() => onDeleteConfirm(deleteRowId)}
-              onClose={() => setDeleteRowId(undefined)}
-              title="Delete Media"
-              confirmLabel="Delete"
-              confirmLoading={false}
-            >
-              {"Are you sure you want to delete " +
-                rows.find((r) => r.id === deleteRowId)?.title +
-                "?"}
-            </BaseDialog>
-          ) : null}
-        </CardContent>
-      </Card>
-    </Box>
+      {deleteRowId !== undefined ? (
+        <BaseDialog
+          open={true}
+          onConfirm={() => onDeleteConfirm(deleteRowId)}
+          onClose={() => setDeleteRowId(undefined)}
+          title="Delete Media"
+          confirmLabel="Delete"
+          confirmLoading={false}
+        >
+          {"Are you sure you want to delete " +
+            rows.find((r) => r.id === deleteRowId)?.title +
+            "?"}
+        </BaseDialog>
+      ) : null}
+    </PageCard>
   );
 }

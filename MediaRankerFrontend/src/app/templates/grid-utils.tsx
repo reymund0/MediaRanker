@@ -4,7 +4,7 @@ import { Chip, IconButton, Stack, Typography } from "@mui/material";
 import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import { format, parseISO } from "date-fns";
 import { TemplateDto, TemplateFieldDto } from "./contracts";
-import DateTimeCell from "@/lib/components/data-grid/datetime-cell";
+import { DateTimeCell } from "@/lib/components/data-grid/datetime-cell";
 
 export type TemplateRow = Omit<
   TemplateDto,
