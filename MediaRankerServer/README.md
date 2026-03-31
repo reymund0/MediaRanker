@@ -8,15 +8,15 @@ ASP.NET Core Web API built as a **Modular Monolith** with feature-based modules,
 |---|---|---|
 | **EF Core + Npgsql** | ORM and PostgreSQL database provider | For a code-first approach to PostgreSQL interactions and support for DI while improving my knowledge of EF Core |
 | **FluentValidation** | Declarative request validation with auto-validation pipeline | Provides a clean and consistent way to validate requests in APIs and services |
-| **MediatR** | In-process domain event publishing and handling between modules | Lightweight dotnet friendly library to implement events without need for an external service |
-| **Serilog** | Structured logging to console and rolling file sinks | Easy to configure and provides structured logging between API flows and background jobs |
+| **MediatR** | In-process domain event publishing and handling between modules | Lightweight .Net friendly library to implement events without the need for an external service |
+| **Serilog** | Structured logging to console and rolling file sinks | Easy to configure and provides structured logging in API flows and background jobs |
 | **AWSSDK.S3** | S3 operations — pre-signed URL generation, object deletion | Industry standard for S3 interactions |
 | **AWSSDK.Extensions.NETCore.Setup** | AWS service registration in the DI container | To simplify configuring AWS services with DI |
 | **JWT Bearer Authentication** | Middleware for validating JWT tokens on API requests | To extract and validate Cognito-issued JWT tokens from requests |
 
 ## Modules
 
-Modules own their own controllers, services, entities, contracts, event handlers, and background jobs. Allowing feature logic to remain self-contained while enabling cross-module communication via service calls and domain events.
+Each module owns its own controllers, services, entities, contracts, event handlers, and background jobs. This allows feature logic to remain self-contained while enabling cross-module communication via service calls and domain events.
 
 ### Templates
 

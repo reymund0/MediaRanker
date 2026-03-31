@@ -11,8 +11,9 @@ A personal media reviewing and ranking web application where users can define th
 - Integration tests against PostgreSQL and AWS flows using Testcontainers, Respawn, and LocalStack.
 
 ## Key Features Implemented
+- Review workflows grouped by media type, including guided creation, template-based scoring, detailed views, and inline editing.
 - Review Template CRUD with ordered scoring fields.
-- Media CRUD with pre-signed S3 upload flow for cover images
+- Media CRUD with pre-signed S3 upload flow for cover images.
 - Cognito based login and server authentication.
 
 ## Future Features and Enhancements
