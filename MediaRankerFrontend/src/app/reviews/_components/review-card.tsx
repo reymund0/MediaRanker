@@ -89,9 +89,9 @@ export function ReviewCard({
         {cardState === "new" && (
           <ReviewCardNewSteps
             mediaTypeId={mediaTypeId}
-            onNewReview={(review, mediaId, templateFields) => {
+            onNewReview={(review, mediaTitle, templateFields) => {
               setCurrentReview(review);
-              setMediaTitle(mediaId);
+              setMediaTitle(mediaTitle);
               setTemplateFields(templateFields);
               setCardState("edit");
             }}

@@ -2,11 +2,12 @@
 // Layout constants
 // ---------------------------------------------------------------------------
 
-export const CARD_WIDTH = 300;
-export const EXPANDED_CARD_WIDTH = 400;
+const EXPANDED_MULTIPLIER = 1.5;
+export const CARD_WIDTH = 200;
+export const EXPANDED_CARD_WIDTH = CARD_WIDTH * EXPANDED_MULTIPLIER;
 export const CARD_GAP = 16;
-export const CARD_HEIGHT = 380;
-export const EXPANDED_CARD_HEIGHT = 450;
+export const CARD_HEIGHT = 280;
+export const EXPANDED_CARD_HEIGHT = CARD_HEIGHT * EXPANDED_MULTIPLIER;
 export const COVER_HEIGHT = Math.round(CARD_HEIGHT * 0.8);
 export const INFO_HEIGHT = CARD_HEIGHT - COVER_HEIGHT;
 

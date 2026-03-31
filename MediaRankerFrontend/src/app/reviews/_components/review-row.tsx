@@ -19,6 +19,7 @@ export interface ReviewRowProps {
 
 export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [hasOverflow, setHasOverflow] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [reviews, setReviews] = useState<ReviewDto[]>([]);
@@ -38,6 +39,7 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
   const updateScrollState = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
+    setHasOverflow(el.scrollWidth > el.clientWidth + 1);
     setCanScrollLeft(el.scrollLeft > 0);
     setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
   }, []);
@@ -110,9 +112,11 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
       </Stack>
 
       <Stack direction="row" alignItems="center" gap={0.5}>
-        <IconButton size="small" onClick={scrollLeft} disabled={!canScrollLeft}>
-          <ArrowBackIosNewIcon fontSize="small" />
-        </IconButton>
+        {hasOverflow ? (
+          <IconButton size="small" onClick={scrollLeft} disabled={!canScrollLeft}>
+            <ArrowBackIosNewIcon fontSize="small" />
+          </IconButton>
+        ) : null}
 
         <Box
           ref={scrollRef}
@@ -166,9 +170,11 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
           )}
         </Box>
 
-        <IconButton size="small" onClick={scrollRight} disabled={!canScrollRight}>
-          <ArrowForwardIosIcon fontSize="small" />
-        </IconButton>
+        {hasOverflow ? (
+          <IconButton size="small" onClick={scrollRight} disabled={!canScrollRight}>
+            <ArrowForwardIosIcon fontSize="small" />
+          </IconButton>
+        ) : null}
       </Stack>
     </Stack>
   );

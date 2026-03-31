@@ -3,7 +3,7 @@
 import { Button, Stack, Typography } from "@mui/material";
 import { BaseAutocomplete } from "@/lib/components/inputs/autocomplete/base-autocomplete";
 import { BaseSelect } from "@/lib/components/inputs/select/base-select";
-import { TemplateDto, TemplateFieldDto } from "@/lib/contracts/shared";
+import { TemplateDto } from "@/lib/contracts/shared";
 import { UnreviewedMediaDto } from "../contracts";
 import { useQuery } from "@/lib/api/use-query";
 import { useState } from "react";
@@ -14,7 +14,7 @@ import { TemplateFieldDisplay } from "./review-card-edit";
 
 type ReviewCardNewStepsProps = {
   mediaTypeId: number;
-  onNewReview: (review: ReviewFormValues, mediaTitle: string, tempalteFields: TemplateFieldDisplay[]) => void;
+  onNewReview: (review: ReviewFormValues, mediaTitle: string, templateFields: TemplateFieldDisplay[]) => void;
   onCancel: () => void;
 };
 
@@ -25,16 +25,12 @@ export function ReviewCardNewSteps({
   onCancel,
   onNewReview,
 }: ReviewCardNewStepsProps) {
+  const { userId } = useUser();
 
-  console.log("ReviewCardNewSteps rendered")
-  console.log("mediaTypeId", mediaTypeId)
+  const [selectedUnreviewedMediaId, setSelectedUnreviewedMediaId] =
+    useState<number | undefined>(undefined);
 
-  const {userId} = useUser();
-
-  const [selectedUnreviewedMediaId, setSelectedUnreviewedMediaId] = useState<number | undefined>(undefined);
-  
   const [currentStep, setCurrentStep] = useState<NewReviewStep>("select-media");
-
 
   const { data: unreviewedMedia, isLoading: unreviewedLoading } = useQuery<UnreviewedMediaDto[]>({
     route: `/api/reviews/unreviewedByType?mediaTypeId=${mediaTypeId ?? 0}`,
