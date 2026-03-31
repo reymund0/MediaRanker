@@ -10,11 +10,9 @@ type NavLink = {
 };
 
 const NAV_LINKS: NavLink[] = [
-  { label: "Home", href: "/home" },
   { label: "Media", href: "/media" },
   { label: "Templates", href: "/templates" },
   { label: "Reviews", href: "/reviews" },
-  { label: "Test", href: "/test" },
 ];
 
 export function AppNavbar() {
@@ -23,31 +21,42 @@ export function AppNavbar() {
   return (
     <AppBar position="static" elevation={0}>
       <Toolbar
+        disableGutters
         sx={{
-          minHeight: 52,
-          px: 2,
+          minHeight: 46,
+          width: "100%",
+          maxWidth: 1400,
+          mx: "auto",
           display: "grid",
-          gridTemplateColumns: "auto 1fr 48px",
+          gridTemplateColumns: "1fr auto 1fr",
           alignItems: "center",
           columnGap: 1,
         }}
       >
-        <Typography
-          variant="h6"
-          component="span"
+        <Box
           sx={{
-            fontWeight: 700,
-            color: "primary.contrastText",
-            whiteSpace: "nowrap",
+            display: "flex",
+            justifySelf: "start",
           }}
         >
-          Media Ranker
-        </Typography>
+          <Typography
+            variant="h4"
+            component="span"
+            sx={{
+              fontWeight: 700,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Media Ranker
+          </Typography>
+        </Box>
 
         <Box
           sx={{
             display: "flex",
+            alignItems: "center",
             justifyContent: "center",
+            flexWrap: "wrap",
             gap: 2,
           }}
         >
@@ -61,17 +70,21 @@ export function AppNavbar() {
                 color="inherit"
                 sx={{
                   textTransform: "none",
-                  borderRadius: 1.5,
-                  px: 2.5,
-                  py: 1,
-                  fontSize: "1.2rem",
+                  borderRadius: 0,
+                  px: 1.25,
+                  py: 0.5,
+                  fontSize: "0.95rem",
                   fontWeight: isActive ? 700 : 600,
-                  color: isActive ? "secondary.light" : "primary.contrastText",
+                  color: isActive ? "common.white" : "rgba(248,245,255,0.82)",
+                  borderBottom: "2px solid",
+                  borderBottomColor: isActive
+                    ? "rgba(248,245,255,0.94)"
+                    : "transparent",
                   transition: "background-color 120ms ease, color 120ms ease",
                   "&:hover": {
                     backgroundColor: isActive
-                      ? "action.selected"
-                      : "action.hover",
+                      ? "rgba(248,245,255,0.22)"
+                      : "rgba(248,245,255,0.14)",
                   },
                 }}
               >
@@ -81,7 +94,9 @@ export function AppNavbar() {
           })}
         </Box>
 
-        <UserDropdown />
+        <Box sx={{ justifySelf: "end" }}>
+          <UserDropdown />
+        </Box>
       </Toolbar>
     </AppBar>
   );

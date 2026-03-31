@@ -1,11 +1,12 @@
 "use client";
 
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
-import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import Logout from "@mui/icons-material/Logout";
 import { handleSignOut } from "@/app/auth/helpers";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import {
   Box,
+  Divider,
   IconButton,
   ListItemIcon,
   ListItemText,
@@ -14,9 +15,11 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { MouseEvent, useState } from "react";
+import { useUser } from "@/lib/auth/user-provider";
 
 export function UserDropdown() {
   const router = useRouter();
+  const { username } = useUser();
   const { showError, closeAlert } = useAlert();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -28,11 +31,6 @@ export function UserDropdown() {
 
   const onCloseMenu = () => {
     setAnchorEl(null);
-  };
-
-  const onGoToSettings = () => {
-    onCloseMenu();
-    router.push("/settings");
   };
 
   const onLogout = async () => {
@@ -75,15 +73,15 @@ export function UserDropdown() {
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <MenuItem onClick={onGoToSettings}>
-          <ListItemIcon>
-            <SettingsOutlinedIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Settings</ListItemText>
-        </MenuItem>
-
+        <ListItemText sx={{ display: "flex", justifyContent: "center" }}>
+          Hi, {username}!
+        </ListItemText>
+        <Divider />
         <MenuItem onClick={onLogout}>
-          <ListItemText inset>Logout</ListItemText>
+          <ListItemIcon sx={{ minWidth: 36 }}>
+            <Logout fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Logout</ListItemText>
         </MenuItem>
       </Menu>
     </Box>

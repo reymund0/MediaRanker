@@ -10,9 +10,17 @@ type ReviewCardDetailViewProps = {
   onEdit: () => void;
 };
 
-export function ReviewCardDetailView({ review, onBack, onEdit }: ReviewCardDetailViewProps) {
+export function ReviewCardDetailView({
+  review,
+  onBack,
+  onEdit,
+}: ReviewCardDetailViewProps) {
   return (
-    <Stack direction="column" sx={{ height: "100%", p: 1.5, overflow: "auto" }} gap={1.5}>
+    <Stack
+      direction="column"
+      sx={{ height: "100%", p: 1.5, overflow: "auto" }}
+      gap={1.5}
+    >
       <Typography variant="subtitle1" fontWeight={600} noWrap>
         {review.mediaTitle}
       </Typography>

@@ -1,3 +1,4 @@
+import AddIcon from "@mui/icons-material/Add";
 import { Box, Stack, Typography } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -50,10 +51,13 @@ export function TemplateEditModal({
       mediaTypeId: row.mediaType.id,
       name: row.name,
       description: row.description || undefined,
-      fields: row.fields.map((templateField) => ({
-        id: templateField.id,
-        name: templateField.name,
-      })),
+      fields:
+        row.fields.length == 0
+          ? [{ id: undefined, name: "" }]
+          : row.fields.map((templateField) => ({
+              id: templateField.id,
+              name: templateField.name,
+            })),
     },
     mode: "onChange",
   });
@@ -95,10 +99,20 @@ export function TemplateEditModal({
       methods={methods}
     >
       <Stack spacing={2} sx={{ mt: 1 }}>
-        <FormTextField<TemplateEditFormValues>
-          name="name"
-          label="Template name"
-        />
+        <Stack direction="row" spacing={2}>
+          <FormTextField<TemplateEditFormValues>
+            name="name"
+            label="Template name"
+          />
+          <FormSelect<TemplateEditFormValues>
+            name="mediaTypeId"
+            label="Media type"
+            options={mediaTypes.map((mediaType) => ({
+              id: mediaType.id,
+              label: mediaType.name,
+            }))}
+          />
+        </Stack>
         <FormTextField<TemplateEditFormValues>
           name="description"
           label="Template description"
@@ -106,20 +120,13 @@ export function TemplateEditModal({
           minRows={2}
         />
 
-        <FormSelect<TemplateEditFormValues>
-          name="mediaTypeId"
-          label="Media type"
-          items={mediaTypes.map((mediaType) => ({
-            id: mediaType.id,
-            label: mediaType.name,
-          }))}
-        />
-
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="subtitle1">
             Template Fields (drag to reorder)
           </Typography>
-          <PrimaryButton onClick={handleAddField}>Add Field</PrimaryButton>
+          <PrimaryButton onClick={handleAddField} startIcon={<AddIcon />}>
+            Add Field
+          </PrimaryButton>
         </Box>
 
         <FormDnDList

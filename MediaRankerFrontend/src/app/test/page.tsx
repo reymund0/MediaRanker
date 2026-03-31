@@ -57,15 +57,17 @@ export default function Test() {
   return (
     <Box sx={{ p: 4, display: "flex", flexDirection: "column", gap: 4 }}>
       <Typography variant="h4">Test Page</Typography>
-      
+
       <Stack spacing={2} direction="column">
-        <Typography variant="h6" sx={{ mb: 2 }}>Ranking Component Demo</Typography>
-        
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          Ranking Component Demo
+        </Typography>
+
         <Box sx={{ display: "flex", flexDirection: "column", width: "10%" }}>
-          <BaseStarRating 
-            label="Media Rating" 
-            value={rating} 
-            onChange={setRating} 
+          <BaseStarRating
+            label="Media Rating"
+            value={rating}
+            onChange={setRating}
           />
         </Box>
         <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
@@ -76,22 +78,26 @@ export default function Test() {
       <Divider />
 
       <Box>
-        <Typography variant="h6" sx={{ mb: 2 }}>API Test Actions</Typography>
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          API Test Actions
+        </Typography>
         <Typography variant="body2" sx={{ mb: 2 }}>
           Signed in as{" "}
           {userContext.username
             ? `(${userContext.username})`
             : "(not authenticated)"}
         </Typography>
-        
+
         <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
           <PrimaryButton
-            onClick={() => callEndpoint(helloWorldMutation, "/api/test/helloWorld")}
+            onClick={() =>
+              callEndpoint(helloWorldMutation, "/api/test/helloWorld")
+            }
             disabled={helloWorldMutation.isPending}
           >
             Call Hello World
           </PrimaryButton>
-          
+
           <PrimaryButton
             onClick={() =>
               callEndpoint(domainErrorMutation, "/api/test/domainError")
@@ -100,7 +106,7 @@ export default function Test() {
           >
             Trigger Domain Error
           </PrimaryButton>
-          
+
           <PrimaryButton
             onClick={() =>
               callEndpoint(unexpectedErrorMutation, "/api/test/unexpectedError")

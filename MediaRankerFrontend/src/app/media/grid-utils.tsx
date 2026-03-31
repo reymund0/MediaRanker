@@ -5,6 +5,7 @@ import { Chip, IconButton, Stack, Typography, Box } from "@mui/material";
 import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import { format, parseISO } from "date-fns";
 import { MediaDto } from "./contracts";
+import { DateTimeCell } from "@/lib/components/data-grid/datetime-cell";
 
 export type MediaRow = Omit<
   MediaDto,
@@ -39,20 +40,33 @@ export function buildMediaColumns({
       width: 90,
       sortable: false,
       disableColumnMenu: true,
-      renderCell: (params: GridRenderCellParams<MediaRow, string | undefined>) => (
-        <Box>
+      renderCell: (
+        params: GridRenderCellParams<MediaRow, string | undefined>,
+      ) => (
+        <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
           {params.value ? (
             <Box
               component="img"
               src={params.value}
               sx={{
-                width: "100%",
-                maxHeight: 100,
-                objectFit: "scale-down",
+                width: 44,
+                height: 64,
+                borderRadius: 1,
+                objectFit: "cover",
+                display: "block",
               }}
             />
           ) : (
-            <ImageIcon sx={{ width: "100%", height: "100%", maxHeight: 100, color: "text.disabled" }} />
+            <ImageIcon
+              sx={{
+                width: 44,
+                height: 64,
+                borderRadius: 1,
+                objectFit: "cover",
+                display: "block",
+                color: "text.disabled",
+              }}
+            />
           )}
         </Box>
       ),
@@ -60,7 +74,7 @@ export function buildMediaColumns({
     {
       field: "title",
       headerName: "Title",
-      flex: 3,
+      flex: 2,
       renderCell: (params: GridRenderCellParams<MediaRow, string>) => (
         <Stack
           direction="row"
@@ -94,9 +108,7 @@ export function buildMediaColumns({
       type: "dateTime",
       flex: 1,
       renderCell: (params: GridRenderCellParams<MediaRow, Date | null>) => (
-        <Typography color="text.secondary">
-          {params.value ? format(params.value, "PPp") : "-"}
-        </Typography>
+        <DateTimeCell value={params.value} />
       ),
     },
     {

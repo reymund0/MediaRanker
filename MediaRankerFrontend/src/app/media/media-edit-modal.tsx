@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Box, Stack } from "@mui/material";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { FormDialog } from "@/lib/components/feedback/dialog/form-dialog";
 import { FormSelect } from "@/lib/components/inputs/select/form-select";
@@ -102,34 +102,38 @@ export function MediaEditModal({
   return (
     <FormDialog<MediaEditFormValues>
       open={open}
-      title="Edit Media"
+      title={`${row.id ? "Edit" : "Add"} Media`}
       onSubmit={handleSubmit(onSubmitClick)}
       onCancel={onCancel}
       methods={methods}
     >
       <Stack spacing={2} sx={{ mt: 1 }}>
         <FormTextField<MediaEditFormValues> name="title" label="Title" />
-        <FormSelect<MediaEditFormValues>
-          name="mediaTypeId"
-          label="Media type"
-          options={mediaTypes.map((mediaType) => ({
-            id: mediaType.id,
-            label: mediaType.name,
-          }))}
-        />
-        <FormDatePicker<MediaEditFormValues>
-          name="releaseDate"
-          label="Release date"
-          disableFuture
-        />
+        <Stack direction="row" spacing={2}>
+          <FormDatePicker<MediaEditFormValues>
+            name="releaseDate"
+            label="Release date"
+            disableFuture
+          />
+          <FormSelect<MediaEditFormValues>
+            name="mediaTypeId"
+            label="Media type"
+            options={mediaTypes.map((mediaType) => ({
+              id: mediaType.id,
+              label: mediaType.name,
+            }))}
+          />
+        </Stack>
         <Box sx={{ display: "flex", justifyContent: "center" }}>
           <FormFileUpload<MediaEditFormValues>
             name="coverUploadId"
-            label="Upload Cover Image"
+            label={`Upload ${row.coverImageUrl ? "New" : ""} Cover`}
             initialPreviewUrl={row.coverImageUrl}
             onGenerateUploadUrl={handleGenerateUploadUrl}
             onCompleteUpload={handleCompleteUpload}
-            onUploadSuccess={() => showSuccess("Cover image uploaded successfully")}
+            onUploadSuccess={() =>
+              showSuccess("Cover image uploaded successfully")
+            }
             onUploadError={onUploadError}
             previewSx={{ maxHeight: 200 }}
           />

@@ -1,16 +1,14 @@
 "use client";
 
 import { Box, Typography, Rating, RatingProps } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 
-export type BaseStarRankingProps = Omit<RatingProps, 'value' | 'onChange'> & {
+export type BaseStarRankingProps = Omit<RatingProps, "value" | "onChange"> & {
   value: number;
   onChange: (value: number) => void;
   label?: string;
   disabled?: boolean;
   errorMessage?: string;
-}
-
+};
 
 export const BaseStarRating = ({
   value,
@@ -21,7 +19,14 @@ export const BaseStarRating = ({
   ...props
 }: BaseStarRankingProps) => {
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, alignItems: "center" }}> 
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 0.5,
+        alignItems: "center",
+      }}
+    >
       {label && (
         <Typography variant="caption" color="text.secondary" textAlign="center">
           {label}

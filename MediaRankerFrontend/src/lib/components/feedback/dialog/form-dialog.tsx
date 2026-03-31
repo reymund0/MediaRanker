@@ -5,15 +5,18 @@ import {
   UseFormReturn,
   useFormState,
 } from "react-hook-form";
-import { BaseDialog } from "./base-dialog";
+import { BaseDialog, BaseDialogProps } from "./base-dialog";
 
-export type FormDialogProps<T extends FieldValues> = {
+export interface FormDialogProps<T extends FieldValues> extends Omit<
+  BaseDialogProps,
+  "onConfirm" | "onClose"
+> {
   open: boolean;
   title: string;
   onCancel: () => void;
   onSubmit: () => void;
   methods: UseFormReturn<T>;
-};
+}
 
 export function FormDialog<T extends FieldValues>({
   open,
@@ -22,6 +25,7 @@ export function FormDialog<T extends FieldValues>({
   onSubmit,
   methods,
   children,
+  ...props
 }: FormDialogProps<T> & { children: ReactNode }) {
   const { control } = methods;
   const { isSubmitting, isValid, isDirty } = useFormState({ control });
@@ -35,6 +39,7 @@ export function FormDialog<T extends FieldValues>({
         confirmDisabled={!isValid || !isDirty}
         confirmLabel="Submit"
         confirmLoading={isSubmitting}
+        {...props}
       >
         {children}
       </BaseDialog>

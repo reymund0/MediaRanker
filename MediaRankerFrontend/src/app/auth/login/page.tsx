@@ -39,7 +39,7 @@ export default function Login() {
     if (result.success) {
       showSuccess("Login successful! Redirecting to home...");
       setTimeout(() => {
-        router.push("/home");
+        router.push("/reviews");
       }, 2000);
     } else {
       showError(result.error || "Login failed");

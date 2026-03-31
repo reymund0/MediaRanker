@@ -1,12 +1,16 @@
 "use client";
 
 import AddIcon from "@mui/icons-material/Add";
-import { Box, Card, CardContent, Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { GridColDef } from "@mui/x-data-grid";
 import { useEffect, useMemo, useState } from "react";
 import { BaseDataGrid } from "@/lib/components/data-grid/base-data-grid";
 import { TemplateEditModal } from "./template-edit-modal";
-import { buildTemplateColumns, mapTemplateToRow, TemplateRow } from "./grid-utils";
+import {
+  buildTemplateColumns,
+  mapTemplateToRow,
+  TemplateRow,
+} from "./grid-utils";
 import { TemplateDto, TemplateUpsertRequest } from "./contracts";
 import { MediaTypeDto } from "@/lib/contracts/shared";
 import { useQuery } from "@/lib/api/use-query";
@@ -15,6 +19,7 @@ import { useMutation } from "@/lib/api/use-mutation";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { BaseDialog } from "@/lib/components/feedback/dialog/base-dialog";
+import { PageCard } from "@/lib/components/layout/page-card";
 
 export default function TemplatesPage() {
   const { showSuccess, showError } = useAlert();
@@ -154,69 +159,64 @@ export default function TemplatesPage() {
   });
 
   return (
-    <Box sx={{ flex: 1, px: 3, py: 3 }}>
-      <Card>
-        <CardContent sx={{ p: 3 }}>
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-            sx={{ mb: 2 }}
-          >
-            <Box>
-              <Typography variant="h4" component="h1">
-                Templates
-              </Typography>
-              <Typography color="text.secondary">
-                Manage your custom templates and reorder template fields.
-              </Typography>
-            </Box>
+    <PageCard>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{ mb: 2 }}
+      >
+        <Box>
+          <Typography variant="h4" component="h1">
+            Templates
+          </Typography>
+          <Typography color="text.secondary">
+            Manage your custom templates and reorder template fields.
+          </Typography>
+        </Box>
 
-            <PrimaryButton startIcon={<AddIcon />} onClick={addTemplate}>
-              Add Template
-            </PrimaryButton>
-          </Stack>
+        <PrimaryButton startIcon={<AddIcon />} onClick={addTemplate}>
+          Add Template
+        </PrimaryButton>
+      </Stack>
 
-          <Box
-            sx={{
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 2,
-              overflow: "hidden",
-            }}
-          >
-            <BaseDataGrid
-              loading={isTemplatesLoading || isMediaTypesLoading}
-              error={isTemplatesError || isMediaTypesError}
-              rows={rows}
-              columns={columns}
-            />
-          </Box>
-          {editingRow && (
-            <TemplateEditModal
-              open={true}
-              row={editingRow}
-              onSubmit={submitEditing}
-              onCancel={cancelEditing}
-              mediaTypes={mediaTypes || []}
-            />
-          )}
-          {deleteRowId && (
-            <BaseDialog
-              open={true}
-              onConfirm={() => onDeleteConfirm(deleteRowId)}
-              onClose={() => setDeleteRowId(undefined)}
-              title="Delete Template"
-              confirmLabel="Delete"
-              confirmLoading={false}
-            >
-              {"Are you sure you want to delete " +
-                rows.find((r) => r.id === deleteRowId)?.name +
-                " template?"}
-            </BaseDialog>
-          )}
-        </CardContent>
-      </Card>
-    </Box>
+      <Box
+        sx={{
+          border: "1px solid",
+          borderColor: "divider",
+          borderRadius: 2,
+        }}
+      >
+        <BaseDataGrid
+          loading={isTemplatesLoading || isMediaTypesLoading}
+          error={isTemplatesError || isMediaTypesError}
+          rows={rows}
+          columns={columns}
+        />
+      </Box>
+      {editingRow && (
+        <TemplateEditModal
+          open={true}
+          row={editingRow}
+          onSubmit={submitEditing}
+          onCancel={cancelEditing}
+          mediaTypes={mediaTypes || []}
+        />
+      )}
+      {deleteRowId && (
+        <BaseDialog
+          open={true}
+          onConfirm={() => onDeleteConfirm(deleteRowId)}
+          onClose={() => setDeleteRowId(undefined)}
+          title="Delete Template"
+          confirmLabel="Delete"
+          confirmLoading={false}
+        >
+          {"Are you sure you want to delete " +
+            rows.find((r) => r.id === deleteRowId)?.name +
+            " template?"}
+        </BaseDialog>
+      )}
+    </PageCard>
   );
 }

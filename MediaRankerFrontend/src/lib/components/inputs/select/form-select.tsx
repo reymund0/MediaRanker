@@ -11,8 +11,6 @@ export function FormSelect<TForm extends FieldValues, TMeta = unknown>({
   name,
   options,
   label,
-  variant,
-  fullWidth,
   ...rest
 }: FormSelectProps<TForm, TMeta>) {
   const { control } = useFormContext<TForm>();
@@ -21,12 +19,12 @@ export function FormSelect<TForm extends FieldValues, TMeta = unknown>({
       name={name}
       control={control}
       render={({ field, fieldState }) => (
-        <BaseSelect<TMeta> 
-          {...rest} 
-          {...field} 
-          options={options} 
-          label={label} 
-          errorMessage={fieldState.error?.message} 
+        <BaseSelect<TMeta>
+          {...rest}
+          {...field}
+          options={options}
+          label={label}
+          errorMessage={fieldState.error?.message}
         />
       )}
     />

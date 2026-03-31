@@ -1,4 +1,11 @@
-import { Autocomplete, CircularProgress, ListItem, TextField, TextFieldProps, Typography } from "@mui/material";
+import {
+  Autocomplete,
+  CircularProgress,
+  ListItem,
+  TextField,
+  TextFieldProps,
+  Typography,
+} from "@mui/material";
 import { BaseSelectOption } from "../select/base-select";
 
 export type BaseAutocompleteProps<T = unknown> = {
@@ -8,12 +15,12 @@ export type BaseAutocompleteProps<T = unknown> = {
   onSelectOption?: (option: BaseSelectOption<T> | null) => void;
 } & TextFieldProps;
 
-export function BaseAutocomplete<T = unknown>({ 
-  options, 
-  isLoading, 
+export function BaseAutocomplete<T = unknown>({
+  options,
+  isLoading,
   renderOptionContent,
   onSelectOption,
-  ...props 
+  ...props
 }: BaseAutocompleteProps<T>) {
   return (
     <Autocomplete<BaseSelectOption<T>>
@@ -21,7 +28,13 @@ export function BaseAutocomplete<T = unknown>({
       options={options}
       getOptionLabel={(option) => option.label}
       onChange={(_e, value) => onSelectOption?.(value)}
-      renderInput={(params) => <TextField {...params} {...props} label={isLoading ? undefined : props.label} />}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          {...props}
+          label={isLoading ? undefined : props.label}
+        />
+      )}
       disabled={isLoading || props.disabled}
       popupIcon={isLoading ? <CircularProgress size={20} /> : undefined}
       renderOption={(optionProps, option) => {

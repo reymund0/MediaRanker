@@ -1,27 +1,46 @@
-import { useFormContext, Controller, FieldValues } from "react-hook-form";
+import {
+  useFormContext,
+  Controller,
+  FieldValues,
+  Path,
+  PathValue,
+} from "react-hook-form";
 import { BaseFileUpload, BaseFileUploadProps } from "./base-file-upload";
 
-export interface FormFileUploadProps<TFieldValues extends FieldValues = FieldValues> extends BaseFileUploadProps {
-  name: keyof TFieldValues & string;
+export interface FormFileUploadProps<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends Path<TFieldValues> = Path<TFieldValues>,
+> extends BaseFileUploadProps {
+  name: TName;
 }
 
-export function FormFileUpload<TFieldValues extends FieldValues = FieldValues>({ name, ...props }: FormFileUploadProps<TFieldValues>) {
+export function FormFileUpload<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends Path<TFieldValues> = Path<TFieldValues>,
+>({
+  name,
+  initialPreviewUrl,
+  ...props
+}: FormFileUploadProps<TFieldValues, TName>) {
   const { control, setValue } = useFormContext<TFieldValues>();
 
   return (
     <Controller
-      name={name as any}
+      name={name}
       control={control}
       render={({ field }) => (
         <BaseFileUpload
           {...props}
-          initialPreviewUrl={field.value}
+          initialPreviewUrl={
+            initialPreviewUrl ??
+            (typeof field.value === "string" ? field.value : undefined)
+          }
           onUploadSuccess={(uploadId) => {
             // Update form state with the uploadId
-            setValue(name as any, uploadId as any, { 
-              shouldValidate: true, 
-              shouldDirty: true, 
-              shouldTouch: true 
+            setValue(name, uploadId as PathValue<TFieldValues, TName>, {
+              shouldValidate: true,
+              shouldDirty: true,
+              shouldTouch: true,
             });
             // Call original callback if provided
             props.onUploadSuccess?.(uploadId);

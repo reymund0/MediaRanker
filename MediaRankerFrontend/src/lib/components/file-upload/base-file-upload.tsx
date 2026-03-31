@@ -1,12 +1,20 @@
 import { useState, useRef, ChangeEvent, useEffect } from "react";
-import { Button, CircularProgress, Stack, Typography, ButtonProps, Box, Card, CardMedia } from "@mui/material";
+import {
+  CircularProgress,
+  Stack,
+  Typography,
+  ButtonProps,
+  Box,
+  Card,
+} from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import ImageIcon from "@mui/icons-material/Image";
-import { SecondaryButton } from "../inputs/button/secondary-button";
-import { PrimaryButton } from "../inputs/button/primary-button";
+import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 
 export interface BaseFileUploadProps extends Omit<ButtonProps, "onChange"> {
-  onGenerateUploadUrl: (file: File) => Promise<{ url: string; uploadId: number }>;
+  onGenerateUploadUrl: (
+    file: File,
+  ) => Promise<{ url: string; uploadId: number }>;
   onCompleteUpload: (uploadId: number) => Promise<void>;
   onUploadSuccess?: (uploadId: number) => void;
   onUploadError?: (message: string) => void;
@@ -29,7 +37,9 @@ export function BaseFileUpload({
   ...buttonProps
 }: BaseFileUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(initialPreviewUrl || null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(
+    initialPreviewUrl || null,
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -71,9 +81,10 @@ export function BaseFileUpload({
 
       // 4. Success callback
       onUploadSuccess?.(uploadId);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "An error occurred during upload.";
       console.error("FileUpload error:", error);
-      onUploadError?.(error.message || "An error occurred during upload.");
+      onUploadError?.(errorMessage);
       // Reset preview on error if it was a new local one
       if (previewUrl && previewUrl.startsWith("blob:")) {
         setPreviewUrl(initialPreviewUrl || null);
@@ -90,49 +101,58 @@ export function BaseFileUpload({
   return (
     <Stack spacing={2} alignItems="center">
       {previewUrl ? (
-          <Box
-            component="img"
-            src={previewUrl}
+        <Box
+          component="img"
+          src={previewUrl}
+          sx={{
+            width: "100%",
+            height: "100%",
+            objectFit: "scale-down",
+            ...previewSx,
+          }}
+        />
+      ) : (
+        <Card
+          variant="outlined"
+          sx={{
+            width: "100%",
+            height: "100%",
+            ...previewSx,
+          }}
+        >
+          <Stack
+            alignItems="center"
+            spacing={1}
             sx={{
               width: "100%",
               height: "100%",
-              objectFit: "scale-down",
-              ...previewSx,
-            }}
-          />
-        ) : (
-          <Card
-            variant="outlined"
-            sx={{
-              width: "100%",
-              height: "100%",
-              ...previewSx,
+              my: 5,
+              color: "text.disabled",
             }}
           >
-            <Stack alignItems="center" spacing={1} sx={{ width: "100%", height: "100%", my: 5, color: "text.disabled" }}>
-                <ImageIcon sx={{ fontSize: 48 }} />
-                <Typography variant="caption">No image selected</Typography>
-              </Stack>
-            </Card>
-        )}
-        {isUploading && (
-          <Box
-            sx={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              bgcolor: "rgba(0, 0, 0, 0.5)",
-              zIndex: 1,
-            }}
-          >
-            <CircularProgress color="primary" />
-          </Box>
-        )}
+            <ImageIcon sx={{ fontSize: 48 }} />
+            <Typography variant="caption">No image selected</Typography>
+          </Stack>
+        </Card>
+      )}
+      {isUploading && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            bgcolor: "rgba(0, 0, 0, 0.5)",
+            zIndex: 1,
+          }}
+        >
+          <CircularProgress color="primary" />
+        </Box>
+      )}
 
       <Stack direction="row" alignItems="center" spacing={2}>
         <PrimaryButton
@@ -155,4 +175,3 @@ export function BaseFileUpload({
     </Stack>
   );
 }
-
