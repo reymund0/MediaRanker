@@ -52,7 +52,7 @@ export default function TemplatesPage() {
   } = useQuery<TemplateDto[]>({
     route: "/api/templates",
     queryKey: ["templates"],
-    enabled: !!userId,
+    enabled: !!userId && !editingRow,
   });
 
   useEffect(() => {

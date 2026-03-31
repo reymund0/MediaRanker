@@ -9,12 +9,27 @@ A personal media reviewing and ranking web application where users can define th
 - Direct browser uploads to S3 for media cover images.
 - ProblemDetails based API responses for consistent error handling.
 - Integration tests against PostgreSQL and AWS flows using Testcontainers, Respawn, and LocalStack.
+- Maintained architecture and API-adjacent documentation to improve repository consistency and AI-assisted development workflows.
 
 ## Key Features Implemented
 - Review workflows grouped by media type, including guided creation, template-based scoring, detailed views, and inline editing.
 - Review Template CRUD with ordered scoring fields.
 - Media CRUD with pre-signed S3 upload flow for cover images.
 - Cognito based login and server authentication.
+
+## Screenshots
+
+### Review Create Flow
+
+![Review Create Flow](docs/images/review-create-flow.gif)
+
+### Template Field Drag and Drop
+
+![Template Field Drag and Drop](docs/images/template-field-dnd.gif)
+
+### Media Upload Cover
+
+![Media Upload Cover](docs/images/media-upload-cover.gif)
 
 ## Future Features and Enhancements
 - A personalized dashboard displaying a user's top reviews, media to revisit, and recommendations. 

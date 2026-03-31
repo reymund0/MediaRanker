@@ -122,11 +122,11 @@ export function BaseFileUpload({
         >
           <Stack
             alignItems="center"
+            justifyContent="center"
             spacing={1}
             sx={{
               width: "100%",
               height: "100%",
-              my: 5,
               color: "text.disabled",
             }}
           >

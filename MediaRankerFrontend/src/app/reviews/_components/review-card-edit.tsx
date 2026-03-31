@@ -117,7 +117,12 @@ export function ReviewCardEdit({
         gap={1.5}
         onSubmit={methods.handleSubmit(isNew ? handleInsert : handleUpdate)}
       >
-        <Typography variant="subtitle1">{mediaTitle}</Typography>
+        <Typography
+          variant="subtitle1"
+          sx={{ pr: 4.5, overflowWrap: "anywhere" }}
+        >
+          {mediaTitle}
+        </Typography>
         <FormTextField<ReviewFormValues>
           name="reviewTitle"
           label="Review title"

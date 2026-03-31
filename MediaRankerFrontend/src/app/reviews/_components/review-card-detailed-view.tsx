@@ -21,7 +21,11 @@ export function ReviewCardDetailView({
       sx={{ height: "100%", p: 1.5, overflow: "auto" }}
       gap={1.5}
     >
-      <Typography variant="subtitle1" fontWeight={600} noWrap>
+      <Typography
+        variant="subtitle1"
+        fontWeight={600}
+        sx={{ pr: 4.5, overflowWrap: "anywhere" }}
+      >
         {review.mediaTitle}
       </Typography>
       {review.reviewTitle && (

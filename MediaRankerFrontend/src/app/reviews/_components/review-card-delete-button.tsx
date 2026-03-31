@@ -18,8 +18,8 @@ interface ReviewCardDeleteButtonProps {
 
 const cornerButtonSx = {
   position: "absolute",
-  top: 6,
-  right: 6,
+  top: 8,
+  right: 8,
   zIndex: 1,
   color: "error.main",
 } as const;
