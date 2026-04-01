@@ -5,7 +5,7 @@ trigger: always_on
 # MediaRanker — AI Editor Context (Core)
 
 This is the always-on, high-signal guidance for AI edits in this repository.
-Use optional docs under `docs/ai/` for deeper details.
+Use optional docs under `docs/conventions/` for deeper details.
 
 ---
 
@@ -27,7 +27,7 @@ Use optional docs under `docs/ai/` for deeper details.
   - `MediaRankerServer.IntegrationTests/` — PostgreSQL-backed endpoint tests (Testcontainers)
   - `MediaRankerServer.UnitTests/` — Isolated logic tests (Moq)
 - `.windsurf/rules/media-ranker.md` — this core AI context file
-- `docs/ai/` — optional, non-always-on AI reference docs
+- `docs/conventions/` — optional, non-always-on AI reference docs
 
 Do not edit build artifacts:
 - `MediaRankerFrontend/.next/`
@@ -89,7 +89,7 @@ Do not edit build artifacts:
 
 - Theme is centralized and currently dark mode.
 - Prefer theme tokens over one-off hardcoded colors.
-- Custom components follow a Base/Form pattern (MUI-based wrappers): create/extend Base components for shared behavior and Form variants for controlled form usage. See `docs/ai/frontend-conventions.md` for more details.
+- Custom components follow a Base/Form pattern (MUI-based wrappers): create/extend Base components for shared behavior and Form variants for controlled form usage. See `docs/conventions/frontend-conventions.md` for more details.
 - Navbar behavior:
   - Hide on `/auth/*`
   - Show on non-auth routes
@@ -113,8 +113,8 @@ Do not edit build artifacts:
 
 Use these when a task needs deeper context:
 
-- `docs/ai/backend-testing.md`
-- `docs/ai/backend-seeding.md`
-- `docs/ai/backend-conventions.md`
-- `docs/ai/frontend-conventions.md`
-- `docs/ai/dev-commands.md`
+- `docs/conventions/backend-testing.md`
+- `docs/conventions/backend-seeding.md`
+- `docs/conventions/backend-conventions.md`
+- `docs/conventions/frontend-conventions.md`
+- `docs/conventions/dev-commands.md`
