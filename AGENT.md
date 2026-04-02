@@ -1,0 +1,1 @@
+G:/Development/dotnet/MediaRanker/CLAUDE.md

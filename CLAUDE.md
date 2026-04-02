@@ -115,7 +115,7 @@ Do not edit build artifacts:
 
 ---
 
-## Optional AI Reference Docs
+## Additional AI Reference Docs
 
 Use these when a task needs deeper context:
 
