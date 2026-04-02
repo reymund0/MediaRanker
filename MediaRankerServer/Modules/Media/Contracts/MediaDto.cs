@@ -1,6 +1,6 @@
 using MediaRankerServer.Modules.Files.Services;
-using MediaRankerServer.Modules.Media.Entities;
-using MediaRankerServer.Modules.Files.Entities;
+using MediaRankerServer.Modules.Media.Data.Entities;
+using MediaRankerServer.Modules.Files.Data.Entities;
 
 namespace MediaRankerServer.Modules.Media.Contracts;
 
@@ -11,7 +11,8 @@ public class MediaDto
     public DateOnly ReleaseDate { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
-    public MediaTypeDto MediaType { get; set; } = new();
+    public long MediaTypeId { get; set; }
+    public string MediaTypeName { get; set; } = string.Empty;
     public string? CoverImageUrl { get; set; }
 }
 
@@ -29,7 +30,8 @@ public static class MediaDtoMapper
         {
             Id = media.Id,
             Title = media.Title,
-            MediaType = MediaTypeDtoMapper.Map(media.MediaType),
+            MediaTypeId = media.MediaTypeId,
+            MediaTypeName = media.MediaType.Name,
             ReleaseDate = media.ReleaseDate,
             CreatedAt = media.CreatedAt,
             UpdatedAt = media.UpdatedAt,

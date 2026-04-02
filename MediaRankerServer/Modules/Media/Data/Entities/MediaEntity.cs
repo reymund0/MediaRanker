@@ -1,10 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using MediaRankerServer.Modules.Reviews.Entities;
 using MediaRankerServer.Shared.Data.Interfaces;
 
-namespace MediaRankerServer.Modules.Media.Entities;
+namespace MediaRankerServer.Modules.Media.Data.Entities;
 
 public class MediaEntity : ITimestampedEntity
 {
@@ -23,8 +22,6 @@ public class MediaEntity : ITimestampedEntity
     public string? CoverFileName { get; set; }
     public long? CoverFileSizeBytes { get; set; }
     public string? CoverFileContentType { get; set; }
-
-    public ICollection<Review> Reviews { get; set; } = [];
 
     public class Configuration : IEntityTypeConfiguration<MediaEntity>
     {
@@ -56,10 +53,6 @@ public class MediaEntity : ITimestampedEntity
             builder.HasOne(m => m.MediaType)
                 .WithMany()
                 .HasForeignKey(m => m.MediaTypeId);
-
-            builder.HasMany(m => m.Reviews)
-                .WithOne(rm => rm.Media)
-                .HasForeignKey(rm => rm.MediaId);
 
             // Indexes
             builder.HasIndex(m => m.MediaTypeId)

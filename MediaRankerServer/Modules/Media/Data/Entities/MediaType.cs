@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace MediaRankerServer.Modules.Media.Entities;
+namespace MediaRankerServer.Modules.Media.Data.Entities;
 
 public class MediaType
 {

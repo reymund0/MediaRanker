@@ -5,7 +5,7 @@ trigger: always_on
 # MediaRanker — AI Editor Context (Core)
 
 This is the always-on, high-signal guidance for AI edits in this repository.
-Use optional docs under `docs/ai/` for deeper details.
+Use optional docs under `docs/conventions/` for deeper details.
 
 ---
 
@@ -21,13 +21,17 @@ Use optional docs under `docs/ai/` for deeper details.
 - `MediaRankerFrontend/` — Next.js app (`src/app`, `src/lib`)
 - `MediaRankerServer/` — ASP.NET Core API
   - `Modules/` — Feature-based modules (Templates, Media, Reviews, Test)
+    - Each module keeps persistence concerns under `Data/`:
+      - `Data/Entities/` — EF entities + configurations
+      - `Data/Views/` — keyless read-model/view entities + SQL view artifacts
+      - `Data/Seeds/` — module-owned seed SQL artifacts
   - `Shared/` — Cross-cutting concerns (Exceptions, Extensions, Events)
   - `Data/` — Data access (shared PostgreSQLContext)
   - `Migrations/` — EF Core Migrations (kept migration-compatible)
   - `MediaRankerServer.IntegrationTests/` — PostgreSQL-backed endpoint tests (Testcontainers)
   - `MediaRankerServer.UnitTests/` — Isolated logic tests (Moq)
 - `.windsurf/rules/media-ranker.md` — this core AI context file
-- `docs/ai/` — optional, non-always-on AI reference docs
+- `docs/conventions/` — optional, non-always-on AI reference docs
 
 Do not edit build artifacts:
 - `MediaRankerFrontend/.next/`
@@ -42,6 +46,8 @@ Do not edit build artifacts:
 - Default controller posture is authenticated; use `[AllowAnonymous]` intentionally.
 - Keep controllers thin; place business/domain logic in services.
 - Keep persistence concerns in entities/configurations/migrations.
+- Keep FK constraints within module-owned tables only. Do not add cross-module DB foreign keys.
+- For cross-module references, persist scalar IDs and add explicit indexes on those reference columns for read/query performance.
 - Prefer incremental refactors over broad rewrites.
 
 ### Hosted Services (Scheduled Jobs)
@@ -70,7 +76,7 @@ Do not edit build artifacts:
 
 ### Seed + Migration Conventions
 
-- Seed artifacts live in `MediaRankerServer/Data/Seeds` (current seed file: `SeedSystemTemplates.sql`).
+- Seed artifacts live under module `Data/Seeds` folders (e.g., `MediaRankerServer/Modules/Templates/Data/Seeds/SeedSystemTemplates.sql`).
 - Seed IDs are static and negative to indicate system-seeded rows.
 - Keep system-owned identity values centralized in seed artifacts/migrations instead of scattering literals across services/controllers.
 - Migrations should reference seed artifacts/constants instead of duplicating literals.
@@ -89,7 +95,7 @@ Do not edit build artifacts:
 
 - Theme is centralized and currently dark mode.
 - Prefer theme tokens over one-off hardcoded colors.
-- Custom components follow a Base/Form pattern (MUI-based wrappers): create/extend Base components for shared behavior and Form variants for controlled form usage. See `docs/ai/frontend-conventions.md` for more details.
+- Custom components follow a Base/Form pattern (MUI-based wrappers): create/extend Base components for shared behavior and Form variants for controlled form usage. See `docs/conventions/frontend-conventions.md` for more details.
 - Navbar behavior:
   - Hide on `/auth/*`
   - Show on non-auth routes
@@ -113,8 +119,8 @@ Do not edit build artifacts:
 
 Use these when a task needs deeper context:
 
-- `docs/ai/backend-testing.md`
-- `docs/ai/backend-seeding.md`
-- `docs/ai/backend-conventions.md`
-- `docs/ai/frontend-conventions.md`
-- `docs/ai/dev-commands.md`
+- `docs/conventions/backend-testing.md`
+- `docs/conventions/backend-seeding.md`
+- `docs/conventions/backend-conventions.md`
+- `docs/conventions/frontend-conventions.md`
+- `docs/conventions/dev-commands.md`

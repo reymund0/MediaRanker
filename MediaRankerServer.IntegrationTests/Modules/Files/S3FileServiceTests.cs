@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using FluentAssertions;
 using MediaRankerServer.IntegrationTests.Infrastructure;
 using MediaRankerServer.Modules.Files.Contracts;
-using MediaRankerServer.Modules.Files.Entities;
+using MediaRankerServer.Modules.Files.Data.Entities;
 using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Shared.Data;
 using Microsoft.EntityFrameworkCore;

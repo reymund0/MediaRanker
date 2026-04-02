@@ -4,10 +4,19 @@
 
 The server is organized into feature modules under `MediaRankerServer/Modules/`.
 
-- **Module Structure**: Each module contains its own Controllers, Services, Models, and Entities.
+- **Module Structure**: Each module contains its own Controllers, Services, Contracts, and Data concerns.
+- **Persistence Layout**: Keep module persistence artifacts under `Modules/<Module>/Data/`:
+  - `Data/Entities` for EF entities/configurations
+  - `Data/Views` for keyless read-model/view entities and view SQL artifacts
+  - `Data/Seeds` for module-owned seed SQL
 - **Shared Infrastructure**: `MediaRankerServer/Shared/` contains cross-cutting concerns like `DomainException` and common extensions.
 - **Module Registration**: Each module has a `<Name>Module.cs` registration class. Add new modules to `Program.cs` via `builder.Services.Add<Name>Module()`.
 - **Inter-Module Communication**: Use MediatR for in-process events instead of direct service injection to maintain decoupling.
+
+## Foreign Key + Index Pattern
+- Keep DB foreign keys within module-owned tables only.
+- Do not create cross-module foreign keys.
+- For cross-module references, persist scalar IDs (for example, `MediaId`, `TemplateId`) and create explicit indexes on those columns for query performance.
 
 ## ProblemDetails responses
 - Every non-OK HTTP response must return RFC 7807 ProblemDetails JSON with `type`, `title`, `status`, `detail`, and optional `instance`/extensions.

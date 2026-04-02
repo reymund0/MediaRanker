@@ -114,9 +114,12 @@ export default function TemplatesPage() {
   };
 
   const addTemplate = () => {
+    const defaultMediaType = mediaTypes?.[0] ?? { id: 0, name: "" };
+
     const newRow: TemplateRow = {
       id: 0,
-      mediaType: mediaTypes?.[0] ?? { id: 0, name: "" },
+      mediaTypeId: defaultMediaType.id,
+      mediaTypeName: defaultMediaType.name,
       isSystem: false,
       userId: userId!,
       name: "",

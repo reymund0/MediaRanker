@@ -1,7 +1,7 @@
 using FluentValidation;
 using MediaRankerServer.Modules.Media.Services;
 using MediatR;
-using MediaRankerServer.Modules.Templates.Entities;
+using MediaRankerServer.Modules.Templates.Data.Entities;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
 using MediaRankerServer.Modules.Templates.Contracts;
@@ -18,38 +18,28 @@ public class TemplateService(
 {
     public async Task<List<TemplateDto>> GetAllVisibleTemplatesAsync(string userId, CancellationToken cancellationToken = default)
     {
-        var templates = await dbContext.Templates
-            .AsNoTracking()
-            .Include(t => t.Fields)
-            .Include(t => t.MediaType)
-            .Where(t => t.Id < 0 || t.UserId == userId)
+        var templates = await TemplateReadRows()
+            .Where(t => t.Template.Id < 0 || t.Template.UserId == userId)
             .ToListAsync(cancellationToken);
 
-        return [..templates.Select(TemplateDtoMapper.Map)];
+        return [..templates.Select(t => TemplateDtoMapper.Map(t.Template, t.MediaTypeName))];
     }
     
     public async Task<TemplateDto?> GetTemplateByIdAsync(long templateId, CancellationToken cancellationToken)
     {
-        var template = await dbContext.Templates
-            .AsNoTracking()
-            .Include(t => t.Fields)
-            .Include(t => t.MediaType)
-            .Where(t => t.Id == templateId)
-            .FirstOrDefaultAsync(cancellationToken);
+        var template = await TemplateReadRows()
+            .FirstOrDefaultAsync(t => t.Template.Id == templateId, cancellationToken);
 
-        return template is null ? null : TemplateDtoMapper.Map(template);
+        return template is null ? null : TemplateDtoMapper.Map(template.Template, template.MediaTypeName);
     }
 
     public async Task<List<TemplateDto>> GetTemplatesByMediaTypeAsync(string userId, long mediaTypeId, CancellationToken cancellationToken)
     {
-        var templates = await dbContext.Templates
-            .AsNoTracking()
-            .Include(t => t.Fields)
-            .Include(t => t.MediaType)
-            .Where(t => t.MediaTypeId == mediaTypeId && (t.Id < 0 || t.UserId == userId))
+        var templates = await TemplateReadRows()
+            .Where(t => t.Template.MediaTypeId == mediaTypeId && (t.Template.Id < 0 || t.Template.UserId == userId))
             .ToListAsync(cancellationToken);
 
-        return [..templates.Select(TemplateDtoMapper.Map)];
+        return [..templates.Select(t => TemplateDtoMapper.Map(t.Template, t.MediaTypeName))];
     }
 
     public async Task<TemplateDto> CreateTemplateAsync(string userId, TemplateUpsertRequest request, CancellationToken cancellationToken = default)
@@ -192,6 +182,23 @@ public class TemplateService(
         dbContext.TemplateFields.RemoveRange(dbContext.TemplateFields.Where(tf => tf.TemplateId == templateId));
         dbContext.Templates.Remove(template);
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+        private IQueryable<TemplateReadRow> TemplateReadRows()
+    {
+        return from t in dbContext.Templates
+               join mt in dbContext.MediaTypes on t.MediaTypeId equals mt.Id
+               select new TemplateReadRow
+               {
+                   Template = t,
+                   MediaTypeName = mt.Name
+               };
+    }
+
+    private sealed class TemplateReadRow
+    {
+        public Template Template { get; init; } = null!;
+        public string MediaTypeName { get; init; } = string.Empty;
     }
 
     private async Task ValidateTemplateRequestOrThrow(TemplateUpsertRequest request, CancellationToken cancellationToken)

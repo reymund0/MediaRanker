@@ -10,12 +10,12 @@ using Microsoft.EntityFrameworkCore;
 using FluentAssertions;
 using MediaRankerServer.Shared.Exceptions;
 using MediaRankerServer.Modules.Reviews.Contracts;
-using MediaRankerServer.Modules.Reviews.Entities;
+using MediaRankerServer.Modules.Reviews.Data.Entities;
 using MediaRankerServer.Modules.Reviews.Services;
-using MediaRankerServer.Modules.Media.Entities;
-using MediaRankerServer.Modules.Templates.Entities;
+using MediaRankerServer.Modules.Media.Data.Entities;
+using MediaRankerServer.Modules.Templates.Data.Entities;
 using MediaRankerServer.Modules.Files.Services;
-using MediaRankerServer.Modules.Files.Entities;
+using MediaRankerServer.Modules.Files.Data.Entities;
 
 
 namespace MediaRankerServer.UnitTests.Modules.Reviews;
@@ -89,7 +89,6 @@ public class ReviewServiceTests : IDisposable
             Name = "Test Template", 
             MediaTypeId = 1, 
             UserId = "user1",
-            MediaType = mediaType,
             Fields = new List<TemplateField>
             {
                 new() { Id = 1, Name = "Story" },
@@ -112,13 +111,14 @@ public class ReviewServiceTests : IDisposable
             .Returns(new ValidationResult());
 
         _mockMediaService.Setup(m => m.GetMediaByIdAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new MediaDto { Id = 1, Title = "Test Movie", MediaType = new MediaRankerServer.Modules.Media.Contracts.MediaTypeDto { Id = 1, Name = "Movie" }, ReleaseDate = new DateOnly(2020, 1, 1) });
+            .ReturnsAsync(new MediaDto { Id = 1, Title = "Test Movie", MediaTypeId = 1, MediaTypeName = "Movie", ReleaseDate = new DateOnly(2020, 1, 1) });
 
         _mockTemplatesService.Setup(t => t.GetTemplateByIdAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new TemplateDto { 
                 Id = 1, 
                 Name = "Test Template", 
-                MediaType = new MediaRankerServer.Modules.Media.Contracts.MediaTypeDto { Id = 1, Name = "Movie" },
+                MediaTypeId = 1,
+                MediaTypeName = "Movie",
                 Fields = [
                     new TemplateFieldDto { Id = 1, Name = "Story", Position = 1 },
                     new TemplateFieldDto { Id = 2, Name = "Acting", Position = 2 }
@@ -183,7 +183,7 @@ public class ReviewServiceTests : IDisposable
         var request = _defaultInsertRequest;
 
         _mockMediaService.Setup(m => m.GetMediaByIdAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new MediaDto { Id = 1, Title = "Test", MediaType = new MediaRankerServer.Modules.Media.Contracts.MediaTypeDto { Id = 2, Name = "Book" } });
+            .ReturnsAsync(new MediaDto { Id = 1, Title = "Test", MediaTypeId = 2, MediaTypeName = "Book" });
 
         // Act & Assert
         var act = () => _service.CreateReviewAsync("test-user", request);
@@ -316,9 +316,6 @@ public class ReviewServiceTests : IDisposable
         // Arrange
         var userId = "user1";
         
-        var mediaEntity = await _dbContext.Media.FirstAsync();
-        var templateEntity = await _dbContext.Templates.FirstAsync();
-        
         var existingReview = new Review
         {
             UserId = userId,
@@ -326,8 +323,6 @@ public class ReviewServiceTests : IDisposable
             TemplateId = 1,
             ReviewTitle = "Old Title",
             OverallScore = 5,
-            Media = mediaEntity,
-            Template = templateEntity,
             Fields = [
                 new() { TemplateFieldId = 1, Value = 5 }
             ]

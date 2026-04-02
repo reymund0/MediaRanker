@@ -1,7 +1,7 @@
 using Amazon.S3;
 using Amazon.S3.Model;
 using MediaRankerServer.Shared.Exceptions;
-using MediaRankerServer.Modules.Files.Entities;
+using MediaRankerServer.Modules.Files.Data.Entities;
 using MediaRankerServer.Modules.Files.Contracts;
 using MediaRankerServer.Modules.Files.Data;
 using FluentValidation;

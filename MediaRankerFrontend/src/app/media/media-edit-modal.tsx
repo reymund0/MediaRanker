@@ -47,7 +47,7 @@ export function MediaEditModal({
     defaultValues: {
       id: row.id,
       title: row.title,
-      mediaTypeId: row.mediaType.id,
+      mediaTypeId: row.mediaTypeId,
       releaseDate: row.releaseDate ?? undefined,
       coverUploadId: undefined,
     },

@@ -1,32 +1,26 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using MediaRankerServer.Modules.Media.Entities;
-using MediaRankerServer.Modules.Templates.Entities;
+using MediaRankerServer.Modules.Media.Data.Entities;
+using MediaRankerServer.Modules.Templates.Data.Entities;
 using MediaRankerServer.Shared.Data.Interfaces;
 
-namespace MediaRankerServer.Modules.Reviews.Entities;
+namespace MediaRankerServer.Modules.Reviews.Data.Entities;
 
 public class Review : ITimestampedEntity
 {
     public long Id { get; set; }
     public string UserId { get; set; } = null!;
-
-    public long MediaId { get; set; }
-    public long TemplateId { get; set; }
-
     public short OverallScore { get; set; } // 1–10
-
     public string? ReviewTitle { get; set; }
     public string? Notes { get; set; }
     public DateTimeOffset? ConsumedAt { get; set; }
-
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
-
-    public MediaEntity Media { get; set; } = null!;
-    public Template Template { get; set; } = null!;
     public ICollection<ReviewField> Fields { get; set; } = [];
+    // Related entities
+    public long MediaId { get; set; }
+    public long TemplateId { get; set; }
 
     public class Configuration : IEntityTypeConfiguration<Review>
     {
@@ -63,15 +57,6 @@ public class Review : ITimestampedEntity
             builder.Property(rm => rm.ConsumedAt);
 
             // Relationships
-            builder.HasOne(rm => rm.Media)
-                .WithMany(m => m.Reviews)
-                .HasForeignKey(rm => rm.MediaId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            builder.HasOne(rm => rm.Template)
-                .WithMany(t => t.Reviews)
-                .HasForeignKey(rm => rm.TemplateId);
-
             builder.HasMany(rm => rm.Fields)
                 .WithOne(f => f.Review)
                 .HasForeignKey(f => f.ReviewId)
@@ -84,12 +69,16 @@ public class Review : ITimestampedEntity
             builder.HasIndex(rm => new { rm.UserId, rm.TemplateId })
                 .HasDatabaseName("ix_reviews_user_template");
 
-            builder.HasIndex(rm => rm.MediaId)
-                .HasDatabaseName("ix_reviews_media_id");
-
             builder.HasIndex(rm => new { rm.UserId, rm.MediaId })
                 .IsUnique()
                 .HasDatabaseName("uq_reviews_user_media");
+
+            // Indexes for related entities
+            builder.HasIndex(rm => rm.MediaId)
+                .HasDatabaseName("ix_reviews_media_id");
+
+            builder.HasIndex(rm => rm.TemplateId)
+                .HasDatabaseName("ix_reviews_template_id");
         }
     }
 }

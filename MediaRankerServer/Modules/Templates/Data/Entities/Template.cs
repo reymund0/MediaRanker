@@ -1,26 +1,24 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using MediaRankerServer.Modules.Media.Entities;
-using MediaRankerServer.Modules.Reviews.Entities;
+using MediaRankerServer.Modules.Media.Data.Entities;
+using MediaRankerServer.Modules.Reviews.Data.Entities;
 using MediaRankerServer.Shared.Data.Interfaces;
 
-namespace MediaRankerServer.Modules.Templates.Entities;
+namespace MediaRankerServer.Modules.Templates.Data.Entities;
 
 public class Template : ITimestampedEntity
 {
     public long Id { get; set; }
     public string UserId { get; set; } = null!;
-
-    public long MediaTypeId { get; set; }
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
-
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
-
-    public MediaType MediaType { get; set; } = null!;
     public ICollection<TemplateField> Fields { get; set; } = [];
-    public ICollection<Review> Reviews { get; set; } = [];
+
+    // Related entities.
+    public long MediaTypeId { get; set; }
+
 
     public class Configuration : IEntityTypeConfiguration<Template>
     {
@@ -43,17 +41,9 @@ public class Template : ITimestampedEntity
             builder.Property(t => t.Description);
 
             // Relationships
-            builder.HasOne(t => t.MediaType)
-                .WithMany()
-                .HasForeignKey(t => t.MediaTypeId);
-
             builder.HasMany(t => t.Fields)
                 .WithOne(f => f.Template)
                 .HasForeignKey(f => f.TemplateId);
-
-            builder.HasMany(t => t.Reviews)
-                .WithOne(r => r.Template)
-                .HasForeignKey(r => r.TemplateId);
 
             // Indexes
             builder.HasIndex(t => t.UserId)
@@ -67,6 +57,10 @@ public class Template : ITimestampedEntity
             builder.HasIndex(t => t.Id)
                 .HasDatabaseName("uq_templates_is_system")
                 .HasFilter("id < 0");
+            
+            // Index for related entities
+            builder.HasIndex(t => t.MediaTypeId)
+                .HasDatabaseName("ix_templates_media_type_id");
         }
     }
 }

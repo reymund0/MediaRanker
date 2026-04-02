@@ -1,19 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using MediaRankerServer.Modules.Templates.Entities;
-
-namespace MediaRankerServer.Modules.Reviews.Entities;
+namespace MediaRankerServer.Modules.Reviews.Data.Entities;
 
 public class ReviewField
 {
     public long ReviewId { get; set; }
+    public short Value { get; set; } // 1–10
+    public Review Review { get; set; } = null!;
+
+    // Related entities.
     public long TemplateFieldId { get; set; }
 
-    public short Value { get; set; } // 1–10
-
-    public Review Review { get; set; } = null!;
-    public TemplateField TemplateField { get; set; } = null!;
 
     public class Configuration : IEntityTypeConfiguration<ReviewField>
     {
@@ -40,13 +38,9 @@ public class ReviewField
                 .HasForeignKey(rms => rms.ReviewId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.HasOne(rms => rms.TemplateField)
-                .WithMany(tf => tf.ReviewFields)
-                .HasForeignKey(rms => rms.TemplateFieldId);
-
-            // Indexes
+            // Indexes for related entities.
             builder.HasIndex(rms => rms.TemplateFieldId)
-                .HasDatabaseName("ix_review_fields_field");
+                .HasDatabaseName("ix_review_fields_field");  
         }
     }
 }

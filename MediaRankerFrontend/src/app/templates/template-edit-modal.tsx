@@ -48,7 +48,7 @@ export function TemplateEditModal({
     resolver: zodResolver(templateEditSchema),
     defaultValues: {
       id: row.id,
-      mediaTypeId: row.mediaType.id,
+      mediaTypeId: row.mediaTypeId,
       name: row.name,
       description: row.description || undefined,
       fields:

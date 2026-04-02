@@ -1,4 +1,4 @@
-using MediaRankerServer.Modules.Files.Entities;
+using MediaRankerServer.Modules.Files.Data.Entities;
 using FluentValidation;
 
 namespace MediaRankerServer.Modules.Files.Contracts;

@@ -3,7 +3,7 @@ using FluentValidation;
 using MediatR;
 using Moq;
 using MediaRankerServer.Modules.Templates.Contracts;
-using MediaRankerServer.Modules.Templates.Entities;
+using MediaRankerServer.Modules.Templates.Data.Entities;
 using MediaRankerServer.Modules.Templates.Services;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;

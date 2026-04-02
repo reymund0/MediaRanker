@@ -1,4 +1,4 @@
-using MediaRankerServer.Modules.Files.Entities;
+using MediaRankerServer.Modules.Files.Data.Entities;
 
 namespace MediaRankerServer.Modules.Files.Contracts;
 

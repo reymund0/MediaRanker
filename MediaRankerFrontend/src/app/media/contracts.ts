@@ -1,12 +1,11 @@
-import { MediaTypeDto } from "@/lib/contracts/shared";
-
 export interface MediaDto {
   id: number;
   title: string;
   releaseDate: string;
   createdAt: string;
   updatedAt: string;
-  mediaType: MediaTypeDto;
+  mediaTypeId: number;
+  mediaTypeName: string;
   coverImageUrl?: string;
 }
 
