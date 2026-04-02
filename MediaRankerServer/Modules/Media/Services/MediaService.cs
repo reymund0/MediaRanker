@@ -1,6 +1,8 @@
 using FluentValidation;
+using MediatR;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Data.Entities;
+using MediaRankerServer.Modules.Media.Events;
 using MediaRankerServer.Modules.Files.Contracts;
 using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Shared.Data;
@@ -13,7 +15,8 @@ public class MediaService(
     PostgreSQLContext dbContext,
     IMediaCoverService coverService,
     IFileService fileService,
-    IValidator<MediaUpsertRequest> mediaUpsertRequestValidator
+    IValidator<MediaUpsertRequest> mediaUpsertRequestValidator,
+    IPublisher publisher
 ) : IMediaService
 {
     public Task<List<MediaTypeDto>> GetMediaTypesAsync(CancellationToken cancellationToken = default)
@@ -150,6 +153,8 @@ public class MediaService(
 
         dbContext.Media.Remove(media);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        await publisher.Publish(new MediaDeletedEvent(mediaId), cancellationToken);
     }
 
     public async Task<MediaTypeDto?> GetMediaTypeByIdAsync(long id, CancellationToken cancellationToken = default)

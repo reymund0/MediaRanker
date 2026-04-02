@@ -4,6 +4,7 @@ using MediatR;
 using Moq;
 using MediaRankerServer.Modules.Templates.Contracts;
 using MediaRankerServer.Modules.Templates.Data.Entities;
+using MediaRankerServer.Modules.Templates.Events;
 using MediaRankerServer.Modules.Templates.Services;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
@@ -137,5 +138,52 @@ public class TemplateServiceTests
         // Assert
         await act.Should().ThrowAsync<DomainException>()
             .Where(e => e.Type == "template_forbidden");
+    }
+
+    [Fact]
+    public async Task DeleteTemplateAsync_PublishesTemplateDeletedEvent()
+    {
+        // Arrange
+        var template = new Template
+        {
+            Id = 10,
+            Name = "My Template",
+            UserId = "user-1",
+            MediaTypeId = -1
+        };
+        _context.Templates.Add(template);
+        await _context.SaveChangesAsync();
+
+        // Act
+        await _service.DeleteTemplateAsync("user-1", 10);
+
+        // Assert
+        _mockPublisher.Verify(
+            p => p.Publish(It.Is<TemplateDeletedEvent>(e => e.TemplateId == 10), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteTemplateAsync_WhenSystemTemplate_DoesNotPublishEvent()
+    {
+        // Arrange
+        var systemTemplate = new Template
+        {
+            Id = -2,
+            Name = "System",
+            UserId = "system",
+            MediaTypeId = -1
+        };
+        _context.Templates.Add(systemTemplate);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var act = () => _service.DeleteTemplateAsync("system", -2);
+        await act.Should().ThrowAsync<DomainException>();
+
+        // Assert
+        _mockPublisher.Verify(
+            p => p.Publish(It.IsAny<TemplateDeletedEvent>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }
