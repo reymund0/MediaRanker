@@ -23,6 +23,7 @@ Each module owns its own controllers, services, entities, contracts, event handl
 Defines **review templates** and their ordered fields. Templates provide the scoring structure that reviews are built against.
 
 - Publishes `TemplateFieldsDeletedEvent` when template fields are removed, allowing downstream modules to react.
+- Publishes `TemplateDeletedEvent` when a template is deleted.
 - Includes SQL seed data for system-owned templates (negative IDs).
 
 ### Media
@@ -30,6 +31,8 @@ Defines **review templates** and their ordered fields. Templates provide the sco
 Manages **media entries** and **media types** (movies, video games, etc.).
 
 - Owns the cover image upload flow — coordinates with the Files module for pre-signed URL generation and upload lifecycle.
+- Publishes `MediaDeletedEvent` when media is deleted.
+- Publishes `FileDeletedEvent` for invalid media cover uploads and explicit cover-file deletion flows.
 - Includes SQL seed data for system-owned media types (negative IDs).
 
 ### Reviews
@@ -37,6 +40,8 @@ Manages **media entries** and **media types** (movies, video games, etc.).
 User **reviews** scored against a template's fields. A review links a user, a media entry, and a template together.
 
 - Handles `TemplateFieldsDeletedEvent` to recalculate review scores and clean up orphaned review fields when template fields are removed.
+- Handles `TemplateDeletedEvent` to delete reviews linked to a deleted template.
+- Handles `MediaDeletedEvent` to delete reviews linked to deleted media.
 
 ### Files
 
@@ -45,6 +50,8 @@ Manages the **file upload lifecycle** — upload state tracking, pre-signed URL 
 - Two-phase upload: API creates upload state and returns a pre-signed S3 URL; frontend uploads directly to S3; API confirms completion.
 - Background cleanup job (`FileUploadCleanupJob`) removes stale uploads on a configurable schedule.
 - Feature modules must mark uploads as copied during their save flows to prevent cleanup.
+- Publishes `FileDeletedEvent` from cleanup when stale uploaded files are being removed.
+- Handles `FileDeletedEvent` to perform storage cleanup (for example, deleting S3 objects).
 
 ## Configuration
 
