@@ -62,3 +62,6 @@ _ReSharper*/
 # Environment-specific settings (contain secrets)
 **/appsettings.Development.json
 **/appsettings.Production.json
+
+# Claude Code
+.claude/*
