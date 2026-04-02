@@ -4,9 +4,10 @@ This document contains non-always-on details for how MediaRanker handles system 
 
 ## Source of Truth
 
-- Seed helpers are under `MediaRankerServer/Data/Seeds`.
-- Current seed artifact:
-  - `SeedSystemTemplates.sql`
+- Seed artifacts are module-owned and live under `MediaRankerServer/Modules/<Module>/Data/Seeds`.
+- Current seed artifacts:
+  - `MediaRankerServer/Modules/Templates/Data/Seeds/SeedSystemTemplates.sql`
+  - `MediaRankerServer/Modules/Media/Data/Seeds/SeedSystemMediaTypes.sql`
 
 ## Seed Identity Rules
 

@@ -21,6 +21,10 @@ Use optional docs under `docs/conventions/` for deeper details.
 - `MediaRankerFrontend/` — Next.js app (`src/app`, `src/lib`)
 - `MediaRankerServer/` — ASP.NET Core API
   - `Modules/` — Feature-based modules (Templates, Media, Reviews, Test)
+    - Each module keeps persistence concerns under `Data/`:
+      - `Data/Entities/` — EF entities + configurations
+      - `Data/Views/` — keyless read-model/view entities + SQL view artifacts
+      - `Data/Seeds/` — module-owned seed SQL artifacts
   - `Shared/` — Cross-cutting concerns (Exceptions, Extensions, Events)
   - `Data/` — Data access (shared PostgreSQLContext)
   - `Migrations/` — EF Core Migrations (kept migration-compatible)
@@ -42,6 +46,8 @@ Do not edit build artifacts:
 - Default controller posture is authenticated; use `[AllowAnonymous]` intentionally.
 - Keep controllers thin; place business/domain logic in services.
 - Keep persistence concerns in entities/configurations/migrations.
+- Keep FK constraints within module-owned tables only. Do not add cross-module DB foreign keys.
+- For cross-module references, persist scalar IDs and add explicit indexes on those reference columns for read/query performance.
 - Prefer incremental refactors over broad rewrites.
 
 ### Hosted Services (Scheduled Jobs)
@@ -70,7 +76,7 @@ Do not edit build artifacts:
 
 ### Seed + Migration Conventions
 
-- Seed artifacts live in `MediaRankerServer/Data/Seeds` (current seed file: `SeedSystemTemplates.sql`).
+- Seed artifacts live under module `Data/Seeds` folders (e.g., `MediaRankerServer/Modules/Templates/Data/Seeds/SeedSystemTemplates.sql`).
 - Seed IDs are static and negative to indicate system-seeded rows.
 - Keep system-owned identity values centralized in seed artifacts/migrations instead of scattering literals across services/controllers.
 - Migrations should reference seed artifacts/constants instead of duplicating literals.
