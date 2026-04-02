@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MediaRankerServer.Shared.Data.Interfaces;
 
-namespace MediaRankerServer.Modules.Files.Entities;
+namespace MediaRankerServer.Modules.Files.Data.Entities;
 
 public enum FileEntityType
 {

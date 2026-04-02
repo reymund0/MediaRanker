@@ -20,5 +20,6 @@ export interface TemplateDto {
   createdAt: string;
   updatedAt: string;
   fields: TemplateFieldDto[];
-  mediaType: MediaTypeDto;
+  mediaTypeId: number;
+  mediaTypeName: string;
 }

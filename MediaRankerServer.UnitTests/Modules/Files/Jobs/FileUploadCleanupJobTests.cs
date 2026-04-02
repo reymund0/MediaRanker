@@ -1,5 +1,5 @@
 using FluentAssertions;
-using MediaRankerServer.Modules.Files.Entities;
+using MediaRankerServer.Modules.Files.Data.Entities;
 using MediaRankerServer.Modules.Files.Events;
 using MediaRankerServer.Modules.Files.Jobs;
 using MediaRankerServer.Shared.Data;

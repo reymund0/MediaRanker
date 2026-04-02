@@ -2,10 +2,10 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using MediaRankerServer.IntegrationTests.Infrastructure;
 using MediaRankerServer.IntegrationTests.Utils;
-using MediaRankerServer.Modules.Media.Entities;
+using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Modules.Reviews.Contracts;
-using MediaRankerServer.Modules.Reviews.Entities;
-using MediaRankerServer.Modules.Templates.Entities;
+using MediaRankerServer.Modules.Reviews.Data.Entities;
+using MediaRankerServer.Modules.Templates.Data.Entities;
 using MediaRankerServer.Shared.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,17 +30,22 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
             _testTemplate = dbContext.Templates.Include(t => t.Fields).First();
+
+            var reviewedMedia = new MediaEntity
+            {
+                Title = "Test Media",
+                MediaTypeId = _testTemplate.MediaTypeId,
+                ReleaseDate = new DateOnly(2024, 1, 1),
+            };
+            dbContext.Media.Add(reviewedMedia);
+            dbContext.SaveChanges();
+
             var review = new Review
             {
                 UserId = TestAuthHandler.DefaultUserId,
                 TemplateId = _testTemplate.Id,
                 OverallScore = 5,
-                Media = new MediaEntity
-                {
-                    Title = "Test Media",
-                    MediaTypeId = _testTemplate.MediaTypeId,
-                    ReleaseDate = new DateOnly(2024, 1, 1),
-                },
+                MediaId = reviewedMedia.Id,
                 Fields = [new ReviewField
                 {
                     TemplateFieldId = _testTemplate.Fields.First().Id,
@@ -59,7 +64,7 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
             
             dbContext.SaveChanges();
             _testReviews = review;
-            _testMedia = review.Media;
+            _testMedia = reviewedMedia;
             _testUnreviewedMedia = unreviewedMedia;
         }
     }

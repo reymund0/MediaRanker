@@ -1,17 +1,18 @@
-using MediaRankerServer.Modules.Reviews.Entities;
-using MediaRankerServer.Modules.Files.Entities;
+using MediaRankerServer.Modules.Reviews.Data.Entities;
+using MediaRankerServer.Modules.Reviews.Data.Views;
+using MediaRankerServer.Modules.Files.Data.Entities;
 using MediaRankerServer.Modules.Files.Services;
 
 namespace MediaRankerServer.Modules.Reviews.Contracts;
 
 public static class ReviewDtoMapper
 {
-  public static ReviewDto Map(Review review, IFileService fileService)
+  public static ReviewDto Map(IFileService fileService, ReviewDetailView review, IEnumerable<ReviewFieldDetails> fields)
   {
-    string? mediaCoverImageUrl = null;
-    if (review.Media.CoverFileKey != null)
+    var mediaCoverImageUrl = string.Empty;
+    if (review.MediaCoverFileKey != null)
     {
-      mediaCoverImageUrl = fileService.GetFileUrl(review.Media.CoverFileKey, FileEntityType.MediaCover);
+      mediaCoverImageUrl = fileService.GetFileUrl(review.MediaCoverFileKey, FileEntityType.MediaCover);
     }
     
     return new ReviewDto
@@ -24,26 +25,29 @@ public static class ReviewDtoMapper
       ConsumedAt = review.ConsumedAt,
       CreatedAt = review.CreatedAt,
       UpdatedAt = review.UpdatedAt,
-      Fields = [.. review.Fields.Select(MapField)],
+      Fields = [.. fields.Select(MapField)],
       TemplateId = review.TemplateId,
-      TemplateName = review.Template.Name,
+      TemplateName = review.TemplateName,
       MediaId = review.MediaId,
-      MediaTitle = review.Media.Title,
-      MediaTypeId = review.Media.MediaTypeId,
-      MediaTypeName = review.Media.MediaType.Name,
+      MediaTitle = review.MediaTitle,
+      MediaTypeId = review.MediaTypeId,
+      MediaTypeName = review.MediaTypeName,
       MediaCoverImageUrl = mediaCoverImageUrl
     };
   }
 
-  private static ReviewFieldDto MapField(ReviewField field)
+  private static ReviewFieldDto MapField(ReviewFieldDetails reviewField)
   {
+    
     return new ReviewFieldDto
     {
-      ReviewId = field.ReviewId,
-      TemplateFieldId = field.TemplateFieldId,
-      TemplateFieldName = field.TemplateField.Name,
-      TemplateFieldPosition = field.TemplateField.Position,
-      Value = field.Value
+      ReviewId = reviewField.Field.ReviewId,
+      TemplateFieldId = reviewField.Field.TemplateFieldId,
+      TemplateFieldName = reviewField.TemplateFieldName ?? "Unknown Field",
+      TemplateFieldPosition = reviewField.TemplateFieldPosition,
+      Value = reviewField.Field.Value
     };
   }
+
+  public record ReviewFieldDetails(ReviewField Field, string TemplateFieldName, int TemplateFieldPosition);
 }

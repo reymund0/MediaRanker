@@ -1,10 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using MediaRankerServer.Modules.Reviews.Entities;
 using MediaRankerServer.Shared.Data.Interfaces;
 
-namespace MediaRankerServer.Modules.Templates.Entities;
+namespace MediaRankerServer.Modules.Templates.Data.Entities;
 
 public class TemplateField : ITimestampedEntity
 {
@@ -16,7 +15,6 @@ public class TemplateField : ITimestampedEntity
     public DateTimeOffset UpdatedAt { get; set; }
 
     public Template Template { get; set; } = null!;
-    public ICollection<ReviewField> ReviewFields { get; set; } = [];
 
     public class Configuration : IEntityTypeConfiguration<TemplateField>
     {
@@ -42,10 +40,6 @@ public class TemplateField : ITimestampedEntity
                 .WithMany(t => t.Fields)
                 .HasForeignKey(tf => tf.TemplateId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            builder.HasMany(tf => tf.ReviewFields)
-                .WithOne(rf => rf.TemplateField)
-                .HasForeignKey(rf => rf.TemplateFieldId);
 
             // Indexes
             builder.HasIndex(tf => tf.TemplateId)

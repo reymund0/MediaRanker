@@ -1,5 +1,5 @@
-using MediaRankerServer.Modules.Media.Entities;
-using MediaRankerServer.Modules.Files.Entities;
+using MediaRankerServer.Modules.Media.Data.Entities;
+using MediaRankerServer.Modules.Files.Data.Entities;
 using MediaRankerServer.Modules.Files.Services;
 
 namespace MediaRankerServer.Modules.Reviews.Contracts;

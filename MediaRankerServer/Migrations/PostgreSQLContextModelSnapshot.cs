@@ -22,7 +22,7 @@ namespace MediaRankerServer.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("MediaRankerServer.Modules.Files.Entities.FileUpload", b =>
+            modelBuilder.Entity("MediaRankerServer.Modules.Files.Data.Entities.FileUpload", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -101,7 +101,7 @@ namespace MediaRankerServer.Migrations
                     b.ToTable("file_uploads", (string)null);
                 });
 
-            modelBuilder.Entity("MediaRankerServer.Modules.Media.Entities.MediaEntity", b =>
+            modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.MediaEntity", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -171,7 +171,7 @@ namespace MediaRankerServer.Migrations
                     b.ToTable("media", (string)null);
                 });
 
-            modelBuilder.Entity("MediaRankerServer.Modules.Media.Entities.MediaType", b =>
+            modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.MediaType", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -196,7 +196,7 @@ namespace MediaRankerServer.Migrations
                     b.ToTable("media_types", (string)null);
                 });
 
-            modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Entities.Review", b =>
+            modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Data.Entities.Review", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -271,7 +271,7 @@ namespace MediaRankerServer.Migrations
                         });
                 });
 
-            modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Entities.ReviewField", b =>
+            modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Data.Entities.ReviewField", b =>
                 {
                     b.Property<long>("ReviewId")
                         .HasColumnType("bigint")
@@ -297,7 +297,78 @@ namespace MediaRankerServer.Migrations
                         });
                 });
 
-            modelBuilder.Entity("MediaRankerServer.Modules.Templates.Entities.Template", b =>
+            modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Data.Views.ReviewDetailView", b =>
+                {
+                    b.Property<DateTimeOffset?>("ConsumedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("consumed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<long>("Id")
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    b.Property<string>("MediaCoverFileKey")
+                        .HasColumnType("text")
+                        .HasColumnName("media_cover_file_key");
+
+                    b.Property<long>("MediaId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("media_id");
+
+                    b.Property<string>("MediaTitle")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("media_title");
+
+                    b.Property<long>("MediaTypeId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("media_type_id");
+
+                    b.Property<string>("MediaTypeName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("media_type_name");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<short>("OverallScore")
+                        .HasColumnType("smallint")
+                        .HasColumnName("overall_score");
+
+                    b.Property<string>("ReviewTitle")
+                        .HasColumnType("text")
+                        .HasColumnName("review_title");
+
+                    b.Property<long>("TemplateId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("template_id");
+
+                    b.Property<string>("TemplateName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("template_name");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("review_details", (string)null);
+                });
+
+            modelBuilder.Entity("MediaRankerServer.Modules.Templates.Data.Entities.Template", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -356,7 +427,7 @@ namespace MediaRankerServer.Migrations
                     b.ToTable("templates", (string)null);
                 });
 
-            modelBuilder.Entity("MediaRankerServer.Modules.Templates.Entities.TemplateField", b =>
+            modelBuilder.Entity("MediaRankerServer.Modules.Templates.Data.Entities.TemplateField", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -399,9 +470,9 @@ namespace MediaRankerServer.Migrations
                     b.ToTable("template_fields", (string)null);
                 });
 
-            modelBuilder.Entity("MediaRankerServer.Modules.Media.Entities.MediaEntity", b =>
+            modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.MediaEntity", b =>
                 {
-                    b.HasOne("MediaRankerServer.Modules.Media.Entities.MediaType", "MediaType")
+                    b.HasOne("MediaRankerServer.Modules.Media.Data.Entities.MediaType", "MediaType")
                         .WithMany()
                         .HasForeignKey("MediaTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -411,63 +482,21 @@ namespace MediaRankerServer.Migrations
                     b.Navigation("MediaType");
                 });
 
-            modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Entities.Review", b =>
+            modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Data.Entities.ReviewField", b =>
                 {
-                    b.HasOne("MediaRankerServer.Modules.Media.Entities.MediaEntity", "Media")
-                        .WithMany("Reviews")
-                        .HasForeignKey("MediaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_reviews_media_media_id");
-
-                    b.HasOne("MediaRankerServer.Modules.Templates.Entities.Template", "Template")
-                        .WithMany("Reviews")
-                        .HasForeignKey("TemplateId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_reviews_templates_template_id");
-
-                    b.Navigation("Media");
-
-                    b.Navigation("Template");
-                });
-
-            modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Entities.ReviewField", b =>
-                {
-                    b.HasOne("MediaRankerServer.Modules.Reviews.Entities.Review", "Review")
+                    b.HasOne("MediaRankerServer.Modules.Reviews.Data.Entities.Review", "Review")
                         .WithMany("Fields")
                         .HasForeignKey("ReviewId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_review_fields_reviews_review_id");
 
-                    b.HasOne("MediaRankerServer.Modules.Templates.Entities.TemplateField", "TemplateField")
-                        .WithMany("ReviewFields")
-                        .HasForeignKey("TemplateFieldId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_review_fields_template_fields_template_field_id");
-
                     b.Navigation("Review");
-
-                    b.Navigation("TemplateField");
                 });
 
-            modelBuilder.Entity("MediaRankerServer.Modules.Templates.Entities.Template", b =>
+            modelBuilder.Entity("MediaRankerServer.Modules.Templates.Data.Entities.TemplateField", b =>
                 {
-                    b.HasOne("MediaRankerServer.Modules.Media.Entities.MediaType", "MediaType")
-                        .WithMany()
-                        .HasForeignKey("MediaTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_templates_media_types_media_type_id");
-
-                    b.Navigation("MediaType");
-                });
-
-            modelBuilder.Entity("MediaRankerServer.Modules.Templates.Entities.TemplateField", b =>
-                {
-                    b.HasOne("MediaRankerServer.Modules.Templates.Entities.Template", "Template")
+                    b.HasOne("MediaRankerServer.Modules.Templates.Data.Entities.Template", "Template")
                         .WithMany("Fields")
                         .HasForeignKey("TemplateId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -477,26 +506,14 @@ namespace MediaRankerServer.Migrations
                     b.Navigation("Template");
                 });
 
-            modelBuilder.Entity("MediaRankerServer.Modules.Media.Entities.MediaEntity", b =>
-                {
-                    b.Navigation("Reviews");
-                });
-
-            modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Entities.Review", b =>
+            modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Data.Entities.Review", b =>
                 {
                     b.Navigation("Fields");
                 });
 
-            modelBuilder.Entity("MediaRankerServer.Modules.Templates.Entities.Template", b =>
+            modelBuilder.Entity("MediaRankerServer.Modules.Templates.Data.Entities.Template", b =>
                 {
                     b.Navigation("Fields");
-
-                    b.Navigation("Reviews");
-                });
-
-            modelBuilder.Entity("MediaRankerServer.Modules.Templates.Entities.TemplateField", b =>
-                {
-                    b.Navigation("ReviewFields");
                 });
 #pragma warning restore 612, 618
         }

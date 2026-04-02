@@ -108,10 +108,13 @@ export default function MediaPage() {
   };
 
   const addMedia = () => {
+    const defaultMediaType = mediaTypes?.[0] ?? { id: 0, name: "" };
+
     const newRow: MediaRow = {
       id: 0,
       title: "",
-      mediaType: mediaTypes?.[0] ?? { id: 0, name: "" },
+      mediaTypeId: defaultMediaType.id,
+      mediaTypeName: defaultMediaType.name,
       releaseDate: null,
       createdAt: null,
       updatedAt: null,

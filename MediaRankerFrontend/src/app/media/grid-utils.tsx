@@ -84,7 +84,7 @@ export function buildMediaColumns({
         >
           <Typography noWrap>{params.value}</Typography>
           <Chip
-            label={params.row.mediaType.name}
+            label={params.row.mediaTypeName}
             size="small"
             variant="outlined"
           />

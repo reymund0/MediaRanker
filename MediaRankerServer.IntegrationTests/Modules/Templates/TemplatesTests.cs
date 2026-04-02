@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using MediaRankerServer.IntegrationTests.Infrastructure;
 using MediaRankerServer.Modules.Templates.Contracts;
-using MediaRankerServer.Modules.Templates.Entities;
+using MediaRankerServer.Modules.Templates.Data.Entities;
 using MediaRankerServer.Shared.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -88,7 +88,7 @@ public class TemplatesTests(PostgresContainerFixture postgresFixture, LocalStack
         
         templates.Should().NotBeNull();
         templates.Should().Contain(t => t.UserId == userId);
-        templates.Should().Contain(t => t.MediaType.Id == mediaTypeId);
+        templates.Should().Contain(t => t.MediaTypeId == mediaTypeId);
     }
 
     [Fact]

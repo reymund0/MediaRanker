@@ -1,11 +1,13 @@
 using FluentValidation;
 using MediaRankerServer.Modules.Media.Services;
-using MediaRankerServer.Modules.Reviews.Entities;
+using MediaRankerServer.Modules.Reviews.Data.Entities;
+using MediaRankerServer.Modules.Reviews.Data.Views;
 using MediaRankerServer.Modules.Templates.Services;
 using MediaRankerServer.Modules.Reviews.Contracts;
 using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
+
 using Microsoft.EntityFrameworkCore;
 namespace MediaRankerServer.Modules.Reviews.Services;
 
@@ -20,27 +22,43 @@ public class ReviewService(
 {
     public async Task<List<ReviewDto>> GetReviewsByMediaTypeAsync(string userId, long mediaTypeId, CancellationToken cancellationToken = default)
     {
-        var userReviews = await dbContext.Reviews
+        var reviewDetails = await dbContext.ReviewDetails
             .AsNoTracking()
-            .Include(r => r.Fields)
-                .ThenInclude(f => f.TemplateField)
-            .Include(r => r.Media)
-            .Include(r => r.Template)
-            .Include(r => r.Media.MediaType)
-            .Where(r => r.UserId == userId && r.Media.MediaTypeId == mediaTypeId)
+            .Where(r => r.UserId == userId && r.MediaTypeId == mediaTypeId)
             .OrderBy(r => r.OverallScore)
             .ToListAsync(cancellationToken);
-        return [.. userReviews.Select(r => ReviewDtoMapper.Map(r, fileService))];
+
+        if (reviewDetails.Count == 0) return [];
+
+        var reviewIds = reviewDetails.Select(r => r.Id).ToList();
+
+        // Load template field info for the review fields.
+        var fields = await (
+            from rf in dbContext.ReviewFields
+            join tf in dbContext.TemplateFields on rf.TemplateFieldId equals tf.Id
+            where reviewIds.Contains(rf.ReviewId)
+            select new ReviewDtoMapper.ReviewFieldDetails(rf, tf.Name, tf.Position)
+        ).ToListAsync(cancellationToken);
+
+        return [.. reviewDetails.Select(r => ReviewDtoMapper.Map(fileService, r, fields.Where(f => f.Field.ReviewId == r.Id)))];
     }
     
     public async Task<List<UnreviewedMediaDto>> GetUnreviewedMediaByTypeAsync(string userId, long mediaTypeId, CancellationToken cancellationToken = default)
     {
+        // Get IDs of media the user HAS reviewed
+        var reviewedMediaIds = await dbContext.Reviews
+            .AsNoTracking()
+            .Where(r => r.UserId == userId)
+            .Select(r => r.MediaId)
+            .ToListAsync(cancellationToken);
+
+        // Fetch all media of this type that are NOT in the reviewed list
         var userUnreviewedMedia = await dbContext.Media
             .AsNoTracking()
-            .Where(m => m.MediaTypeId == mediaTypeId)
+            .Where(m => m.MediaTypeId == mediaTypeId && !reviewedMediaIds.Contains(m.Id))
             .Include(m => m.MediaType)
-            .Where(m => !m.Reviews.Any(rm => rm.UserId == userId))
             .ToListAsync(cancellationToken);
+
         return [.. userUnreviewedMedia.Select(m => UnreviewedMediaDtoMapper.Map(m, fileService))];
     }
 
@@ -188,9 +206,9 @@ public class ReviewService(
         }
 
         // Validate Media Type is compatible with Template Media Type
-        if (media.MediaType.Id != template.MediaType.Id)
+        if (media.MediaTypeId != template.MediaTypeId)
         {
-            throw new DomainException($"Media type {media.MediaType.Name} is not compatible with template media type {template.MediaType.Name}", errorType);
+            throw new DomainException($"Media type {media.MediaTypeName} is not compatible with template media type {template.MediaTypeId}", errorType);
         }
     }
 
@@ -201,14 +219,19 @@ public class ReviewService(
 
     private async Task<ReviewDto?> GetReviewByIdAsync(long reviewId, CancellationToken cancellationToken = default)
     {
-        var review = await dbContext.Reviews
+        var review = await dbContext.ReviewDetails
             .AsNoTracking()
-            .Include(rm => rm.Fields)
-                .ThenInclude(f => f.TemplateField)
-            .Include(rm => rm.Media)
-                .ThenInclude(m => m.MediaType)
-            .Include(rm => rm.Template)
-            .FirstOrDefaultAsync(rm => rm.Id == reviewId, cancellationToken);
-        return review is null ? null : ReviewDtoMapper.Map(review, fileService);
+            .FirstOrDefaultAsync(r => r.Id == reviewId, cancellationToken);
+
+        if (review == null) return null;
+
+        var fields = await (
+            from rf in dbContext.ReviewFields
+            join tf in dbContext.TemplateFields on rf.TemplateFieldId equals tf.Id
+            where rf.ReviewId == reviewId
+            select new ReviewDtoMapper.ReviewFieldDetails(rf, tf.Name, tf.Position)
+        ).ToListAsync(cancellationToken);
+
+        return ReviewDtoMapper.Map(fileService, review, fields);
     }
 }

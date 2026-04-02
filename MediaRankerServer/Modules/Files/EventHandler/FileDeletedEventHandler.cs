@@ -1,5 +1,5 @@
 using MediaRankerServer.Modules.Files.Events;
-using MediaRankerServer.Modules.Files.Entities;
+using MediaRankerServer.Modules.Files.Data.Entities;
 using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Shared.Exceptions;
 using MediatR;

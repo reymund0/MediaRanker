@@ -1,8 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using MediaRankerServer.Modules.Media.Entities;
-using MediaRankerServer.Modules.Templates.Entities;
-using MediaRankerServer.Modules.Reviews.Entities;
-using MediaRankerServer.Modules.Files.Entities;
+using MediaRankerServer.Modules.Media.Data.Entities;
+using MediaRankerServer.Modules.Templates.Data.Entities;
+using MediaRankerServer.Modules.Reviews.Data.Entities;
+using MediaRankerServer.Modules.Reviews.Data.Views;
+using MediaRankerServer.Modules.Files.Data.Entities;
 using MediaRankerServer.Shared.Data.Interfaces;
 
 namespace MediaRankerServer.Shared.Data;
@@ -19,6 +20,7 @@ public class PostgreSQLContext : DbContext
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<ReviewField> ReviewFields => Set<ReviewField>();
     public DbSet<FileUpload> FileUploads => Set<FileUpload>();
+    public DbSet<ReviewDetailView> ReviewDetails => Set<ReviewDetailView>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

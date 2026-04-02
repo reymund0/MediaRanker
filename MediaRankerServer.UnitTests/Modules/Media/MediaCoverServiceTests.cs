@@ -1,11 +1,11 @@
 using FluentValidation;
 using MediaRankerServer.Modules.Media.Services;
 using MediaRankerServer.Modules.Media.Contracts;
-using MediaRankerServer.Modules.Media.Entities;
+using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Modules.Files.Contracts;
 using MediaRankerServer.Modules.Files.Events;
-using MediaRankerServer.Modules.Files.Entities;
+using MediaRankerServer.Modules.Files.Data.Entities;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
 using MediatR;
