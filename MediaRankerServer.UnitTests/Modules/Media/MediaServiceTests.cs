@@ -1,6 +1,8 @@
 using FluentAssertions;
 using FluentValidation;
+using MediatR;
 using MediaRankerServer.Modules.Media.Contracts;
+using MediaRankerServer.Modules.Media.Events;
 using MediaRankerServer.Modules.Media.Services;
 using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Modules.Files.Services;
@@ -19,6 +21,7 @@ public class MediaServiceTests
     private readonly Mock<IMediaCoverService> _mockCoverService;
     private readonly Mock<IFileService> _mockFileService;
     private readonly Mock<IValidator<MediaUpsertRequest>> _mockValidator;
+    private readonly Mock<IPublisher> _mockPublisher;
     private readonly MediaService _service;
     private const string DefaultUserId = "test-user-1";
 
@@ -30,16 +33,18 @@ public class MediaServiceTests
 
         _context = new PostgreSQLContext(options);
         _mockCoverService = new Mock<IMediaCoverService>();
-        
+
         _mockFileService = new Mock<IFileService>();
         _mockFileService.Setup(f => f.GetFileUrl(It.IsAny<string>(), It.IsAny<FileEntityType>()))
             .Returns((string path, FileEntityType type) => path);
-            
+
         _mockValidator = new Mock<IValidator<MediaUpsertRequest>>();
         _mockValidator.Setup(v => v.Validate(It.IsAny<MediaUpsertRequest>()))
             .Returns(new FluentValidation.Results.ValidationResult());
 
-        _service = new MediaService(_context, _mockCoverService.Object, _mockFileService.Object, _mockValidator.Object);
+        _mockPublisher = new Mock<IPublisher>();
+
+        _service = new MediaService(_context, _mockCoverService.Object, _mockFileService.Object, _mockValidator.Object, _mockPublisher.Object);
     }
 
     [Fact]
@@ -219,5 +224,40 @@ public class MediaServiceTests
         // Assert
         _mockCoverService.Verify(s => s.DeleteCoverFileAsync("covers/to_delete.png", It.IsAny<CancellationToken>()), Times.Once);
         _context.Media.Should().NotContain(m => m.Id == media.Id);
+    }
+
+    [Fact]
+    public async Task DeleteMediaAsync_PublishesMediaDeletedEvent()
+    {
+        // Arrange
+        var media = new MediaEntity
+        {
+            Title = "Event Test",
+            MediaTypeId = -3,
+            ReleaseDate = new DateOnly(2021, 1, 1)
+        };
+        _context.Media.Add(media);
+        await _context.SaveChangesAsync();
+
+        // Act
+        await _service.DeleteMediaAsync(media.Id);
+
+        // Assert
+        _mockPublisher.Verify(
+            p => p.Publish(It.Is<MediaDeletedEvent>(e => e.MediaId == media.Id), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteMediaAsync_WhenMediaMissing_DoesNotPublishEvent()
+    {
+        // Act
+        var act = () => _service.DeleteMediaAsync(999);
+        await act.Should().ThrowAsync<DomainException>();
+
+        // Assert
+        _mockPublisher.Verify(
+            p => p.Publish(It.IsAny<MediaDeletedEvent>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }

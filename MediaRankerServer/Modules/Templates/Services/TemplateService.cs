@@ -27,10 +27,12 @@ public class TemplateService(
     
     public async Task<TemplateDto?> GetTemplateByIdAsync(long templateId, CancellationToken cancellationToken)
     {
-        var template = await TemplateReadRows()
-            .FirstOrDefaultAsync(t => t.Template.Id == templateId, cancellationToken);
+        var template = await dbContext.Templates
+            .Include(t => t.Fields)
+            .Join(dbContext.MediaTypes, t => t.MediaTypeId, mt => mt.Id, (t, mt) => new { t, mt.Name })
+            .FirstOrDefaultAsync(t => t.t.Id == templateId, cancellationToken);
 
-        return template is null ? null : TemplateDtoMapper.Map(template.Template, template.MediaTypeName);
+        return template is null ? null : TemplateDtoMapper.Map(template.t, template.Name);
     }
 
     public async Task<List<TemplateDto>> GetTemplatesByMediaTypeAsync(string userId, long mediaTypeId, CancellationToken cancellationToken)
@@ -182,9 +184,11 @@ public class TemplateService(
         dbContext.TemplateFields.RemoveRange(dbContext.TemplateFields.Where(tf => tf.TemplateId == templateId));
         dbContext.Templates.Remove(template);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        await publisher.Publish(new Events.TemplateDeletedEvent(templateId), cancellationToken);
     }
 
-        private IQueryable<TemplateReadRow> TemplateReadRows()
+    private IQueryable<TemplateReadRow> TemplateReadRows()
     {
         return from t in dbContext.Templates
                join mt in dbContext.MediaTypes on t.MediaTypeId equals mt.Id
