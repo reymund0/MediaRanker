@@ -26,6 +26,8 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) =>
         .WriteTo.File(
             path: "logs/app-log-.txt",
             rollingInterval: RollingInterval.Day,
+            fileSizeLimitBytes: 104857600,  // 100MB
+            rollOnFileSizeLimit: true,
             retainedFileCountLimit: 31,
             shared: true,
             outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}"
@@ -84,7 +86,7 @@ builder.Services.AddCognitoAuthentication(builder.Configuration);
 
 // Register Module Services.
 builder.Services.AddTemplatesModule();
-builder.Services.AddMediaModule();
+builder.Services.AddMediaModule(builder.Configuration, builder.Environment);
 builder.Services.AddReviewsModule();
 builder.Services.AddFilesModule(builder.Configuration, builder.Environment);
 builder.Services.AddTestModule();

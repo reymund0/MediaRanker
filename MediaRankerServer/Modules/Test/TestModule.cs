@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using MediaRankerServer.Modules.Media.Services;
 
 namespace MediaRankerServer.Modules.Test;
 
@@ -6,7 +7,7 @@ public static class TestModule
 {
     public static IServiceCollection AddTestModule(this IServiceCollection services)
     {
-        // Placeholder for future Test services
+        services.AddScoped<ImdbImportService>();
         return services;
     }
 }

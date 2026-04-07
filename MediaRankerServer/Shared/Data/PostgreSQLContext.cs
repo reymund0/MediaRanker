@@ -15,6 +15,7 @@ public class PostgreSQLContext : DbContext
 
     public DbSet<MediaType> MediaTypes => Set<MediaType>();
     public DbSet<MediaEntity> Media => Set<MediaEntity>();
+    public DbSet<ImdbImport> ImdbImports => Set<ImdbImport>();
     public DbSet<Template> Templates => Set<Template>();
     public DbSet<TemplateField> TemplateFields => Set<TemplateField>();
     public DbSet<Review> Reviews => Set<Review>();
