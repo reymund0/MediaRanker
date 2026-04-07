@@ -84,7 +84,7 @@ builder.Services.AddCognitoAuthentication(builder.Configuration);
 
 // Register Module Services.
 builder.Services.AddTemplatesModule();
-builder.Services.AddMediaModule();
+builder.Services.AddMediaModule(builder.Configuration, builder.Environment);
 builder.Services.AddReviewsModule();
 builder.Services.AddFilesModule(builder.Configuration, builder.Environment);
 builder.Services.AddTestModule();

@@ -46,6 +46,17 @@ export default function Test() {
     },
   });
 
+  const imdbImportMutation = useMutation<void, string>({
+    route: "/api/test/triggerImdbImport",
+    method: "POST",
+    onSuccess: (data) => {
+      showSuccess(`IMDB import triggered! ${data}`);
+    },
+    onError: (error) => {
+      showError(error.message || "IMDB import trigger failed");
+    },
+  });
+
   const callEndpoint = (mutation: { mutate: () => void }, label: string) => {
     closeAlert();
     showInfo(`Calling ${label}...`);
@@ -114,6 +125,15 @@ export default function Test() {
             disabled={unexpectedErrorMutation.isPending}
           >
             Trigger Unexpected Error
+          </PrimaryButton>
+
+          <PrimaryButton
+            onClick={() =>
+              callEndpoint(imdbImportMutation, "/api/test/triggerImdbImport")
+            }
+            disabled={imdbImportMutation.isPending}
+          >
+            Trigger IMDB Import
           </PrimaryButton>
         </Box>
       </Box>

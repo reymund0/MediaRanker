@@ -1,12 +1,14 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MediaRankerServer.Shared.Exceptions;
+using MediaRankerServer.Modules.Media.Jobs;
+using MediaRankerServer.Modules.Media.Services;
+using Microsoft.Extensions.Options;
 
 namespace MediaRankerServer.Modules.Test.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class TestController : ControllerBase
+    public class TestController(ImdbImportService importService) : ControllerBase
     {
         [HttpPost("helloWorld")]
         public IActionResult HelloWorld()
@@ -27,6 +29,14 @@ namespace MediaRankerServer.Modules.Test.Controllers
         public IActionResult UnexpectedError()
         {
             throw new InvalidOperationException("Simulated unexpected exception from test endpoint.");
+        }
+
+        [HttpPost("triggerImdbImport")]
+        public async Task<IActionResult> TriggerImdbImport(CancellationToken cancellationToken)
+        {
+            var result = await importService.ImportAsync(cancellationToken);
+            
+            return Ok(new { message = "IMDB import completed.", result });
         }
     }
 }
