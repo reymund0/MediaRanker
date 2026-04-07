@@ -144,8 +144,8 @@ public class ImdbTsvProvider
             var row = new ImdbTsvRow(
                 Tconst: columns[0],
                 TitleType: columns[1],
-                PrimaryTitle: columns[2],
-                OriginalTitle: columns[3],
+                PrimaryTitle: SanitizeTitle(columns[2]),
+                OriginalTitle: SanitizeTitle(columns[3]),
                 IsAdult: columns[4] == "1",
                 StartYear: ParseNullableInt(columns[5]),
                 EndYear: ParseNullableInt(columns[6]),
@@ -155,6 +155,11 @@ public class ImdbTsvProvider
 
             yield return row;
         }
+    }
+
+    private string SanitizeTitle(string title)
+    {
+        return title.Replace("{", "").Replace("}", "");
     }
 
     private int? ParseNullableInt(string value)
