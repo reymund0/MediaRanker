@@ -1,7 +1,9 @@
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Options;
+using MediaRankerServer.Modules.Media.Jobs;
 
-namespace MediaRankerServer.Modules.Media.Services;
+namespace MediaRankerServer.Modules.Media.Data;
 
 public record ImdbTsvRow(
     string Tconst,
@@ -15,35 +17,30 @@ public record ImdbTsvRow(
     string? Genres
 );
 
-public class ImdbTsvProvider
+public class ImdbTsvProvider(
+    HttpClient httpClient,
+    IOptions<ImdbImportOptions> options,
+    ILogger<ImdbTsvProvider> logger)
 {
+    private readonly ImdbImportOptions config = options.Value;
+
+    // Headers from IMDB title.basics data set. See: https://developer.imdb.com/non-commercial-datasets/#titlebasicstsvgz
     private static readonly string[] ExpectedHeaders = [
         "tconst", "titleType", "primaryTitle", "originalTitle",
         "isAdult", "startYear", "endYear", "runtimeMinutes", "genres"
     ];
 
-    private readonly HttpClient httpClient;
-    private readonly ILogger<ImdbTsvProvider> logger;
-
-    public ImdbTsvProvider(HttpClient httpClient, ILogger<ImdbTsvProvider> logger)
-    {
-        this.httpClient = httpClient;
-        this.logger = logger;
-    }
-
-    /// <summary>
     /// Downloads the IMDB dataset, parses the TSV, and calls the provided handler for each batch of rows.
-    /// </summary>
-    public async Task DoImport(
-        string datasetUrl,
-        int batchSize,
+    public async Task RunBatchImportAsync(
         Func<List<ImdbTsvRow>, CancellationToken, Task> batchHandler,
         CancellationToken ct = default)
     {
-        logger.LogInformation("Starting IMDB import. Dataset: {DatasetUrl}, Batch size: {BatchSize}", datasetUrl, batchSize);
-
+        var batchSize = config.BatchSize;
+        var datasetUrl = config.DatasetUrl;
         var totalRows = 0;
         var totalBatches = 0;
+
+        logger.LogInformation("Starting IMDB import. Dataset: {DatasetUrl}, Batch size: {BatchSize}", datasetUrl, batchSize);
 
         await using var dataStream = await DownloadAndDecompressAsync(datasetUrl, ct);
 
@@ -107,11 +104,8 @@ public class ImdbTsvProvider
         using var reader = new StreamReader(stream);
 
         // Read and validate header
-        var headerLine = await reader.ReadLineAsync(ct);
-        if (headerLine == null)
-        {
-            throw new InvalidDataException("IMDB TSV file is empty or missing header.");
-        }
+        var headerLine = await reader.ReadLineAsync(ct)
+            ?? throw new InvalidDataException("IMDB TSV file is empty or missing header.");
 
         var headers = headerLine.Split('\t');
         if (!headers.SequenceEqual(ExpectedHeaders))
@@ -157,12 +151,12 @@ public class ImdbTsvProvider
         }
     }
 
-    private string SanitizeTitle(string title)
+    private static string SanitizeTitle(string title)
     {
         return title.Replace("{", "").Replace("}", "");
     }
 
-    private int? ParseNullableInt(string value)
+    private static int? ParseNullableInt(string value)
     {
         if (value == @"\N" || string.IsNullOrEmpty(value))
         {

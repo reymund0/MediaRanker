@@ -26,6 +26,8 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) =>
         .WriteTo.File(
             path: "logs/app-log-.txt",
             rollingInterval: RollingInterval.Day,
+            fileSizeLimitBytes: 104857600,  // 100MB
+            rollOnFileSizeLimit: true,
             retainedFileCountLimit: 31,
             shared: true,
             outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}"

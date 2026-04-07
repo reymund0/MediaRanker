@@ -30,15 +30,15 @@ namespace MediaRankerServer.Migrations
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    tconst = table.Column<string>(type: "character varying(12)", maxLength: 12, nullable: false),
-                    title_type = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    primary_title = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    original_title = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    tconst = table.Column<string>(type: "text", nullable: false),
+                    title_type = table.Column<string>(type: "text", nullable: false),
+                    primary_title = table.Column<string>(type: "text", nullable: false),
+                    original_title = table.Column<string>(type: "text", nullable: false),
                     is_adult = table.Column<bool>(type: "boolean", nullable: false),
                     start_year = table.Column<int>(type: "integer", nullable: true),
                     end_year = table.Column<int>(type: "integer", nullable: true),
                     runtime_minutes = table.Column<int>(type: "integer", nullable: true),
-                    genres = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    genres = table.Column<string>(type: "text", nullable: true),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()"),
                     updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
                 },

@@ -3,8 +3,7 @@ using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Jobs;
 using MediaRankerServer.Modules.Media.Services;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
+using MediaRankerServer.Modules.Media.Data;
 
 namespace MediaRankerServer.Modules.Media;
 
@@ -28,8 +27,7 @@ public static class MediaModule
 
         if (!environment.IsEnvironment("Testing"))
         {
-            // TODO: Re-enable this when we're ready to run the job
-            // services.AddHostedService<ImdbImportJob>();
+            services.AddHostedService<ImdbImportJob>();
         }
 
         return services;

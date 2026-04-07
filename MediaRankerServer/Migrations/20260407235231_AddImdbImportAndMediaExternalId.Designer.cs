@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MediaRankerServer.Migrations
 {
     [DbContext(typeof(PostgreSQLContext))]
-    [Migration("20260407184908_AddImdbImportAndMediaExternalId")]
+    [Migration("20260407235231_AddImdbImportAndMediaExternalId")]
     partial class AddImdbImportAndMediaExternalId
     {
         /// <inheritdoc />
@@ -124,8 +124,7 @@ namespace MediaRankerServer.Migrations
                         .HasColumnName("end_year");
 
                     b.Property<string>("Genres")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
+                        .HasColumnType("text")
                         .HasColumnName("genres");
 
                     b.Property<bool>("IsAdult")
@@ -134,14 +133,12 @@ namespace MediaRankerServer.Migrations
 
                     b.Property<string>("OriginalTitle")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
+                        .HasColumnType("text")
                         .HasColumnName("original_title");
 
                     b.Property<string>("PrimaryTitle")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
+                        .HasColumnType("text")
                         .HasColumnName("primary_title");
 
                     b.Property<int?>("RuntimeMinutes")
@@ -154,14 +151,12 @@ namespace MediaRankerServer.Migrations
 
                     b.Property<string>("Tconst")
                         .IsRequired()
-                        .HasMaxLength(12)
-                        .HasColumnType("character varying(12)")
+                        .HasColumnType("text")
                         .HasColumnName("tconst");
 
                     b.Property<string>("TitleType")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
+                        .HasColumnType("text")
                         .HasColumnName("title_type");
 
                     b.Property<DateTimeOffset>("UpdatedAt")

@@ -1,12 +1,10 @@
-using MediaRankerServer.Modules.Media.Jobs;
 using MediaRankerServer.Modules.Media.Services;
 using Microsoft.Extensions.Options;
 
 namespace MediaRankerServer.Modules.Media.Jobs;
 
-// TODO: Convert this to something industry-standard like Quartz.NET or Hangfire.
 public class ImdbImportJob(
-    ImdbImportService importService,
+    IServiceScopeFactory scopeFactory,
     IOptions<ImdbImportOptions> options,
     ILogger<ImdbImportJob> logger) : BackgroundService
 {
@@ -41,6 +39,8 @@ public class ImdbImportJob(
 
             try
             {
+                using var scope = scopeFactory.CreateScope();
+                var importService = scope.ServiceProvider.GetRequiredService<ImdbImportService>();
                 await importService.ImportAsync(stoppingToken);
             }
             catch (Exception ex)

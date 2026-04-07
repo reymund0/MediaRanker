@@ -4,6 +4,10 @@ using MediaRankerServer.Shared.Data.Interfaces;
 
 namespace MediaRankerServer.Modules.Media.Data.Entities;
 
+/// <summary>
+/// Represents an IMDB import record for non commercial use. IMDB documentation: https://developer.imdb.com/non-commercial-datasets/
+/// Currently only using the tile basics file.
+/// </summary>
 public class ImdbImport : ITimestampedEntity
 {
     public long Id { get; set; }
@@ -27,32 +31,17 @@ public class ImdbImport : ITimestampedEntity
 
             builder.HasKey(i => i.Id);
 
-            builder.Property(i => i.Tconst)
-                .IsRequired()
-                .HasMaxLength(12);
-
-            builder.Property(i => i.TitleType)
-                .IsRequired()
-                .HasMaxLength(20);
-
-            builder.Property(i => i.PrimaryTitle)
-                .IsRequired()
-                .HasMaxLength(500);
-
-            builder.Property(i => i.OriginalTitle)
-                .IsRequired()
-                .HasMaxLength(500);
-
-            builder.Property(i => i.IsAdult)
-                .IsRequired();
-
+            builder.Property(i => i.Tconst).IsRequired();
+            builder.Property(i => i.TitleType).IsRequired();
+            builder.Property(i => i.PrimaryTitle).IsRequired();
+            builder.Property(i => i.OriginalTitle).IsRequired();
+            builder.Property(i => i.IsAdult).IsRequired();
             builder.Property(i => i.StartYear);
             builder.Property(i => i.EndYear);
             builder.Property(i => i.RuntimeMinutes);
-
-            builder.Property(i => i.Genres)
-                .HasMaxLength(200);
-
+            builder.Property(i => i.Genres);
+            
+            // Indexes
             builder.HasIndex(i => i.Tconst)
                 .IsUnique()
                 .HasDatabaseName("uq_imdb_imports_tconst");

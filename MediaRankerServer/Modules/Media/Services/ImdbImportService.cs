@@ -1,7 +1,6 @@
-using MediaRankerServer.Modules.Media.Jobs;
 using MediaRankerServer.Shared.Data;
+using MediaRankerServer.Modules.Media.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using System.Text;
 
 namespace MediaRankerServer.Modules.Media.Services;
@@ -11,44 +10,40 @@ public record ImdbImportResult(int Inserted, int Skipped);
 public class ImdbImportService(
     ImdbTsvProvider parser,
     PostgreSQLContext dbContext,
-    IOptions<ImdbImportOptions> options,
     ILogger<ImdbImportService> logger)
 {
-    private readonly ImdbImportOptions config = options.Value;
-
+    int totalInserted;
+    int totalSkipped;
+    
     public async Task<ImdbImportResult> ImportAsync(CancellationToken ct = default)
     {
         logger.LogInformation("Starting IMDB import job run.");
 
-        var totalInserted = 0;
-        var totalSkipped = 0;
+        totalInserted = 0;
+        totalSkipped = 0;
 
-        async Task BatchHandler(List<ImdbTsvRow> rows, CancellationToken cancellationToken)
-        {
-            string sql = string.Empty;
-            try {
-                sql = BuildInsertSql(rows);
-                var result = await dbContext.Database.ExecuteSqlRawAsync(sql, cancellationToken);
-                var inserted = result;
-                var skipped = rows.Count - inserted;
-                totalInserted += inserted;
-                totalSkipped += skipped;
-            }
-            catch (Exception ex) {
-                logger.LogError(ex, "Error importing batch of IMDB rows. SQL: {Sql}", sql);
-            }
-        }
-
-        await parser.DoImport(
-            config.DatasetUrl,
-            config.BatchSize,
-            BatchHandler,
-            ct);
+        await parser.RunBatchImportAsync(ImportBatchAsync, ct);
 
         logger.LogInformation("IMDB import run completed. Total inserted: {Inserted}, Total skipped (duplicates): {Skipped}",
             totalInserted, totalSkipped);
 
         return new ImdbImportResult(totalInserted, totalSkipped);
+    }
+
+    private async Task ImportBatchAsync(List<ImdbTsvRow> rows, CancellationToken cancellationToken)
+    {
+        string sql = string.Empty;
+        try {
+            sql = BuildInsertSql(rows);
+            var result = await dbContext.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+            var inserted = result;
+            var skipped = rows.Count - inserted;
+            totalInserted += inserted;
+            totalSkipped += skipped;
+        }
+        catch (Exception ex) {
+            logger.LogError(ex, "Error importing batch of IMDB rows. SQL: {Sql}", sql);
+        }
     }
 
     private static string BuildInsertSql(List<ImdbTsvRow> rows)
