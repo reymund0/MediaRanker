@@ -41,6 +41,19 @@ The server is organized into feature modules under `MediaRankerServer/Modules/`.
 - Make job behavior configuration-driven with `IOptions<T>` (for example: enabled flag, thresholds, schedule-related settings).
 - Wrap each run in exception handling, log start/finish plus success/failure counts, and continue the schedule unless cancellation is requested.
 
+## External Data Ingestion (Large Dataset Imports)
+
+For importing large external datasets (e.g., IMDB TSV files), use a callback-driven batch provider pattern to keep I/O and persistence cleanly separated:
+
+- **Provider class** (e.g., `ImdbTsvProvider` in `Modules/<Module>/Data/`) owns I/O with external data set. Supplies batches of data to the caller via a callback. See: `RunBatchImportAsync(Func<List<TRow>, CancellationToken, Task> batchHandler, CancellationToken ct)`.
+- **Service class** (e.g., `ImdbImportService`) owns:
+  - Wiring the provider to actual persistence
+  - Raw SQL `INSERT ... ON CONFLICT (<dedup_key>) DO NOTHING` for large batches (avoids EF change-tracker overhead)
+  - Tracking inserted/skipped counts across batches and logging totals on completion
+  - Per-batch exception handling (log error and continue; don't abort the whole import on a single batch failure)
+- **Staging table** (e.g., `imdb_imports`) is append-only for record keeping purposes. Duplicates are prevent by unique identifiers from external source.
+- **`BackgroundService` job** for regular syncs of datasets (if dataset is small enough)
+
 ## File Upload Lifecycle (Module + Files Module)
 - The upload flow is two-phase and module-driven:
   1. Frontend asks a module endpoint to start an upload.

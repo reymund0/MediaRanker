@@ -34,6 +34,11 @@ Manages **media entries** and **media types** (movies, video games, etc.).
 - Publishes `MediaDeletedEvent` when media is deleted.
 - Publishes `FileDeletedEvent` for invalid media cover uploads and explicit cover-file deletion flows.
 - Includes SQL seed data for system-owned media types (negative IDs).
+- Includes an **IMDB import pipeline** that downloads, parses, and stages the IMDB title dataset into an `imdb_imports` table:
+  - `ImdbTsvProvider` — streams and parses the `.tsv.gz` dataset; supplies batches to the caller via a `RunBatchImportAsync` callback
+  - `ImdbImportService` — wires the provider to raw SQL batch inserts with `ON CONFLICT (tconst) DO NOTHING` dedup
+  - `ImdbImportJob` — `BackgroundService` that runs the import on a configurable daily schedule
+  - Disabled by default; enable via `Media:ImdbImport:Enabled` in config
 
 ### Reviews
 
