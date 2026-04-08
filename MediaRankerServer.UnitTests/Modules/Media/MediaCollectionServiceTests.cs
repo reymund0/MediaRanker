@@ -99,6 +99,22 @@ public class MediaCollectionServiceTests
     }
 
     [Fact]
+    public async Task CreateCollectionAsync_WhenParentIsSelfReference_ThrowsDomainException()
+    {
+        var act = () => _service.CreateCollectionAsync(DefaultUserId, new MediaCollectionUpsertRequest
+        {
+            Title = "Season 1",
+            CollectionType = CollectionType.Season,
+            MediaTypeId = TvShowTypeId,
+            ParentMediaCollectionId = 1,
+            ReleaseDate = new DateOnly(2020, 1, 1),
+        });
+
+        await act.Should().ThrowAsync<DomainException>()
+            .Where(e => e.Type == "collection_parent_self_reference");
+    }
+
+    [Fact]
     public async Task CreateCollectionAsync_WhenParentMediaTypeMismatches_ThrowsDomainException()
     {
         var series = new MediaCollection
