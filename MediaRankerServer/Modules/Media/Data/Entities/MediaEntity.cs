@@ -17,6 +17,8 @@ public class MediaEntity : ITimestampedEntity
     public DateTimeOffset UpdatedAt { get; set; }
     public string? ExternalId { get; set; }
     public string? ExternalSource { get; set; }
+    public long? MediaCollectionId { get; set; }
+    public MediaCollection? MediaCollection { get; set; }
 
     // Cover File Upload - We intentionally want to copy data over rather than joining on FileUploads. Hence no reference below.
     public long? CoverFileUploadId { get; set; }
@@ -52,11 +54,17 @@ public class MediaEntity : ITimestampedEntity
             builder.Property(m => m.CoverFileContentType);
             builder.Property(m => m.ExternalId);
             builder.Property(m => m.ExternalSource);
+            builder.Property(m => m.MediaCollectionId);
 
             // Relationships
             builder.HasOne(m => m.MediaType)
                 .WithMany()
                 .HasForeignKey(m => m.MediaTypeId);
+
+            builder.HasOne(m => m.MediaCollection)
+                .WithMany(mc => mc.MediaItems)
+                .HasForeignKey(m => m.MediaCollectionId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // Indexes
             builder.HasIndex(m => m.MediaTypeId)
@@ -69,6 +77,9 @@ public class MediaEntity : ITimestampedEntity
             builder.HasIndex(m => new { m.Title, m.MediaTypeId, m.ReleaseDate })
                 .IsUnique()
                 .HasDatabaseName("uq_media_title_type_release_date");
+
+            builder.HasIndex(m => m.MediaCollectionId)
+                .HasDatabaseName("ix_media_media_collection_id");
 
             // Unique partial index on ExternalId + ExternalSource (only when ExternalId is not null)
             builder.HasIndex(m => new { m.ExternalId, m.ExternalSource })

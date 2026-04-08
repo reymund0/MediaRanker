@@ -19,9 +19,11 @@ public static class MediaModule
         services.AddScoped<IFileService, S3FileService>();
         services.AddScoped<IMediaCoverService, MediaCoverService>();
         services.AddScoped<IMediaService, MediaService>();
+        services.AddScoped<IMediaCollectionService, MediaCollectionService>();
         services.AddScoped<ImdbImportService>();
         services.AddScoped<IValidator<MediaUpsertRequest>, MediaUpsertRequestValidator>();
         services.AddScoped<IValidator<GenerateUploadCoverUrlRequest>, GenerateUploadCoverUrlRequestValidator>();
+        services.AddScoped<IValidator<MediaCollectionUpsertRequest>, MediaCollectionUpsertRequestValidator>();
 
         services.AddHttpClient<ImdbTsvProvider>();
 
