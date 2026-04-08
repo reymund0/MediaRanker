@@ -149,6 +149,12 @@ public class MediaCollectionService(
             throw new DomainException("Parent collection not found.", "collection_parent_not_found");
         }
 
+        // Validate parent is not the same as the collection being updated.
+        if (parent != null && parent.Id == request.Id)
+        {
+            throw new DomainException("Parent collection cannot be the same as the collection being updated.", "collection_parent_self_reference");
+        }
+
         // Validate parent media type matches child media type.
         if (parent != null && parent.MediaTypeId != request.MediaTypeId)
         {
