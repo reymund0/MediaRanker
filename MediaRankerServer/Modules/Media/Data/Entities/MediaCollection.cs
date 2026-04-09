@@ -24,7 +24,7 @@ public class MediaCollection : ITimestampedEntity
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
-    // Cover File Upload - intentionally copied data, no reference to FileUploads.
+    // Cover File Upload
     public long? CoverFileUploadId { get; set; }
     public string? CoverFileKey { get; set; }
     public string? CoverFileName { get; set; }
@@ -85,8 +85,7 @@ public class MediaCollection : ITimestampedEntity
             builder.HasIndex(mc => mc.ParentMediaCollectionId)
                 .HasDatabaseName("ix_media_collections_parent_id");
 
-            // Partial unique indexes to prevent duplicate collections.
-            // Two indexes: one for root collections (parent IS NULL), one for child collections (parent IS NOT NULL).
+            // Partial unique indexes to prevent duplicate collections. One with parent included, one without.
             builder.HasIndex(mc => new { mc.Title, mc.CollectionType, mc.MediaTypeId, mc.ParentMediaCollectionId })
                 .IsUnique()
                 .HasDatabaseName("uq_media_collections_title_type_mediatype_parent")
