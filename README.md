@@ -9,6 +9,7 @@ A personal media reviewing and ranking web application where users can define th
 - Direct browser uploads to S3 for media cover images.
 - ProblemDetails based API responses for consistent error handling.
 - Integration tests against PostgreSQL and AWS flows using Testcontainers, Respawn, and LocalStack.
+- Large external dataset ingestion (IMDB title dataset staging pipeline).
 - Maintained architecture and API-adjacent documentation to improve repository consistency and AI-assisted development workflows.
 
 ## Key Features Implemented
@@ -31,10 +32,13 @@ A personal media reviewing and ranking web application where users can define th
 
 <img src="docs/images/template-field-dnd.gif" alt="Template Field Drag and Drop" width="300" />
 
+## In Progress
+- IMDB dataset import pipeline (Phase 1 — extract and stage): background job that downloads and parses the IMDB title dataset into a staging table. Phase 2 will link staged entries to media records.
+
 ## Future Features and Enhancements
-- A personalized dashboard displaying a user's top reviews, media to revisit, and recommendations. 
+- A personalized dashboard displaying a user's top reviews, media to revisit, and recommendations.
 - User specific head to head ranking between existing reviews.
-- Export Transform and Load (ETL) pipeline for importing media from external sources like IMDb for movies or Steam for video games.
+- ETL pipeline for additional external media sources (e.g., Steam for video games).
 
 ## Long Term Goals
 - Establish user roles to separate Admin screens and actions from general users. 

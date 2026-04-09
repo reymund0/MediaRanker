@@ -1,0 +1,100 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+using MediaRankerServer.Shared.Data.Interfaces;
+
+namespace MediaRankerServer.Modules.Media.Data.Entities;
+
+public enum CollectionType
+{
+    Series,
+    Season
+}
+
+public class MediaCollection : ITimestampedEntity
+{
+    public long Id { get; set; }
+
+    public string Title { get; set; } = null!;
+    public CollectionType CollectionType { get; set; }
+    public long MediaTypeId { get; set; }
+    public MediaType MediaType { get; set; } = null!;
+    public long? ParentMediaCollectionId { get; set; }
+    public DateOnly ReleaseDate { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+
+    // Cover File Upload
+    public long? CoverFileUploadId { get; set; }
+    public string? CoverFileKey { get; set; }
+    public string? CoverFileName { get; set; }
+    public long? CoverFileSizeBytes { get; set; }
+    public string? CoverFileContentType { get; set; }
+
+    // Navigation properties
+    public MediaCollection? ParentMediaCollection { get; set; }
+    public ICollection<MediaCollection> ChildCollections { get; set; } = [];
+    public ICollection<MediaEntity> MediaItems { get; set; } = [];
+
+    public class Configuration : IEntityTypeConfiguration<MediaCollection>
+    {
+        public void Configure(EntityTypeBuilder<MediaCollection> builder)
+        {
+            builder.ToTable("media_collections");
+
+            builder.HasKey(mc => mc.Id);
+
+            builder.Property(mc => mc.Id);
+
+            builder.Property(mc => mc.Title)
+                .IsRequired();
+
+            builder.Property(mc => mc.CollectionType)
+                .HasConversion<string>()
+                .IsRequired();
+
+            builder.Property(mc => mc.MediaTypeId)
+                .IsRequired();
+
+            builder.Property(mc => mc.ParentMediaCollectionId);
+
+            builder.Property(mc => mc.ReleaseDate)
+                .HasColumnType("date")
+                .IsRequired();
+
+            builder.Property(mc => mc.CoverFileUploadId);
+            builder.Property(mc => mc.CoverFileKey);
+            builder.Property(mc => mc.CoverFileName);
+            builder.Property(mc => mc.CoverFileSizeBytes);
+            builder.Property(mc => mc.CoverFileContentType);
+
+            // Relationships
+            builder.HasOne(mc => mc.MediaType)
+                .WithMany()
+                .HasForeignKey(mc => mc.MediaTypeId);
+
+            builder.HasOne(mc => mc.ParentMediaCollection)
+                .WithMany(mc => mc.ChildCollections)
+                .HasForeignKey(mc => mc.ParentMediaCollectionId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Indexes
+            builder.HasIndex(mc => mc.MediaTypeId)
+                .HasDatabaseName("ix_media_collections_media_type_id");
+
+            builder.HasIndex(mc => mc.ParentMediaCollectionId)
+                .HasDatabaseName("ix_media_collections_parent_id");
+
+            // Partial unique indexes to prevent duplicate collections. One with parent included, one without.
+            builder.HasIndex(mc => new { mc.Title, mc.CollectionType, mc.MediaTypeId, mc.ParentMediaCollectionId })
+                .IsUnique()
+                .HasDatabaseName("uq_media_collections_title_type_mediatype_parent")
+                .HasFilter("parent_media_collection_id IS NOT NULL");
+
+            builder.HasIndex(mc => new { mc.Title, mc.CollectionType, mc.MediaTypeId })
+                .IsUnique()
+                .HasDatabaseName("uq_media_collections_title_type_mediatype_root")
+                .HasFilter("parent_media_collection_id IS NULL");
+        }
+    }
+}
