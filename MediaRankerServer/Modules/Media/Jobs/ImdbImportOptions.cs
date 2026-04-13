@@ -6,6 +6,7 @@ public class ImdbImportOptions
 
     public bool Enabled { get; set; } = false;
     public string DatasetUrl { get; set; } = "https://datasets.imdbws.com/title.basics.tsv.gz";
+    public string EpisodesDatasetUrl { get; set; } = "https://datasets.imdbws.com/title.episode.tsv.gz";
     public int BatchSize { get; set; } = 5000;
     public int ScheduleHourUtc { get; set; } = 3; // 3 AM UTC
 }

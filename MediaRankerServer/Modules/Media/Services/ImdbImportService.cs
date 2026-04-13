@@ -1,82 +1,143 @@
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Modules.Media.Data;
+using MediaRankerServer.Modules.Media.Jobs;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using System.Text;
 
 namespace MediaRankerServer.Modules.Media.Services;
 
-public record ImdbImportResult(int Inserted, int Skipped);
+public record ImdbImportRunResult(ImdbImportResult Basics, ImdbImportResult? Episodes);
 
 public class ImdbImportService(
     ImdbTsvProvider parser,
-    PostgreSQLContext dbContext,
+    IImdbImportProvider importProvider,
+    IOptions<ImdbImportOptions> options,
     ILogger<ImdbImportService> logger)
 {
-    int totalInserted;
-    int totalSkipped;
-    
-    public async Task<ImdbImportResult> ImportAsync(CancellationToken ct = default)
+    private readonly ImdbImportOptions config = options.Value;
+    private int basicsInserted = 0;
+    private int basicsSkipped = 0;
+    private int episodesInserted = 0;
+    private int episodesSkipped = 0;
+
+    // Headers for IMDB datasets
+    private static readonly string[] BasicsHeaders = [
+        "tconst", "titleType", "primaryTitle", "originalTitle",
+        "isAdult", "startYear", "endYear", "runtimeMinutes", "genres"
+    ];
+
+    private static readonly string[] EpisodeHeaders = [
+        "tconst", "parentTconst", "seasonNumber", "episodeNumber"
+    ];
+
+    public async Task<ImdbImportRunResult> ImportAsync(CancellationToken ct = default)
     {
         logger.LogInformation("Starting IMDB import job run.");
 
-        totalInserted = 0;
-        totalSkipped = 0;
-
-        await parser.RunBatchImportAsync(ImportBatchAsync, ct);
-
-        logger.LogInformation("IMDB import run completed. Total inserted: {Inserted}, Total skipped (duplicates): {Skipped}",
-            totalInserted, totalSkipped);
-
-        return new ImdbImportResult(totalInserted, totalSkipped);
+        var basics = await ImportBasicsAsync(ct);
+        var episodes = await ImportEpisodesAsync(ct);
+        return new ImdbImportRunResult(basics, episodes);
     }
 
-    private async Task ImportBatchAsync(List<ImdbTsvRow> rows, CancellationToken cancellationToken)
+    private async Task<ImdbImportResult> ImportBasicsAsync(CancellationToken ct)
     {
-        string sql = string.Empty;
-        try {
-            sql = BuildInsertSql(rows);
-            var result = await dbContext.Database.ExecuteSqlRawAsync(sql, cancellationToken);
-            var inserted = result;
-            var skipped = rows.Count - inserted;
-            totalInserted += inserted;
-            totalSkipped += skipped;
-        }
-        catch (Exception ex) {
-            logger.LogError(ex, "Error importing batch of IMDB rows. SQL: {Sql}", sql);
-        }
+        await parser.RunBatchImportAsync<ImdbTsvRow>(
+            config.DatasetUrl,
+            BasicsHeaders,
+            ParseBasicsRow,
+            ImportBasicsBatchAsync,
+            ct);
+
+        logger.LogInformation("IMDB basics import completed. Inserted: {Inserted}, Skipped: {Skipped}",
+            basicsInserted, basicsSkipped);
+
+        return new ImdbImportResult(basicsInserted, basicsSkipped);
     }
 
-    private static string BuildInsertSql(List<ImdbTsvRow> rows)
+    private async Task ImportBasicsBatchAsync(List<ImdbTsvRow> batch, CancellationToken ct)
     {
-        var sb = new StringBuilder();
-        sb.AppendLine("INSERT INTO imdb_imports (tconst, title_type, primary_title, original_title, is_adult, start_year, end_year, runtime_minutes, genres)");
-        sb.AppendLine("VALUES");
+        // Lightweight wrapper to update progress counters.
+        var result = await importProvider.ImportBasicsAsync(batch, ct);
+        basicsInserted += result.Inserted;
+        basicsSkipped += result.Skipped;
+    }
 
-        for (int i = 0; i < rows.Count; i++)
+    private static ImdbTsvRow? ParseBasicsRow(string[] columns, int lineNumber)
+    {
+        // Skip adult content
+        if (columns[4] == "1")
         {
-            var row = rows[i];
-            var comma = i < rows.Count - 1 ? "," : "";
-
-            var startYear = row.StartYear.HasValue ? row.StartYear.Value.ToString() : "NULL";
-            var endYear = row.EndYear.HasValue ? row.EndYear.Value.ToString() : "NULL";
-            var runtime = row.RuntimeMinutes.HasValue ? row.RuntimeMinutes.Value.ToString() : "NULL";
-            var genres = row.Genres != null ? $"'{EscapeSql(row.Genres)}'" : "NULL";
-
-            sb.AppendLine($"    ('{EscapeSql(row.Tconst)}', '{EscapeSql(row.TitleType)}', '{EscapeSql(row.PrimaryTitle)}', '{EscapeSql(row.OriginalTitle)}', {BoolToSql(row.IsAdult)}, {startYear}, {endYear}, {runtime}, {genres}){comma}");
+            return null;
         }
 
-        sb.AppendLine("ON CONFLICT (tconst) DO NOTHING");
-
-        return sb.ToString();
+        return new ImdbTsvRow(
+            Tconst: columns[0],
+            TitleType: columns[1],
+            PrimaryTitle: SanitizeTitle(columns[2]),
+            OriginalTitle: SanitizeTitle(columns[3]),
+            IsAdult: columns[4] == "1",
+            StartYear: ParseNullableInt(columns[5]),
+            EndYear: ParseNullableInt(columns[6]),
+            RuntimeMinutes: ParseNullableInt(columns[7]),
+            Genres: columns[8] == @"\N" ? null : columns[8]
+        );
     }
 
-    private static string EscapeSql(string value)
+    private async Task<ImdbImportResult> ImportEpisodesAsync(CancellationToken ct)
     {
-        return value.Replace("'", "''");
+        await parser.RunBatchImportAsync<ImdbEpisodeTsvRow>(
+            config.EpisodesDatasetUrl,
+            EpisodeHeaders,
+            ParseEpisodeRow,
+            ImportEpisodesBatchAsync,
+            ct);
+
+        logger.LogInformation("IMDB episodes import completed. Inserted: {Inserted}, Skipped: {Skipped}",
+            episodesInserted, episodesSkipped);
+
+        return new ImdbImportResult(episodesInserted, episodesSkipped);
     }
 
-    private static string BoolToSql(bool value)
+    private async Task ImportEpisodesBatchAsync(List<ImdbEpisodeTsvRow> batch, CancellationToken ct)
     {
-        return value ? "TRUE" : "FALSE";
+        // Lightweight wrapper to update progress counters.
+        var result = await importProvider.ImportEpisodesAsync(batch, ct);
+        episodesInserted += result.Inserted;
+        episodesSkipped += result.Skipped;
+    }
+
+    private static ImdbEpisodeTsvRow ParseEpisodeRow(string[] columns, int lineNumber)
+    {
+        var seasonNumber = ParseNullableInt(columns[2]);
+        var episodeNumber = ParseNullableInt(columns[3]);
+
+        return new ImdbEpisodeTsvRow(
+            Tconst: columns[0],
+            ParentTconst: columns[1],
+            // NULL Season/Episode should never actually happen in the imdb dataset.
+            SeasonNumber: seasonNumber!.Value,
+            EpisodeNumber: episodeNumber!.Value
+        );
+    }
+
+    private static string SanitizeTitle(string title)
+    {
+        return title.Replace("{", "").Replace("}", "");
+    }
+
+    private static int? ParseNullableInt(string value)
+    {
+        if (value == @"\N" || string.IsNullOrEmpty(value))
+        {
+            return null;
+        }
+
+        if (int.TryParse(value, out var result))
+        {
+            return result;
+        }
+
+        return null;
     }
 }
