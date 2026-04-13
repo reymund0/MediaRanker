@@ -57,10 +57,17 @@ public class ImdbImportService(
 
     private async Task ImportBasicsBatchAsync(List<ImdbTsvRow> batch, CancellationToken ct)
     {
-        // Lightweight wrapper to update progress counters.
-        var result = await importProvider.ImportBasicsAsync(batch, ct);
-        basicsInserted += result.Inserted;
-        basicsSkipped += result.Skipped;
+        try
+        {
+            var result = await importProvider.ImportBasicsAsync(batch, ct);
+            basicsInserted += result.Inserted;
+            basicsSkipped += result.Skipped;
+        }
+        catch (Exception ex)
+        {
+            // Don't let a single batch failure stop the entire import
+            logger.LogError(ex, "Error importing basics batch");
+        }
     }
 
     private static ImdbTsvRow? ParseBasicsRow(string[] columns, int lineNumber)
@@ -101,10 +108,17 @@ public class ImdbImportService(
 
     private async Task ImportEpisodesBatchAsync(List<ImdbEpisodeTsvRow> batch, CancellationToken ct)
     {
-        // Lightweight wrapper to update progress counters.
-        var result = await importProvider.ImportEpisodesAsync(batch, ct);
-        episodesInserted += result.Inserted;
-        episodesSkipped += result.Skipped;
+        try
+        {
+            var result = await importProvider.ImportEpisodesAsync(batch, ct);
+            episodesInserted += result.Inserted;
+            episodesSkipped += result.Skipped;
+        }
+        catch (Exception ex)
+        {
+            // Don't let a single batch failure stop the entire import
+            logger.LogError(ex, "Error importing episodes batch");
+        }
     }
 
     private static ImdbEpisodeTsvRow ParseEpisodeRow(string[] columns, int lineNumber)
