@@ -129,9 +129,9 @@ public class ImdbImportService(
         return new ImdbEpisodeTsvRow(
             Tconst: columns[0],
             ParentTconst: columns[1],
-            // NULL Season/Episode should never actually happen in the imdb dataset.
-            SeasonNumber: seasonNumber!.Value,
-            EpisodeNumber: episodeNumber!.Value
+            // NULL Season/Episode should never actually happen in the imdb dataset, but enter as -1 so we can find them later.
+            SeasonNumber: seasonNumber ?? -1,
+            EpisodeNumber: episodeNumber ?? -1
         );
     }
 
