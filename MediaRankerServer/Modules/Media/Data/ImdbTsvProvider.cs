@@ -5,6 +5,7 @@ using MediaRankerServer.Modules.Media.Jobs;
 
 namespace MediaRankerServer.Modules.Media.Data;
 
+// Row records for TSV parsing
 public record ImdbTsvRow(
     string Tconst,
     string TitleType,
@@ -17,6 +18,13 @@ public record ImdbTsvRow(
     string? Genres
 );
 
+public record ImdbEpisodeTsvRow(
+    string Tconst,
+    string ParentTconst,
+    int SeasonNumber,
+    int EpisodeNumber
+);
+
 public class ImdbTsvProvider(
     HttpClient httpClient,
     IOptions<ImdbImportOptions> options,
@@ -24,19 +32,24 @@ public class ImdbTsvProvider(
 {
     private readonly ImdbImportOptions config = options.Value;
 
-    // Headers from IMDB title.basics data set. See: https://developer.imdb.com/non-commercial-datasets/#titlebasicstsvgz
-    private static readonly string[] ExpectedHeaders = [
-        "tconst", "titleType", "primaryTitle", "originalTitle",
-        "isAdult", "startYear", "endYear", "runtimeMinutes", "genres"
-    ];
-
-    /// Downloads the IMDB dataset, parses the TSV, and calls the provided handler for each batch of rows.
-    public async Task RunBatchImportAsync(
-        Func<List<ImdbTsvRow>, CancellationToken, Task> batchHandler,
+    /// <summary>
+    /// Downloads an IMDB TSV dataset, parses it, and calls the provided handler for each batch of rows.
+    /// The datasets are in the tens of millions of rows, so we process them in batches to avoid memory issues.
+    /// </summary>
+    /// <typeparam name="TRow">The row type to parse into.</typeparam>
+    /// <param name="datasetUrl">URL to download the gzipped TSV from.</param>
+    /// <param name="expectedHeaders">Expected column headers in order. Throws if mismatch.</param>
+    /// <param name="parseRow">Callback when a row is parsed. Return null to indicate skip row from batch.</param>
+    /// <param name="batchHandler">Callback for the current batch of rows when batch limit is reached.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task RunBatchImportAsync<TRow>(
+        string datasetUrl,
+        IReadOnlyList<string> expectedHeaders,
+        Func<string[], int, TRow?> parseRow,
+        Func<List<TRow>, CancellationToken, Task> batchHandler,
         CancellationToken ct = default)
     {
         var batchSize = config.BatchSize;
-        var datasetUrl = config.DatasetUrl;
         var totalRows = 0;
         var totalBatches = 0;
 
@@ -44,9 +57,9 @@ public class ImdbTsvProvider(
 
         await using var dataStream = await DownloadAndDecompressAsync(datasetUrl, ct);
 
-        var batch = new List<ImdbTsvRow>(batchSize);
+        var batch = new List<TRow>(batchSize);
 
-        await foreach (var row in ParseStreamAsync(dataStream, ct))
+        await foreach (var row in ParseStreamAsync(dataStream, expectedHeaders, parseRow, ct))
         {
             batch.Add(row);
             totalRows++;
@@ -97,8 +110,10 @@ public class ImdbTsvProvider(
         }
     }
 
-    private async IAsyncEnumerable<ImdbTsvRow> ParseStreamAsync(
+    private async IAsyncEnumerable<TRow> ParseStreamAsync<TRow>(
         Stream stream,
+        IReadOnlyList<string> expectedHeaders,
+        Func<string[], int, TRow?> parseRow,
         [EnumeratorCancellation] CancellationToken ct)
     {
         using var reader = new StreamReader(stream);
@@ -108,10 +123,10 @@ public class ImdbTsvProvider(
             ?? throw new InvalidDataException("IMDB TSV file is empty or missing header.");
 
         var headers = headerLine.Split('\t');
-        if (!headers.SequenceEqual(ExpectedHeaders))
+        if (!headers.SequenceEqual(expectedHeaders))
         {
             throw new InvalidDataException(
-                $"IMDB TSV header mismatch. Expected: {string.Join(",", ExpectedHeaders)}, Got: {string.Join(",", headers)}");
+                $"IMDB TSV header mismatch. Expected: {string.Join(",", expectedHeaders)}, Got: {string.Join(",", headers)}");
         }
 
         // Stream rows
@@ -122,52 +137,18 @@ public class ImdbTsvProvider(
             lineNumber++;
 
             var columns = line.Split('\t');
-            if (columns.Length != ExpectedHeaders.Length)
+            if (columns.Length != expectedHeaders.Count)
             {
                 logger.LogWarning("Skipping malformed row at line {LineNumber}: expected {ExpectedColumns} columns, got {ActualColumns}",
-                    lineNumber, ExpectedHeaders.Length, columns.Length);
+                    lineNumber, expectedHeaders.Count, columns.Length);
                 continue;
             }
 
-            // Skip adult content
-            if (columns[4] == "1")
+            var row = parseRow(columns, lineNumber);
+            if (row is not null)
             {
-                continue;
+                yield return row;
             }
-
-            var row = new ImdbTsvRow(
-                Tconst: columns[0],
-                TitleType: columns[1],
-                PrimaryTitle: SanitizeTitle(columns[2]),
-                OriginalTitle: SanitizeTitle(columns[3]),
-                IsAdult: columns[4] == "1",
-                StartYear: ParseNullableInt(columns[5]),
-                EndYear: ParseNullableInt(columns[6]),
-                RuntimeMinutes: ParseNullableInt(columns[7]),
-                Genres: columns[8] == @"\N" ? null : columns[8]
-            );
-
-            yield return row;
         }
-    }
-
-    private static string SanitizeTitle(string title)
-    {
-        return title.Replace("{", "").Replace("}", "");
-    }
-
-    private static int? ParseNullableInt(string value)
-    {
-        if (value == @"\N" || string.IsNullOrEmpty(value))
-        {
-            return null;
-        }
-
-        if (int.TryParse(value, out var result))
-        {
-            return result;
-        }
-
-        return null;
     }
 }

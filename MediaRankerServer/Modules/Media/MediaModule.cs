@@ -18,6 +18,7 @@ public static class MediaModule
 
         services.AddScoped<IFileService, S3FileService>();
         services.AddScoped<IMediaCoverService, MediaCoverService>();
+        services.AddScoped<IImdbImportProvider, ImdbImportSqlProvider>();
         services.AddScoped<IMediaService, MediaService>();
         services.AddScoped<IMediaCollectionService, MediaCollectionService>();
         services.AddScoped<ImdbImportService>();
