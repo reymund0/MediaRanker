@@ -68,6 +68,7 @@ public class MediaCollectionService(
 
         var collection = await dbContext.MediaCollections
             .Include(mc => mc.ChildCollections)
+            .Include(mc => mc.Cover)
             .FirstOrDefaultAsync(mc => mc.Id == id, cancellationToken)
             ?? throw new DomainException("Collection not found.", "collection_not_found");
 
@@ -80,34 +81,14 @@ public class MediaCollectionService(
         collection.ReleaseDate = request.ReleaseDate;
         
         // If the cover ID was updated, then we need to update all referenced entities.
-        // Only exception is if the child entity has a unique coverId, then we won't change it because it has a unique cover.
-        var requestCoverId = dbContext.MediaCovers.FirstOrDefault(c => c.FileUploadId == request.CoverUploadId)?.Id;
-        if (collection.CoverId != requestCoverId)
+        if (collection.Cover?.FileUploadId != request.CoverUploadId)
         {
-            // Track which collections we've updated so we can update all Media at the same time.
-            List<long> updatedCollectionIds = [collection.Id];
-            var oldCoverId = collection.CoverId;
-            collection.CoverId = requestCoverId;
+            // We know newMediaCover is not null at this point because we validated it in our upsert validator.
+            var newMediaCoverId = (await dbContext.MediaCovers
+                .FirstOrDefaultAsync(mc => mc.FileUploadId == request.CoverUploadId, cancellationToken))!.Id;
+            collection.CoverId = newMediaCoverId;
+            await CascadeUpdateMediaCoverAsync(collection, newMediaCoverId, cancellationToken);
 
-            // Update child collections that reference the old cover ID.
-            if (collection.ChildCollections.Count > 0)
-            {
-                foreach (var childCollection in collection.ChildCollections)
-                {
-                    if (childCollection.CoverId == oldCoverId)
-                    {
-                        childCollection.CoverId = requestCoverId;
-                        updatedCollectionIds.Add(childCollection.Id);
-                    }
-                }
-            }
-            
-            // Update all media items referencing the old cover ID for the collections we've updated.
-            await dbContext.Media
-                .Where(m => m.MediaCollectionId != null)
-                .Where(m => updatedCollectionIds.Contains(m.MediaCollectionId!.Value))
-                .Where(m => m.CoverId == oldCoverId)
-                .ExecuteUpdateAsync(s => s.SetProperty(m => m.CoverId, requestCoverId), cancellationToken);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -124,6 +105,35 @@ public class MediaCollectionService(
 
         dbContext.MediaCollections.Remove(collection);
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task CascadeUpdateMediaCoverAsync(MediaCollection collection, long newCoverId, CancellationToken cancellationToken)
+    {
+        // Find all the child collections and media that reference the old cover ID and update them to use the new cover ID.
+        // The only exception is if the child entity has a unique coverId, then we won't change it because it has a unique cover.
+        
+        // Track which collections we've updated so we can update all Media at the same time.
+        List<long> updatedCollectionIds = [collection.Id];
+        var oldCoverId = collection.CoverId;
+
+        // Update child collections that reference the old cover ID.
+        if (collection.ChildCollections.Count > 0)
+        {
+            foreach (var childCollection in collection.ChildCollections)
+            {
+                if (childCollection.CoverId == oldCoverId)
+                {
+                    childCollection.CoverId = newCoverId;
+                    updatedCollectionIds.Add(childCollection.Id);
+                }
+            }
+        }
+        // Update all media items referencing the old cover ID for the collections we've updated.
+        await dbContext.Media
+            .Where(m => m.MediaCollectionId != null)
+            .Where(m => updatedCollectionIds.Contains(m.MediaCollectionId!.Value))
+            .Where(m => m.CoverId == oldCoverId)
+            .ExecuteUpdateAsync(s => s.SetProperty(m => m.CoverId, newCoverId), cancellationToken);
     }
 
     private async Task ValidateOrThrowAsync(MediaCollectionUpsertRequest request, CancellationToken cancellationToken)
@@ -150,13 +160,13 @@ public class MediaCollectionService(
             throw new DomainException("Parent collection not found.", "collection_parent_not_found");
         }
         
-        ValidateCollectionParentAsync(request, parent!);
+        ValidateCollectionParent(request, parent!);
         
         // Validate collection type specific rules.
         await ValidateCollectionTypeAsync(request, parent, cancellationToken);
     }
 
-    private static void ValidateCollectionParentAsync(MediaCollectionUpsertRequest request, MediaCollection parent)
+    private static void ValidateCollectionParent(MediaCollectionUpsertRequest request, MediaCollection parent)
     {
         // Validate parent is not the same as the collection being updated.
         if (parent != null && parent.Id == request.Id)
