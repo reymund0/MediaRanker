@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MediaRankerServer.Migrations
 {
     [DbContext(typeof(PostgreSQLContext))]
-    [Migration("20260402174038_RemoveCrossModuleForeignKeys")]
-    partial class RemoveCrossModuleForeignKeys
+    [Migration("20260415183147_CreateViews")]
+    partial class CreateViews
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -104,6 +104,260 @@ namespace MediaRankerServer.Migrations
                     b.ToTable("file_uploads", (string)null);
                 });
 
+            modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.ImdbImport", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<int?>("EndYear")
+                        .HasColumnType("integer")
+                        .HasColumnName("end_year");
+
+                    b.Property<string>("Genres")
+                        .HasColumnType("text")
+                        .HasColumnName("genres");
+
+                    b.Property<bool>("IsAdult")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_adult");
+
+                    b.Property<string>("OriginalTitle")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("original_title");
+
+                    b.Property<string>("PrimaryTitle")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("primary_title");
+
+                    b.Property<int?>("RuntimeMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("runtime_minutes");
+
+                    b.Property<int?>("StartYear")
+                        .HasColumnType("integer")
+                        .HasColumnName("start_year");
+
+                    b.Property<string>("Tconst")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tconst");
+
+                    b.Property<string>("TitleType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title_type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.HasKey("Id")
+                        .HasName("pk_imdb_imports");
+
+                    b.HasIndex("Tconst")
+                        .IsUnique()
+                        .HasDatabaseName("uq_imdb_imports_tconst");
+
+                    b.HasIndex("TitleType")
+                        .HasDatabaseName("ix_imdb_imports_title_type");
+
+                    b.ToTable("imdb_imports", (string)null);
+                });
+
+            modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.ImdbImportEpisode", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<int>("EpisodeNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("episode_number");
+
+                    b.Property<string>("ParentTconst")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("parent_tconst");
+
+                    b.Property<int>("SeasonNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("season_number");
+
+                    b.Property<string>("Tconst")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tconst");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.HasKey("Id")
+                        .HasName("pk_imdb_import_episodes");
+
+                    b.HasIndex("ParentTconst")
+                        .HasDatabaseName("ix_imdb_import_episodes_parent_tconst");
+
+                    b.HasIndex("Tconst")
+                        .IsUnique()
+                        .HasDatabaseName("uq_imdb_import_episodes_tconst");
+
+                    b.ToTable("imdb_import_episodes", (string)null);
+                });
+
+            modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.MediaCollection", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("CollectionType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("collection_type");
+
+                    b.Property<long?>("CoverId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("cover_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<long>("MediaTypeId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("media_type_id");
+
+                    b.Property<long?>("ParentMediaCollectionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("parent_media_collection_id");
+
+                    b.Property<DateOnly>("ReleaseDate")
+                        .HasColumnType("date")
+                        .HasColumnName("release_date");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.HasKey("Id")
+                        .HasName("pk_media_collections");
+
+                    b.HasIndex("CoverId")
+                        .HasDatabaseName("ix_media_collections_cover_id");
+
+                    b.HasIndex("MediaTypeId")
+                        .HasDatabaseName("ix_media_collections_media_type_id");
+
+                    b.HasIndex("ParentMediaCollectionId")
+                        .HasDatabaseName("ix_media_collections_parent_id");
+
+                    b.HasIndex("Title", "CollectionType", "MediaTypeId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_media_collections_title_type_mediatype_root")
+                        .HasFilter("parent_media_collection_id IS NULL");
+
+                    b.HasIndex("Title", "CollectionType", "MediaTypeId", "ParentMediaCollectionId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_media_collections_title_type_mediatype_parent")
+                        .HasFilter("parent_media_collection_id IS NOT NULL");
+
+                    b.ToTable("media_collections", (string)null);
+                });
+
+            modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.MediaCover", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("FileContentType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("file_content_type");
+
+                    b.Property<string>("FileKey")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("file_key");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("file_name");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("file_size_bytes");
+
+                    b.Property<long>("FileUploadId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("file_upload_id");
+
+                    b.Property<bool>("MarkedForCleanup")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("marked_for_cleanup");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.HasKey("Id")
+                        .HasName("pk_media_covers");
+
+                    b.ToTable("media_covers", (string)null);
+                });
+
             modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.MediaEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -113,31 +367,27 @@ namespace MediaRankerServer.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<string>("CoverFileContentType")
-                        .HasColumnType("text")
-                        .HasColumnName("cover_file_content_type");
-
-                    b.Property<string>("CoverFileKey")
-                        .HasColumnType("text")
-                        .HasColumnName("cover_file_key");
-
-                    b.Property<string>("CoverFileName")
-                        .HasColumnType("text")
-                        .HasColumnName("cover_file_name");
-
-                    b.Property<long?>("CoverFileSizeBytes")
+                    b.Property<long?>("CoverId")
                         .HasColumnType("bigint")
-                        .HasColumnName("cover_file_size_bytes");
-
-                    b.Property<long?>("CoverFileUploadId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("cover_file_upload_id");
+                        .HasColumnName("cover_id");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("ExternalId")
+                        .HasColumnType("text")
+                        .HasColumnName("external_id");
+
+                    b.Property<string>("ExternalSource")
+                        .HasColumnType("text")
+                        .HasColumnName("external_source");
+
+                    b.Property<long?>("MediaCollectionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("media_collection_id");
 
                     b.Property<long>("MediaTypeId")
                         .HasColumnType("bigint")
@@ -161,11 +411,22 @@ namespace MediaRankerServer.Migrations
                     b.HasKey("Id")
                         .HasName("pk_media");
 
+                    b.HasIndex("CoverId")
+                        .HasDatabaseName("ix_media_cover_id");
+
+                    b.HasIndex("MediaCollectionId")
+                        .HasDatabaseName("ix_media_media_collection_id");
+
                     b.HasIndex("MediaTypeId")
                         .HasDatabaseName("ix_media_media_type_id");
 
                     b.HasIndex("ReleaseDate")
                         .HasDatabaseName("ix_media_release_date");
+
+                    b.HasIndex("ExternalId", "ExternalSource")
+                        .IsUnique()
+                        .HasDatabaseName("uq_media_external_id_source")
+                        .HasFilter("external_id IS NOT NULL");
 
                     b.HasIndex("Title", "MediaTypeId", "ReleaseDate")
                         .IsUnique()
@@ -197,6 +458,38 @@ namespace MediaRankerServer.Migrations
                         .HasDatabaseName("uq_media_types_name");
 
                     b.ToTable("media_types", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = -1L,
+                            Name = "Video Game"
+                        },
+                        new
+                        {
+                            Id = -2L,
+                            Name = "Book"
+                        },
+                        new
+                        {
+                            Id = -3L,
+                            Name = "Movie"
+                        },
+                        new
+                        {
+                            Id = -4L,
+                            Name = "TV Show"
+                        },
+                        new
+                        {
+                            Id = -5L,
+                            Name = "Album"
+                        },
+                        new
+                        {
+                            Id = -6L,
+                            Name = "Concert"
+                        });
                 });
 
             modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Data.Entities.Review", b =>
@@ -428,6 +721,18 @@ namespace MediaRankerServer.Migrations
                         .HasDatabaseName("uq_templates_user_name");
 
                     b.ToTable("templates", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = -1L,
+                            CreatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Description = "Default review template for video games.",
+                            MediaTypeId = -1L,
+                            Name = "Video Games",
+                            UpdatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            UserId = "system"
+                        });
                 });
 
             modelBuilder.Entity("MediaRankerServer.Modules.Templates.Data.Entities.TemplateField", b =>
@@ -471,16 +776,96 @@ namespace MediaRankerServer.Migrations
                         .HasDatabaseName("ix_template_fields_template_id");
 
                     b.ToTable("template_fields", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = -11L,
+                            CreatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "Gameplay",
+                            Position = 0,
+                            TemplateId = -1L,
+                            UpdatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        },
+                        new
+                        {
+                            Id = -12L,
+                            CreatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "Graphics",
+                            Position = 1,
+                            TemplateId = -1L,
+                            UpdatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        },
+                        new
+                        {
+                            Id = -13L,
+                            CreatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "Story",
+                            Position = 2,
+                            TemplateId = -1L,
+                            UpdatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        },
+                        new
+                        {
+                            Id = -14L,
+                            CreatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "Sound",
+                            Position = 3,
+                            TemplateId = -1L,
+                            UpdatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        });
+                });
+
+            modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.MediaCollection", b =>
+                {
+                    b.HasOne("MediaRankerServer.Modules.Media.Data.Entities.MediaCover", "Cover")
+                        .WithMany("MediaCollections")
+                        .HasForeignKey("CoverId")
+                        .HasConstraintName("fk_media_collections_media_covers_cover_id");
+
+                    b.HasOne("MediaRankerServer.Modules.Media.Data.Entities.MediaType", "MediaType")
+                        .WithMany()
+                        .HasForeignKey("MediaTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_media_collections_media_types_media_type_id");
+
+                    b.HasOne("MediaRankerServer.Modules.Media.Data.Entities.MediaCollection", "ParentMediaCollection")
+                        .WithMany("ChildCollections")
+                        .HasForeignKey("ParentMediaCollectionId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_media_collections_media_collections_parent_media_collection");
+
+                    b.Navigation("Cover");
+
+                    b.Navigation("MediaType");
+
+                    b.Navigation("ParentMediaCollection");
                 });
 
             modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.MediaEntity", b =>
                 {
+                    b.HasOne("MediaRankerServer.Modules.Media.Data.Entities.MediaCover", "Cover")
+                        .WithMany("MediaEntities")
+                        .HasForeignKey("CoverId")
+                        .HasConstraintName("fk_media_media_covers_cover_id");
+
+                    b.HasOne("MediaRankerServer.Modules.Media.Data.Entities.MediaCollection", "MediaCollection")
+                        .WithMany("MediaItems")
+                        .HasForeignKey("MediaCollectionId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_media_media_collections_media_collection_id");
+
                     b.HasOne("MediaRankerServer.Modules.Media.Data.Entities.MediaType", "MediaType")
                         .WithMany()
                         .HasForeignKey("MediaTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_media_media_types_media_type_id");
+
+                    b.Navigation("Cover");
+
+                    b.Navigation("MediaCollection");
 
                     b.Navigation("MediaType");
                 });
@@ -507,6 +892,20 @@ namespace MediaRankerServer.Migrations
                         .HasConstraintName("fk_template_fields_templates_template_id");
 
                     b.Navigation("Template");
+                });
+
+            modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.MediaCollection", b =>
+                {
+                    b.Navigation("ChildCollections");
+
+                    b.Navigation("MediaItems");
+                });
+
+            modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.MediaCover", b =>
+                {
+                    b.Navigation("MediaCollections");
+
+                    b.Navigation("MediaEntities");
                 });
 
             modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Data.Entities.Review", b =>

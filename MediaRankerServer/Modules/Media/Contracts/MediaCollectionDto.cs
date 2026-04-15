@@ -24,9 +24,9 @@ public static class MediaCollectionDtoMapper
     public static MediaCollectionDto Map(MediaCollection collection, IFileService fileService)
     {
         string? coverImageUrl = null;
-        if (collection.CoverFileKey != null)
+        if (collection.Cover != null)
         {
-            coverImageUrl = fileService.GetFileUrl(collection.CoverFileKey, FileEntityType.MediaCover);
+            coverImageUrl = fileService.GetFileUrl(collection.Cover.FileKey, FileEntityType.MediaCover);
         }
 
         return new MediaCollectionDto

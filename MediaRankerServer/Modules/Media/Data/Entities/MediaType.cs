@@ -24,6 +24,16 @@ public class MediaType
             builder.HasIndex(mt => mt.Name)
                 .IsUnique()
                 .HasDatabaseName("uq_media_types_name");
+
+            // Seed system media types
+            builder.HasData(
+                new MediaType { Id = -1, Name = "Video Game" },
+                new MediaType { Id = -2, Name = "Book" },
+                new MediaType { Id = -3, Name = "Movie" },
+                new MediaType { Id = -4, Name = "TV Show" },
+                new MediaType { Id = -5, Name = "Album" },
+                new MediaType { Id = -6, Name = "Concert" }
+            );
         }
     }
 }

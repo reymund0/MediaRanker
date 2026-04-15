@@ -14,10 +14,9 @@ using Xunit;
 
 namespace MediaRankerServer.UnitTests.Modules.Media;
 
-public class MediaCollectionServiceTests
+public class MediaCollectionServiceTests : IDisposable
 {
     private readonly PostgreSQLContext _context;
-    private readonly Mock<IMediaCoverService> _mockCoverService;
     private readonly Mock<IFileService> _mockFileService;
     private readonly Mock<IValidator<MediaCollectionUpsertRequest>> _mockValidator;
     private readonly MediaCollectionService _service;
@@ -41,7 +40,6 @@ public class MediaCollectionServiceTests
         );
         _context.SaveChanges();
 
-        _mockCoverService = new Mock<IMediaCoverService>();
         _mockFileService = new Mock<IFileService>();
         _mockFileService.Setup(f => f.GetFileUrl(It.IsAny<string>(), It.IsAny<FileEntityType>()))
             .Returns((string path, FileEntityType _) => path);
@@ -52,10 +50,16 @@ public class MediaCollectionServiceTests
 
         _service = new MediaCollectionService(
             _context,
-            _mockCoverService.Object,
             _mockFileService.Object,
             _mockValidator.Object
         );
+    }
+
+    public void Dispose()
+    {
+        _context.Database.EnsureDeleted();
+        _context.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     // --- Validator error propagation ---
@@ -101,8 +105,23 @@ public class MediaCollectionServiceTests
     [Fact]
     public async Task CreateCollectionAsync_WhenParentIsSelfReference_ThrowsDomainException()
     {
+        // Arrange - Seed a collection with Id=1 so it exists as parent
+        var existing = new MediaCollection
+        {
+            Id = 1,
+            Title = "Existing Series",
+            CollectionType = CollectionType.Series,
+            MediaTypeId = TvShowTypeId,
+            ReleaseDate = new DateOnly(2019, 1, 1),
+        };
+        _context.MediaCollections.Add(existing);
+        await _context.SaveChangesAsync();
+
+        // Act - Try to create with ParentMediaCollectionId = 1 (matching the seeded collection)
+        // and Id = 1 (same as parent) which should trigger self-reference error
         var act = () => _service.CreateCollectionAsync(DefaultUserId, new MediaCollectionUpsertRequest
         {
+            Id = 1,  // Same as ParentMediaCollectionId
             Title = "Season 1",
             CollectionType = CollectionType.Season,
             MediaTypeId = TvShowTypeId,
@@ -251,24 +270,17 @@ public class MediaCollectionServiceTests
             .Where(e => e.Type == "collection_not_found");
     }
 
-    // --- Cover file handling ---
+    // --- Cover handling ---
 
     [Fact]
-    public async Task CreateCollectionAsync_WithCoverUploadId_CopiesMetadataToEntity()
+    public async Task CreateCollectionAsync_WithCoverUploadId_AssignsCoverId()
     {
-        var fileDto = new FileDto
-        {
-            UploadId = 42,
-            FileKey = "covers/my-series.png",
-            FileName = "my-series.png",
-            ContentType = "image/png",
-            FileSizeBytes = 2048
-        };
+        // Arrange
+        var cover = new MediaCover { Id = 100, FileUploadId = 42, FileKey = "covers/my-series.png", FileName = "my-series.png", FileContentType = "image/png", FileSizeBytes = 2048 };
+        _context.MediaCovers.Add(cover);
+        await _context.SaveChangesAsync();
 
-        _mockCoverService
-            .Setup(s => s.CopyCoverFileAsync(DefaultUserId, 42, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(fileDto);
-
+        // Act
         var result = await _service.CreateCollectionAsync(DefaultUserId, new MediaCollectionUpsertRequest
         {
             Title = "My Movie Series",
@@ -278,76 +290,39 @@ public class MediaCollectionServiceTests
             CoverUploadId = 42,
         });
 
-        _mockCoverService.Verify(s => s.CopyCoverFileAsync(DefaultUserId, 42, It.IsAny<CancellationToken>()), Times.Once);
-
+        // Assert
         var entity = await _context.MediaCollections.FirstAsync(mc => mc.Id == result.Id);
-        entity.CoverFileUploadId.Should().Be(42);
-        entity.CoverFileKey.Should().Be("covers/my-series.png");
-        entity.CoverFileName.Should().Be("my-series.png");
-        entity.CoverFileContentType.Should().Be("image/png");
-        entity.CoverFileSizeBytes.Should().Be(2048);
+        entity.CoverId.Should().Be(100);
     }
 
     [Fact]
-    public async Task UpdateCollectionAsync_WithNewCoverUploadId_DeletesOldAndCopiesNew()
+    public async Task UpdateCollectionAsync_CoverNotFound_ThrowsDomainException()
     {
+        // Arrange
         var existing = new MediaCollection
         {
-            Title = "Old Series",
+            Title = "Series",
             CollectionType = CollectionType.Series,
             MediaTypeId = MovieTypeId,
             ReleaseDate = new DateOnly(2019, 1, 1),
-            CoverFileUploadId = 10,
-            CoverFileKey = "covers/old.png",
+            CoverId = null
         };
         _context.MediaCollections.Add(existing);
         await _context.SaveChangesAsync();
 
-        var newFileDto = new FileDto
+        // Act - Try to update with non-existent cover
+        var act = () => _service.UpdateCollectionAsync(DefaultUserId, existing.Id, new MediaCollectionUpsertRequest
         {
-            UploadId = 20,
-            FileKey = "covers/new.png",
-            FileName = "new.png",
-            ContentType = "image/png",
-            FileSizeBytes = 512
-        };
-        _mockCoverService
-            .Setup(s => s.CopyCoverFileAsync(DefaultUserId, 20, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(newFileDto);
-
-        await _service.UpdateCollectionAsync(DefaultUserId, existing.Id, new MediaCollectionUpsertRequest
-        {
-            Title = "Updated Series",
+            Id = existing.Id,
+            Title = "Series Updated",
             CollectionType = CollectionType.Series,
             MediaTypeId = MovieTypeId,
             ReleaseDate = new DateOnly(2019, 1, 1),
-            CoverUploadId = 20,
+            CoverUploadId = 99999,  // Non-existent
         });
 
-        _mockCoverService.Verify(s => s.DeleteCoverFileAsync("covers/old.png", It.IsAny<CancellationToken>()), Times.Once);
-        _mockCoverService.Verify(s => s.CopyCoverFileAsync(DefaultUserId, 20, It.IsAny<CancellationToken>()), Times.Once);
-
-        var entity = await _context.MediaCollections.FirstAsync(mc => mc.Id == existing.Id);
-        entity.CoverFileKey.Should().Be("covers/new.png");
-    }
-
-    [Fact]
-    public async Task DeleteCollectionAsync_WithCover_CallsDeleteCoverFile()
-    {
-        var collection = new MediaCollection
-        {
-            Title = "To Delete",
-            CollectionType = CollectionType.Series,
-            MediaTypeId = MovieTypeId,
-            ReleaseDate = new DateOnly(2020, 1, 1),
-            CoverFileKey = "covers/to-delete.png",
-        };
-        _context.MediaCollections.Add(collection);
-        await _context.SaveChangesAsync();
-
-        await _service.DeleteCollectionAsync(collection.Id);
-
-        _mockCoverService.Verify(s => s.DeleteCoverFileAsync("covers/to-delete.png", It.IsAny<CancellationToken>()), Times.Once);
-        _context.MediaCollections.Should().NotContain(mc => mc.Id == collection.Id);
+        // Assert
+        await act.Should().ThrowAsync<DomainException>()
+            .Where(e => e.Type == "cover_not_found");
     }
 }

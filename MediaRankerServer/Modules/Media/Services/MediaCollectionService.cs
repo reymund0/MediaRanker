@@ -11,7 +11,6 @@ namespace MediaRankerServer.Modules.Media.Services;
 
 public class MediaCollectionService(
     PostgreSQLContext dbContext,
-    IMediaCoverService coverService,
     IFileService fileService,
     IValidator<MediaCollectionUpsertRequest> validator
 ) : IMediaCollectionService
@@ -22,6 +21,7 @@ public class MediaCollectionService(
             .AsNoTracking()
             .Include(mc => mc.MediaType)
             .Include(mc => mc.ParentMediaCollection)
+            .Include(mc => mc.Cover)
             .ToListAsync(cancellationToken);
 
         return [.. collections.Select(mc => MediaCollectionDtoMapper.Map(mc, fileService))];
@@ -33,6 +33,7 @@ public class MediaCollectionService(
             .AsNoTracking()
             .Include(mc => mc.MediaType)
             .Include(mc => mc.ParentMediaCollection)
+            .Include(mc => mc.Cover)
             .FirstOrDefaultAsync(mc => mc.Id == id, cancellationToken);
 
         return collection is null ? null : MediaCollectionDtoMapper.Map(collection, fileService);
@@ -43,13 +44,7 @@ public class MediaCollectionService(
         await ValidateOrThrowAsync(request, cancellationToken);
 
         var normalizedTitle = request.Title.Trim();
-
-        FileDto? coverFile = null;
-        if (request.CoverUploadId.HasValue)
-        {
-            coverFile = await coverService.CopyCoverFileAsync(userId, request.CoverUploadId.Value, cancellationToken);
-        }
-
+        var requestCoverId = dbContext.MediaCovers.FirstOrDefault(c => c.FileUploadId == request.CoverUploadId)?.Id;
         var collection = new MediaCollection
         {
             Title = normalizedTitle,
@@ -57,11 +52,7 @@ public class MediaCollectionService(
             MediaTypeId = request.MediaTypeId,
             ParentMediaCollectionId = request.ParentMediaCollectionId,
             ReleaseDate = request.ReleaseDate,
-            CoverFileUploadId = coverFile?.UploadId,
-            CoverFileKey = coverFile?.FileKey,
-            CoverFileName = coverFile?.FileName,
-            CoverFileContentType = coverFile?.ContentType,
-            CoverFileSizeBytes = coverFile?.FileSizeBytes,
+            CoverId = requestCoverId
         };
 
         dbContext.MediaCollections.Add(collection);
@@ -76,38 +67,47 @@ public class MediaCollectionService(
         await ValidateOrThrowAsync(request, cancellationToken);
 
         var collection = await dbContext.MediaCollections
+            .Include(mc => mc.ChildCollections)
             .FirstOrDefaultAsync(mc => mc.Id == id, cancellationToken)
             ?? throw new DomainException("Collection not found.", "collection_not_found");
 
         var normalizedTitle = request.Title.Trim();
-
-        
-
-        FileDto? coverFile = null;
-        if (request.CoverUploadId.HasValue && collection.CoverFileUploadId != request.CoverUploadId.Value)
-        {
-            // Delete the old cover file if it exists.
-            if (!string.IsNullOrEmpty(collection.CoverFileKey))
-            {
-                await coverService.DeleteCoverFileAsync(collection.CoverFileKey, cancellationToken);
-            }
-
-            coverFile = await coverService.CopyCoverFileAsync(userId, request.CoverUploadId.Value, cancellationToken);
-        }
 
         collection.Title = normalizedTitle;
         collection.CollectionType = request.CollectionType;
         collection.MediaTypeId = request.MediaTypeId;
         collection.ParentMediaCollectionId = request.ParentMediaCollectionId;
         collection.ReleaseDate = request.ReleaseDate;
-
-        if (coverFile != null)
+        
+        // If the cover ID was updated, then we need to update all referenced entities.
+        // Only exception is if the child entity has a unique coverId, then we won't change it because it has a unique cover.
+        var requestCoverId = dbContext.MediaCovers.FirstOrDefault(c => c.FileUploadId == request.CoverUploadId)?.Id;
+        if (collection.CoverId != requestCoverId)
         {
-            collection.CoverFileUploadId = coverFile.UploadId;
-            collection.CoverFileKey = coverFile.FileKey;
-            collection.CoverFileName = coverFile.FileName;
-            collection.CoverFileContentType = coverFile.ContentType;
-            collection.CoverFileSizeBytes = coverFile.FileSizeBytes;
+            // Track which collections we've updated so we can update all Media at the same time.
+            List<long> updatedCollectionIds = [collection.Id];
+            var oldCoverId = collection.CoverId;
+            collection.CoverId = requestCoverId;
+
+            // Update child collections that reference the old cover ID.
+            if (collection.ChildCollections.Count > 0)
+            {
+                foreach (var childCollection in collection.ChildCollections)
+                {
+                    if (childCollection.CoverId == oldCoverId)
+                    {
+                        childCollection.CoverId = requestCoverId;
+                        updatedCollectionIds.Add(childCollection.Id);
+                    }
+                }
+            }
+            
+            // Update all media items referencing the old cover ID for the collections we've updated.
+            await dbContext.Media
+                .Where(m => m.MediaCollectionId != null)
+                .Where(m => updatedCollectionIds.Contains(m.MediaCollectionId!.Value))
+                .Where(m => m.CoverId == oldCoverId)
+                .ExecuteUpdateAsync(s => s.SetProperty(m => m.CoverId, requestCoverId), cancellationToken);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -121,11 +121,6 @@ public class MediaCollectionService(
         var collection = await dbContext.MediaCollections
             .FirstOrDefaultAsync(mc => mc.Id == id, cancellationToken)
             ?? throw new DomainException("Collection not found.", "collection_not_found");
-        
-        if (!string.IsNullOrEmpty(collection.CoverFileKey))
-        {
-            await coverService.DeleteCoverFileAsync(collection.CoverFileKey, cancellationToken);
-        }
 
         dbContext.MediaCollections.Remove(collection);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -139,16 +134,30 @@ public class MediaCollectionService(
             throw new DomainException(result.Errors[0].ErrorMessage, "collection_validation_error");
         }
 
+        // Validate cover exists if provided.
+        if (request.CoverUploadId.HasValue)
+        {
+            var cover = await dbContext.MediaCovers.FirstOrDefaultAsync(mc => mc.FileUploadId == request.CoverUploadId.Value, cancellationToken)
+                ?? throw new DomainException("Cover not found.", "cover_not_found");
+        }
+
         // Validate parent exists if provided.
         var parent = await dbContext.MediaCollections
             .AsNoTracking()
             .FirstOrDefaultAsync(mc => mc.Id == request.ParentMediaCollectionId, cancellationToken);
-
         if (parent == null && request.ParentMediaCollectionId.HasValue)
         {
             throw new DomainException("Parent collection not found.", "collection_parent_not_found");
         }
+        
+        ValidateCollectionParentAsync(request, parent!);
+        
+        // Validate collection type specific rules.
+        await ValidateCollectionTypeAsync(request, parent, cancellationToken);
+    }
 
+    private static void ValidateCollectionParentAsync(MediaCollectionUpsertRequest request, MediaCollection parent)
+    {
         // Validate parent is not the same as the collection being updated.
         if (parent != null && parent.Id == request.Id)
         {
@@ -160,9 +169,6 @@ public class MediaCollectionService(
         {
             throw new DomainException("Parent collection media type does not match child media type.", "collection_parent_media_type_mismatch");
         }
-        
-        // Validate collection type specific rules.
-        await ValidateCollectionTypeAsync(request, parent, cancellationToken);
     }
 
     private async Task ValidateCollectionTypeAsync(MediaCollectionUpsertRequest request, MediaCollection? parent, CancellationToken cancellationToken)

@@ -57,6 +57,7 @@ public class ReviewService(
             .AsNoTracking()
             .Where(m => m.MediaTypeId == mediaTypeId && !reviewedMediaIds.Contains(m.Id))
             .Include(m => m.MediaType)
+            .Include(m => m.Cover)
             .ToListAsync(cancellationToken);
 
         return [.. userUnreviewedMedia.Select(m => UnreviewedMediaDtoMapper.Map(m, fileService))];

@@ -130,7 +130,7 @@ public class MediaCoverServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CompleteUploadCoverAsync_HappyPath_CompletesWithoutException()
+    public async Task CompleteUploadCoverAsync_HappyPath_CreatesMediaCoverAndMarksUploadCopied()
     {
         // Arrange
         var uploadedFile = new FileDto
@@ -139,18 +139,26 @@ public class MediaCoverServiceTests : IDisposable
             UserId = DefaultUserId,
             ContentType = "image/png",
             FileKey = "key1",
-            FileName = "cover.png"
+            FileName = "cover.png",
+            FileSizeBytes = 2048
         };
 
         _mockFileService.Setup(f => f.FinishUploadAsync(It.IsAny<FinishUploadRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(uploadedFile);
 
         // Act
-        var act = () => _service.CompleteUploadCoverAsync(DefaultUserId, 1, CancellationToken.None);
+        await _service.CompleteUploadCoverAsync(DefaultUserId, 1, CancellationToken.None);
 
         // Assert
-        await act.Should().NotThrowAsync();
-        _mockMediator.Verify(m => m.Publish(It.IsAny<FileDeletedEvent>(), It.IsAny<CancellationToken>()), Times.Never);
+        var cover = await _dbContext.MediaCovers.FirstOrDefaultAsync();
+        cover.Should().NotBeNull();
+        cover!.FileUploadId.Should().Be(1);
+        cover.FileKey.Should().Be("key1");
+        cover.FileName.Should().Be("cover.png");
+        cover.FileContentType.Should().Be("image/png");
+        cover.FileSizeBytes.Should().Be(2048);
+
+        _mockFileService.Verify(f => f.MarkUploadCopiedAsync(1, DefaultUserId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -181,31 +189,4 @@ public class MediaCoverServiceTests : IDisposable
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [Fact]
-    public async Task CopyCoverFileAsync_CallsFileServiceAndReturnsFileDto()
-    {
-        // Arrange
-        var fileDto = new FileDto { UploadId = 1, FileKey = "key1" };
-        _mockFileService.Setup(f => f.MarkUploadCopiedAsync(1, DefaultUserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(fileDto);
-
-        // Act
-        var result = await _service.CopyCoverFileAsync(DefaultUserId, 1, CancellationToken.None);
-
-        // Assert
-        result.Should().BeEquivalentTo(fileDto);
-        _mockFileService.Verify(f => f.MarkUploadCopiedAsync(1, DefaultUserId, It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task DeleteCoverFileAsync_PublishesFileDeletedEvent()
-    {
-        // Act
-        await _service.DeleteCoverFileAsync("123", CancellationToken.None);
-
-        // Assert
-        _mockMediator.Verify(m => m.Publish(
-            It.Is<FileDeletedEvent>(e => e.FileKey == "123" && e.EntityType == FileEntityType.MediaCover.ToString()), 
-            It.IsAny<CancellationToken>()), Times.Once);
-    }
 }

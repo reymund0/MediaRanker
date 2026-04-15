@@ -17,9 +17,9 @@ public static class UnreviewedMediaDtoMapper
   public static UnreviewedMediaDto Map(MediaEntity media, IFileService fileService)
   {
     string? coverImageUrl = null;
-    if (media.CoverFileKey != null)
+    if (media.Cover != null)
     {
-      coverImageUrl = fileService.GetFileUrl(media.CoverFileKey, FileEntityType.MediaCover);
+      coverImageUrl = fileService.GetFileUrl(media.Cover.FileKey, FileEntityType.MediaCover);
     }
 
     return new UnreviewedMediaDto
