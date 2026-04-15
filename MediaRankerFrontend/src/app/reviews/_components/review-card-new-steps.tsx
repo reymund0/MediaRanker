@@ -90,6 +90,7 @@ export function ReviewCardNewSteps({
         <Typography variant="subtitle2">Select Template</Typography>
         <BaseSelect
           label="Template"
+          value=""
           options={(templates ?? []).map((t) => ({
             id: t.id,
             label: t.name,
