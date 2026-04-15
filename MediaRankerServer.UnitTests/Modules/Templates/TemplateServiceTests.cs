@@ -8,6 +8,7 @@ using MediaRankerServer.Modules.Templates.Events;
 using MediaRankerServer.Modules.Templates.Services;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
+using MediaRankerServer.UnitTests.Shared;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 using MediaRankerServer.Modules.Media.Services;
@@ -25,11 +26,7 @@ public class TemplateServiceTests
 
     public TemplateServiceTests()
     {
-        var options = new DbContextOptionsBuilder<PostgreSQLContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-
-        _context = new PostgreSQLContext(options);
+        _context = TestDbContextFactory.Create();
         _mockValidator = new Mock<IValidator<TemplateUpsertRequest>>();
         _mockPublisher = new Mock<IPublisher>();
 
@@ -46,17 +43,6 @@ public class TemplateServiceTests
     [Fact]
     public async Task UpdateTemplateAsync_SystemTemplate_ThrowsDomainException()
     {
-        // Arrange
-        var systemTemplate = new Template 
-        { 
-            Id = -1, 
-            Name = "System", 
-            UserId = "system", 
-            MediaTypeId = -1 
-        };
-        _context.Templates.Add(systemTemplate);
-        await _context.SaveChangesAsync();
-
         // Act
         var act = () => _service.UpdateTemplateAsync("system", -1, new TemplateUpsertRequest 
         { 
@@ -121,17 +107,6 @@ public class TemplateServiceTests
     [Fact]
     public async Task DeleteTemplateAsync_SystemTemplate_ThrowsDomainException()
     {
-        // Arrange
-        var systemTemplate = new Template 
-        { 
-            Id = -1, 
-            Name = "System", 
-            UserId = "system", 
-            MediaTypeId = -1 
-        };
-        _context.Templates.Add(systemTemplate);
-        await _context.SaveChangesAsync();
-
         // Act
         var act = () => _service.DeleteTemplateAsync("system", -1);
 

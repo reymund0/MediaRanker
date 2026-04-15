@@ -31,6 +31,7 @@ public class ReviewServiceTests : IDisposable
     private readonly ReviewService _service;
     private readonly ReviewInsertRequest _defaultInsertRequest;
     private readonly ReviewUpdateRequest _defaultUpdateRequest;
+    private const long MovieMediaTypeId = -3;
 
     public ReviewServiceTests()
     {
@@ -81,13 +82,12 @@ public class ReviewServiceTests : IDisposable
 
     private void SeedData()
     {
-        var mediaType = new MediaType { Id = 1, Name = "Movie" };
-        var media = new MediaEntity { Id = 1, Title = "Test Movie", MediaTypeId = 1, MediaType = mediaType };
+        var media = new MediaEntity { Id = 1, Title = "Test Movie", MediaTypeId = MovieMediaTypeId };
         var template = new Template 
         { 
             Id = 1, 
             Name = "Test Template", 
-            MediaTypeId = 1, 
+            MediaTypeId = MovieMediaTypeId, 
             UserId = "user1",
             Fields = new List<TemplateField>
             {
@@ -96,7 +96,6 @@ public class ReviewServiceTests : IDisposable
             }
         };
 
-        _dbContext.MediaTypes.Add(mediaType);
         _dbContext.Media.Add(media);
         _dbContext.Templates.Add(template);
         _dbContext.SaveChanges();
@@ -111,13 +110,13 @@ public class ReviewServiceTests : IDisposable
             .Returns(new ValidationResult());
 
         _mockMediaService.Setup(m => m.GetMediaByIdAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new MediaDto { Id = 1, Title = "Test Movie", MediaTypeId = 1, MediaTypeName = "Movie", ReleaseDate = new DateOnly(2020, 1, 1) });
+            .ReturnsAsync(new MediaDto { Id = 1, Title = "Test Movie", MediaTypeId = MovieMediaTypeId, MediaTypeName = "Movie", ReleaseDate = new DateOnly(2020, 1, 1) });
 
         _mockTemplatesService.Setup(t => t.GetTemplateByIdAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new TemplateDto { 
                 Id = 1, 
                 Name = "Test Template", 
-                MediaTypeId = 1,
+                MediaTypeId = MovieMediaTypeId,
                 MediaTypeName = "Movie",
                 Fields = [
                     new TemplateFieldDto { Id = 1, Name = "Story", Position = 1 },

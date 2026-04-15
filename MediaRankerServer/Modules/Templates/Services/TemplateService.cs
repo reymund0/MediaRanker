@@ -190,7 +190,7 @@ public class TemplateService(
 
     private IQueryable<TemplateReadRow> TemplateReadRows()
     {
-        return from t in dbContext.Templates
+        return from t in dbContext.Templates.Include(t => t.Fields)
                join mt in dbContext.MediaTypes on t.MediaTypeId equals mt.Id
                select new TemplateReadRow
                {

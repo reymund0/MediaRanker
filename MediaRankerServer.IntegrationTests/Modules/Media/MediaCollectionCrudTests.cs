@@ -17,7 +17,6 @@ public class MediaCollectionCrudTests(PostgresContainerFixture postgresFixture, 
 {
     // Seeded system IDs
     private const long MovieTypeId = -3;
-    private const long TvShowTypeId = -4;
 
     private MediaCollection _testSeries = null!;
 

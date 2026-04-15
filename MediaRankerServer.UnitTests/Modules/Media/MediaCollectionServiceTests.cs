@@ -8,6 +8,7 @@ using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Modules.Media.Services;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
+using MediaRankerServer.UnitTests.Shared;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
@@ -28,17 +29,7 @@ public class MediaCollectionServiceTests : IDisposable
 
     public MediaCollectionServiceTests()
     {
-        var options = new DbContextOptionsBuilder<PostgreSQLContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-
-        _context = new PostgreSQLContext(options);
-
-        _context.MediaTypes.AddRange(
-            new MediaType { Id = TvShowTypeId, Name = "TV Show" },
-            new MediaType { Id = MovieTypeId, Name = "Movie" }
-        );
-        _context.SaveChanges();
+        _context = TestDbContextFactory.Create();
 
         _mockFileService = new Mock<IFileService>();
         _mockFileService.Setup(f => f.GetFileUrl(It.IsAny<string>(), It.IsAny<FileEntityType>()))

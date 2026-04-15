@@ -15,6 +15,8 @@ namespace MediaRankerServer.IntegrationTests.Modules.Media;
 public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStackContainerFixture localStackFixture) 
     : IntegrationTestBase(postgresFixture, localStackFixture)
 {
+    private const long MovieMediaTypeId = -3;
+
     private MediaEntity _testMedia = null!;
     
     public override async Task InitializeAsync()
@@ -28,7 +30,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
             var media = new MediaEntity
             {
                 Title = "Test Media",
-                MediaTypeId = -3,
+                MediaTypeId = MovieMediaTypeId,
                 ReleaseDate = new DateOnly(2024, 1, 1),
             };
             dbContext.Media.Add(media);
@@ -55,7 +57,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
         var request = new MediaUpsertRequest
         {
             Title = "Arrival",
-            MediaTypeId = -3,
+            MediaTypeId = MovieMediaTypeId,
             ReleaseDate = new DateOnly(2016, 11, 11),
         };
 
@@ -82,7 +84,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
         {
             Id = _testMedia.Id,
             Title = "Blade Runner: Final Cut",
-            MediaTypeId = -3,
+            MediaTypeId = MovieMediaTypeId,
             ReleaseDate = new DateOnly(1982, 6, 25),
         };
 
@@ -156,7 +158,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
         var request = new MediaUpsertRequest
         {
             Title = "Media With Cover",
-            MediaTypeId = -3,
+            MediaTypeId = MovieMediaTypeId,
             ReleaseDate = new DateOnly(2024, 1, 1),
             CoverUploadId = fileUploadId
         };
