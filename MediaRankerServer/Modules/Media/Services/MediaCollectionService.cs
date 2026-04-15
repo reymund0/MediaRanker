@@ -86,9 +86,10 @@ public class MediaCollectionService(
             // We know newMediaCover is not null at this point because we validated it in our upsert validator.
             var newMediaCoverId = (await dbContext.MediaCovers
                 .FirstOrDefaultAsync(mc => mc.FileUploadId == request.CoverUploadId, cancellationToken))!.Id;
-            collection.CoverId = newMediaCoverId;
             await CascadeUpdateMediaCoverAsync(collection, newMediaCoverId, cancellationToken);
 
+            // Update the coverID to the new value.
+            collection.CoverId = newMediaCoverId;
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
