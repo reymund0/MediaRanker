@@ -10,22 +10,22 @@ public class MediaEntity : ITimestampedEntity
     public long Id { get; set; }
 
     public string Title { get; set; } = null!;
-    public long MediaTypeId { get; set; }
-    public MediaType MediaType { get; set; } = null!;
     public DateOnly ReleaseDate { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public string? ExternalId { get; set; }
     public string? ExternalSource { get; set; }
+    
+    // Foreign keys
+    public long MediaTypeId { get; set; }
     public long? MediaCollectionId { get; set; }
-    public MediaCollection? MediaCollection { get; set; }
+    public long? CoverId { get; set; }
 
-    // Cover File Upload - We intentionally want to copy data over rather than joining on FileUploads. Hence no reference below.
-    public long? CoverFileUploadId { get; set; }
-    public string? CoverFileKey { get; set; }
-    public string? CoverFileName { get; set; }
-    public long? CoverFileSizeBytes { get; set; }
-    public string? CoverFileContentType { get; set; }
+    // Navigation properties
+    public MediaType MediaType { get; set; } = null!;
+    public MediaCollection? MediaCollection { get; set; }
+    public MediaCover? Cover { get; set; }
+
 
     public class Configuration : IEntityTypeConfiguration<MediaEntity>
     {
@@ -47,11 +47,7 @@ public class MediaEntity : ITimestampedEntity
                 .HasColumnType("date")
                 .IsRequired();
             
-            builder.Property(m => m.CoverFileUploadId);
-            builder.Property(m => m.CoverFileKey);
-            builder.Property(m => m.CoverFileName);
-            builder.Property(m => m.CoverFileSizeBytes);
-            builder.Property(m => m.CoverFileContentType);
+            builder.Property(m => m.CoverId);
             builder.Property(m => m.ExternalId);
             builder.Property(m => m.ExternalSource);
             builder.Property(m => m.MediaCollectionId);
@@ -65,6 +61,10 @@ public class MediaEntity : ITimestampedEntity
                 .WithMany(mc => mc.MediaItems)
                 .HasForeignKey(m => m.MediaCollectionId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            builder.HasOne(m => m.Cover)
+                .WithMany(m => m.MediaEntities)
+                .HasForeignKey(m => m.CoverId);
 
             // Indexes
             builder.HasIndex(m => m.MediaTypeId)

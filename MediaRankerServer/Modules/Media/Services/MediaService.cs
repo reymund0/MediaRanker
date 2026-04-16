@@ -13,7 +13,6 @@ namespace MediaRankerServer.Modules.Media.Services;
 
 public class MediaService(
     PostgreSQLContext dbContext,
-    IMediaCoverService coverService,
     IFileService fileService,
     IValidator<MediaUpsertRequest> mediaUpsertRequestValidator,
     IPublisher publisher
@@ -31,6 +30,7 @@ public class MediaService(
         var media = await dbContext.Media
             .AsNoTracking()
             .Include(m => m.MediaType)
+            .Include(m => m.Cover)
             .ToListAsync(cancellationToken);
 
         return [.. media.Select(m => MediaDtoMapper.Map(m, fileService))];
@@ -41,6 +41,7 @@ public class MediaService(
         var media = await dbContext.Media
             .AsNoTracking()
             .Include(m => m.MediaType)
+            .Include(m => m.Cover)
             .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
 
         return media is null ? null : MediaDtoMapper.Map(media, fileService);
@@ -48,7 +49,7 @@ public class MediaService(
 
     public async Task<MediaDto> CreateMediaAsync(string userId, MediaUpsertRequest request, CancellationToken cancellationToken = default)
     {
-        ValidateMediaRequestOrThrow(request);
+        await ValidateMediaRequestOrThrow(request, cancellationToken);
 
         var normalizedTitle = request.Title.Trim();
         var duplicateExists = await dbContext.Media.AnyAsync(
@@ -63,23 +64,12 @@ public class MediaService(
             throw new DomainException("Media already exists for the selected title, media type, and release date.", "media_conflict");
         }
 
-        // Get uploaded cover file info if provided.
-        FileDto? coverFile = null;
-        if (request.CoverUploadId.HasValue)
-        {
-            coverFile = await coverService.CopyCoverFileAsync(userId, request.CoverUploadId.Value, cancellationToken);
-        }
-
         var media = new MediaEntity
         {
             Title = normalizedTitle,
             MediaTypeId = request.MediaTypeId,
             ReleaseDate = request.ReleaseDate,
-            CoverFileUploadId = coverFile?.UploadId,
-            CoverFileKey = coverFile?.FileKey,
-            CoverFileName = coverFile?.FileName,
-            CoverFileContentType = coverFile?.ContentType,
-            CoverFileSizeBytes = coverFile?.FileSizeBytes,
+            CoverId = dbContext.MediaCovers.FirstOrDefault(c => c.FileUploadId == request.CoverUploadId)?.Id
         };
 
         dbContext.Media.Add(media);
@@ -91,7 +81,7 @@ public class MediaService(
 
     public async Task<MediaDto> UpdateMediaAsync(string userId, long mediaId, MediaUpsertRequest request, CancellationToken cancellationToken = default)
     {
-        ValidateMediaRequestOrThrow(request);
+        await ValidateMediaRequestOrThrow(request, cancellationToken);
 
         var media = await dbContext.Media
             .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken)
@@ -111,27 +101,10 @@ public class MediaService(
             throw new DomainException("Media already exists for the selected title, media type, and release date.", "media_conflict");
         }
 
-        // Get updated cover file info if provided.
-        FileDto? coverFile = null;
-        if (request.CoverUploadId.HasValue && media.CoverFileUploadId != request.CoverUploadId.Value)
-        {
-            // Delete the old cover file if it exists.
-            if (!string.IsNullOrEmpty(media.CoverFileKey))
-            {
-                await coverService.DeleteCoverFileAsync(media.CoverFileKey, cancellationToken);
-            }
-            
-            coverFile = await coverService.CopyCoverFileAsync(userId, request.CoverUploadId.Value, cancellationToken);
-        }
-
         media.Title = normalizedTitle;
         media.MediaTypeId = request.MediaTypeId;
         media.ReleaseDate = request.ReleaseDate;
-        media.CoverFileUploadId = coverFile?.UploadId;
-        media.CoverFileKey = coverFile?.FileKey;
-        media.CoverFileName = coverFile?.FileName;
-        media.CoverFileContentType = coverFile?.ContentType;
-        media.CoverFileSizeBytes = coverFile?.FileSizeBytes;
+        media.CoverId = dbContext.MediaCovers.FirstOrDefault(c => c.FileUploadId == request.CoverUploadId)?.Id;
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -144,12 +117,6 @@ public class MediaService(
         var media = await dbContext.Media
             .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken)
             ?? throw new DomainException("Media not found.", "media_not_found");
-
-        // Delete the cover file if it exists
-        if (!string.IsNullOrEmpty(media.CoverFileKey))
-        {
-            await coverService.DeleteCoverFileAsync(media.CoverFileKey, cancellationToken);
-        }
 
         dbContext.Media.Remove(media);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -166,12 +133,29 @@ public class MediaService(
         return mediaType == null ? null : MediaTypeDtoMapper.Map(mediaType);
     }
 
-    private void ValidateMediaRequestOrThrow(MediaUpsertRequest request)
+    private async Task ValidateMediaRequestOrThrow(MediaUpsertRequest request, CancellationToken cancellationToken)
     {
         var validationResult = mediaUpsertRequestValidator.Validate(request);
         if (!validationResult.IsValid)
         {
             throw new DomainException(validationResult.Errors[0].ErrorMessage, "media_validation_error");
+        }
+
+        // Validate Media Type exists
+        var mediaTypeExists = await dbContext.MediaTypes.AnyAsync(mt => mt.Id == request.MediaTypeId, cancellationToken);
+        if (!mediaTypeExists)
+        {
+            throw new DomainException("Media type not found.", "media_type_not_found");
+        }
+
+        // Validate Cover exists if provided
+        if (request.CoverUploadId.HasValue)
+        {
+            var coverExists = await dbContext.MediaCovers.AnyAsync(c => c.FileUploadId == request.CoverUploadId, cancellationToken);
+            if (!coverExists)
+            {
+                throw new DomainException("Cover not found.", "cover_not_found");
+            }
         }
     }
 }

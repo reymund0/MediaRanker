@@ -15,6 +15,8 @@ namespace MediaRankerServer.IntegrationTests.Modules.Media;
 public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStackContainerFixture localStackFixture) 
     : IntegrationTestBase(postgresFixture, localStackFixture)
 {
+    private const long MovieMediaTypeId = -3;
+
     private MediaEntity _testMedia = null!;
     
     public override async Task InitializeAsync()
@@ -28,7 +30,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
             var media = new MediaEntity
             {
                 Title = "Test Media",
-                MediaTypeId = -3,
+                MediaTypeId = MovieMediaTypeId,
                 ReleaseDate = new DateOnly(2024, 1, 1),
             };
             dbContext.Media.Add(media);
@@ -55,7 +57,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
         var request = new MediaUpsertRequest
         {
             Title = "Arrival",
-            MediaTypeId = -3,
+            MediaTypeId = MovieMediaTypeId,
             ReleaseDate = new DateOnly(2016, 11, 11),
         };
 
@@ -82,7 +84,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
         {
             Id = _testMedia.Id,
             Title = "Blade Runner: Final Cut",
-            MediaTypeId = -3,
+            MediaTypeId = MovieMediaTypeId,
             ReleaseDate = new DateOnly(1982, 6, 25),
         };
 
@@ -130,38 +132,35 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
     [Fact]
     public async Task UpsertMedia_CreateWithCover_PersistsMediaAndCopiesMetadata()
     {
-        // 1. Seed an "Uploaded" file record for the test user
-        long uploadId;
+        // 1. Seed a MediaCover for the test user
+        long mediaCoverId;
+        long fileUploadId = 10;
         var fileKey = "covers/test-cover.png";
         using (var scope = Factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
-            var upload = new FileUpload
+            var upload = new MediaCover
             {
-                UserId = TestAuthHandler.DefaultUserId,
-                EntityType = FileEntityType.MediaCover,
                 FileKey = fileKey,
+                FileUploadId = fileUploadId,
                 FileName = "test-cover.png",
-                ExpectedContentType = "image/png",
-                ExpectedFileSizeBytes = 1024,
-                ActualContentType = "image/png",
-                ActualFileSizeBytes = 1024,
-                State = FileUploadState.Uploaded,
+                FileContentType = "image/png",
+                FileSizeBytes = 1024,
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
-            db.FileUploads.Add(upload);
+            db.MediaCovers.Add(upload);
             await db.SaveChangesAsync();
-            uploadId = upload.Id;
+            mediaCoverId = upload.Id;
         }
 
         // 2. Perform the Create Upsert with the CoverUploadId
         var request = new MediaUpsertRequest
         {
             Title = "Media With Cover",
-            MediaTypeId = -3,
+            MediaTypeId = MovieMediaTypeId,
             ReleaseDate = new DateOnly(2024, 1, 1),
-            CoverUploadId = uploadId
+            CoverUploadId = fileUploadId
         };
 
         var response = await Client.PostAsJsonAsync("/api/media", request);
@@ -178,14 +177,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
             var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
             var dbMedia = await db.Media.FirstOrDefaultAsync(m => m.Id == result.Id);
             dbMedia.Should().NotBeNull();
-            dbMedia!.CoverFileUploadId.Should().Be(uploadId);
-            dbMedia.CoverFileKey.Should().Be(fileKey);
-            dbMedia.CoverFileName.Should().Be("test-cover.png");
-            dbMedia.CoverFileContentType.Should().Be("image/png");
-            dbMedia.CoverFileSizeBytes.Should().Be(1024);
-
-            var dbUpload = await db.FileUploads.FindAsync(uploadId);
-            dbUpload!.State.Should().Be(FileUploadState.Copied);
+            dbMedia.CoverId.Should().Be(mediaCoverId);
         }
     }
 }

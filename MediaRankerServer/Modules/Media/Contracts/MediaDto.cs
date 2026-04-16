@@ -21,9 +21,9 @@ public static class MediaDtoMapper
     public static MediaDto Map(MediaEntity media, IFileService fileService)
     {
         string? mediaCoverUrl = null;
-        if (media.CoverFileKey != null)
+        if (media.Cover != null)
         {
-            mediaCoverUrl = fileService.GetFileUrl(media.CoverFileKey, FileEntityType.MediaCover);
+            mediaCoverUrl = fileService.GetFileUrl(media.Cover.FileKey, FileEntityType.MediaCover);
         }
         
         return new MediaDto

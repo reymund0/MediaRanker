@@ -11,11 +11,12 @@ SELECT
     r.media_id,
     r.template_id,
     m.title AS media_title,
-    m.cover_file_key AS media_cover_file_key,
+    mc.file_key AS media_cover_file_key,
     m.media_type_id,
     mt.name AS media_type_name,
     t.name AS template_name
 FROM reviews r
 INNER JOIN media m ON r.media_id = m.id
+LEFT JOIN media_covers mc ON m.cover_id = mc.id
 INNER JOIN media_types mt ON m.media_type_id = mt.id
 INNER JOIN templates t ON r.template_id = t.id;

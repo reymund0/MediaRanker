@@ -61,7 +61,11 @@ export function ReviewCardEdit({
 
   const methods = useForm({
     resolver: zodResolver(ReviewEditSchema),
-    defaultValues: review,
+    defaultValues: {
+      ...review,
+      reviewTitle: review.reviewTitle ?? "",
+      notes: review.notes ?? "",
+    },
   });
 
   // Submit Handlers

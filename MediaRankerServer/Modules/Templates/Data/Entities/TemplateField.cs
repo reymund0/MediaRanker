@@ -44,6 +44,14 @@ public class TemplateField : ITimestampedEntity
             // Indexes
             builder.HasIndex(tf => tf.TemplateId)
                 .HasDatabaseName("ix_template_fields_template_id");
+
+            // Seed system template fields
+            builder.HasData(
+                new TemplateField { Id = -11, TemplateId = -1, Name = "Gameplay", Position = 0 },
+                new TemplateField { Id = -12, TemplateId = -1, Name = "Graphics", Position = 1 },
+                new TemplateField { Id = -13, TemplateId = -1, Name = "Story", Position = 2 },
+                new TemplateField { Id = -14, TemplateId = -1, Name = "Sound", Position = 3 }
+            );
         }
     }
 }

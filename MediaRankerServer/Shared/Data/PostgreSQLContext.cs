@@ -16,6 +16,7 @@ public class PostgreSQLContext : DbContext
     public DbSet<MediaType> MediaTypes => Set<MediaType>();
     public DbSet<MediaEntity> Media => Set<MediaEntity>();
     public DbSet<MediaCollection> MediaCollections => Set<MediaCollection>();
+    public DbSet<MediaCover> MediaCovers => Set<MediaCover>();
     public DbSet<ImdbImport> ImdbImports => Set<ImdbImport>();
     public DbSet<ImdbImportEpisode> ImdbImportEpisodes => Set<ImdbImportEpisode>();
     public DbSet<Template> Templates => Set<Template>();
@@ -27,6 +28,7 @@ public class PostgreSQLContext : DbContext
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        // Refresh UpdatedAt timestamp to now for all ITimestampedEntity entities.
         var modifiedEntries = ChangeTracker.Entries<ITimestampedEntity>()
             .Where(e => e.State == EntityState.Modified);
 
@@ -42,7 +44,7 @@ public class PostgreSQLContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Apply global configuration for ITimestampedEntity
+        // Apply global CreatedAt and UpdatedAt defaults for ITimestampedEntity.
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             if (typeof(ITimestampedEntity).IsAssignableFrom(entityType.ClrType))

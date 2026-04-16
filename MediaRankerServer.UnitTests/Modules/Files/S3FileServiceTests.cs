@@ -233,10 +233,9 @@ public class S3FileServiceTests : IDisposable
         var upload = await SeedUploadAsync(FileUploadState.Uploaded);
 
         // Act
-        var result = await _service.MarkUploadCopiedAsync(upload.Id, DefaultUserId);
+        await _service.MarkUploadCopiedAsync(upload.Id, DefaultUserId);
 
         // Assert
-        result.UploadId.Should().Be(upload.Id);
         var updated = await _dbContext.FileUploads.FindAsync(upload.Id);
         updated!.State.Should().Be(FileUploadState.Copied);
     }

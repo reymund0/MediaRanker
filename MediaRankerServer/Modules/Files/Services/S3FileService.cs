@@ -103,7 +103,7 @@ public class S3FileService(
     return FileDtoMapper.Map(upload);
   }
 
-  public async Task<FileDto> MarkUploadCopiedAsync(long uploadId, string userId, CancellationToken cancellationToken = default)
+  public async Task MarkUploadCopiedAsync(long uploadId, string userId, CancellationToken cancellationToken = default)
   {
     // Validate upload exists
     var upload = await dbContext.FileUploads.FirstOrDefaultAsync(u => u.Id == uploadId && u.UserId == userId, cancellationToken);
@@ -125,8 +125,6 @@ public class S3FileService(
     // Transition state to Copied.
     upload.State = FileUploadState.Copied;
     await dbContext.SaveChangesAsync(cancellationToken);
-    
-    return FileDtoMapper.Map(upload);
   }
 
   public string GetFileUrl(string fileKey, FileEntityType entityType)

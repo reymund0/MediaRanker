@@ -241,25 +241,9 @@ namespace MediaRankerServer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("collection_type");
 
-                    b.Property<string>("CoverFileContentType")
-                        .HasColumnType("text")
-                        .HasColumnName("cover_file_content_type");
-
-                    b.Property<string>("CoverFileKey")
-                        .HasColumnType("text")
-                        .HasColumnName("cover_file_key");
-
-                    b.Property<string>("CoverFileName")
-                        .HasColumnType("text")
-                        .HasColumnName("cover_file_name");
-
-                    b.Property<long?>("CoverFileSizeBytes")
+                    b.Property<long?>("CoverId")
                         .HasColumnType("bigint")
-                        .HasColumnName("cover_file_size_bytes");
-
-                    b.Property<long?>("CoverFileUploadId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("cover_file_upload_id");
+                        .HasColumnName("cover_id");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -293,6 +277,9 @@ namespace MediaRankerServer.Migrations
                     b.HasKey("Id")
                         .HasName("pk_media_collections");
 
+                    b.HasIndex("CoverId")
+                        .HasDatabaseName("ix_media_collections_cover_id");
+
                     b.HasIndex("MediaTypeId")
                         .HasDatabaseName("ix_media_collections_media_type_id");
 
@@ -312,6 +299,62 @@ namespace MediaRankerServer.Migrations
                     b.ToTable("media_collections", (string)null);
                 });
 
+            modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.MediaCover", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("FileContentType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("file_content_type");
+
+                    b.Property<string>("FileKey")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("file_key");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("file_name");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("file_size_bytes");
+
+                    b.Property<long>("FileUploadId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("file_upload_id");
+
+                    b.Property<bool>("MarkedForCleanup")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("marked_for_cleanup");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.HasKey("Id")
+                        .HasName("pk_media_covers");
+
+                    b.ToTable("media_covers", (string)null);
+                });
+
             modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.MediaEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -321,25 +364,9 @@ namespace MediaRankerServer.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<string>("CoverFileContentType")
-                        .HasColumnType("text")
-                        .HasColumnName("cover_file_content_type");
-
-                    b.Property<string>("CoverFileKey")
-                        .HasColumnType("text")
-                        .HasColumnName("cover_file_key");
-
-                    b.Property<string>("CoverFileName")
-                        .HasColumnType("text")
-                        .HasColumnName("cover_file_name");
-
-                    b.Property<long?>("CoverFileSizeBytes")
+                    b.Property<long?>("CoverId")
                         .HasColumnType("bigint")
-                        .HasColumnName("cover_file_size_bytes");
-
-                    b.Property<long?>("CoverFileUploadId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("cover_file_upload_id");
+                        .HasColumnName("cover_id");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -380,6 +407,9 @@ namespace MediaRankerServer.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_media");
+
+                    b.HasIndex("CoverId")
+                        .HasDatabaseName("ix_media_cover_id");
 
                     b.HasIndex("MediaCollectionId")
                         .HasDatabaseName("ix_media_media_collection_id");
@@ -425,6 +455,38 @@ namespace MediaRankerServer.Migrations
                         .HasDatabaseName("uq_media_types_name");
 
                     b.ToTable("media_types", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = -1L,
+                            Name = "Video Game"
+                        },
+                        new
+                        {
+                            Id = -2L,
+                            Name = "Book"
+                        },
+                        new
+                        {
+                            Id = -3L,
+                            Name = "Movie"
+                        },
+                        new
+                        {
+                            Id = -4L,
+                            Name = "TV Show"
+                        },
+                        new
+                        {
+                            Id = -5L,
+                            Name = "Album"
+                        },
+                        new
+                        {
+                            Id = -6L,
+                            Name = "Concert"
+                        });
                 });
 
             modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Data.Entities.Review", b =>
@@ -656,6 +718,18 @@ namespace MediaRankerServer.Migrations
                         .HasDatabaseName("uq_templates_user_name");
 
                     b.ToTable("templates", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = -1L,
+                            CreatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Description = "Default review template for video games.",
+                            MediaTypeId = -1L,
+                            Name = "Video Games",
+                            UpdatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            UserId = "system"
+                        });
                 });
 
             modelBuilder.Entity("MediaRankerServer.Modules.Templates.Data.Entities.TemplateField", b =>
@@ -699,10 +773,53 @@ namespace MediaRankerServer.Migrations
                         .HasDatabaseName("ix_template_fields_template_id");
 
                     b.ToTable("template_fields", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = -11L,
+                            CreatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "Gameplay",
+                            Position = 0,
+                            TemplateId = -1L,
+                            UpdatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        },
+                        new
+                        {
+                            Id = -12L,
+                            CreatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "Graphics",
+                            Position = 1,
+                            TemplateId = -1L,
+                            UpdatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        },
+                        new
+                        {
+                            Id = -13L,
+                            CreatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "Story",
+                            Position = 2,
+                            TemplateId = -1L,
+                            UpdatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        },
+                        new
+                        {
+                            Id = -14L,
+                            CreatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "Sound",
+                            Position = 3,
+                            TemplateId = -1L,
+                            UpdatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        });
                 });
 
             modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.MediaCollection", b =>
                 {
+                    b.HasOne("MediaRankerServer.Modules.Media.Data.Entities.MediaCover", "Cover")
+                        .WithMany("MediaCollections")
+                        .HasForeignKey("CoverId")
+                        .HasConstraintName("fk_media_collections_media_covers_cover_id");
+
                     b.HasOne("MediaRankerServer.Modules.Media.Data.Entities.MediaType", "MediaType")
                         .WithMany()
                         .HasForeignKey("MediaTypeId")
@@ -716,6 +833,8 @@ namespace MediaRankerServer.Migrations
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_media_collections_media_collections_parent_media_collection");
 
+                    b.Navigation("Cover");
+
                     b.Navigation("MediaType");
 
                     b.Navigation("ParentMediaCollection");
@@ -723,6 +842,11 @@ namespace MediaRankerServer.Migrations
 
             modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.MediaEntity", b =>
                 {
+                    b.HasOne("MediaRankerServer.Modules.Media.Data.Entities.MediaCover", "Cover")
+                        .WithMany("MediaEntities")
+                        .HasForeignKey("CoverId")
+                        .HasConstraintName("fk_media_media_covers_cover_id");
+
                     b.HasOne("MediaRankerServer.Modules.Media.Data.Entities.MediaCollection", "MediaCollection")
                         .WithMany("MediaItems")
                         .HasForeignKey("MediaCollectionId")
@@ -735,6 +859,8 @@ namespace MediaRankerServer.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_media_media_types_media_type_id");
+
+                    b.Navigation("Cover");
 
                     b.Navigation("MediaCollection");
 
@@ -770,6 +896,13 @@ namespace MediaRankerServer.Migrations
                     b.Navigation("ChildCollections");
 
                     b.Navigation("MediaItems");
+                });
+
+            modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.MediaCover", b =>
+                {
+                    b.Navigation("MediaCollections");
+
+                    b.Navigation("MediaEntities");
                 });
 
             modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Data.Entities.Review", b =>

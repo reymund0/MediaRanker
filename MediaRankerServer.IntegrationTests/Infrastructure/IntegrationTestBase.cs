@@ -83,7 +83,6 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         var sql = @"
             DELETE FROM template_fields WHERE id > 0;
             DELETE FROM templates WHERE id > 0;
-            DELETE FROM media WHERE id > 0;
         ";
 
         using var cmd = new NpgsqlCommand(sql, _connection);

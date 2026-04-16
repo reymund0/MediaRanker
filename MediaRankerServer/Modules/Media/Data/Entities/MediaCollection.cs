@@ -14,27 +14,25 @@ public enum CollectionType
 public class MediaCollection : ITimestampedEntity
 {
     public long Id { get; set; }
-
     public string Title { get; set; } = null!;
     public CollectionType CollectionType { get; set; }
-    public long MediaTypeId { get; set; }
-    public MediaType MediaType { get; set; } = null!;
     public long? ParentMediaCollectionId { get; set; }
     public DateOnly ReleaseDate { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
+    
+    // Foreign keys
+    public long? CoverId { get; set; }
+    public long MediaTypeId { get; set; }
 
-    // Cover File Upload
-    public long? CoverFileUploadId { get; set; }
-    public string? CoverFileKey { get; set; }
-    public string? CoverFileName { get; set; }
-    public long? CoverFileSizeBytes { get; set; }
-    public string? CoverFileContentType { get; set; }
 
     // Navigation properties
+    public MediaType MediaType { get; set; } = null!;
+
     public MediaCollection? ParentMediaCollection { get; set; }
     public ICollection<MediaCollection> ChildCollections { get; set; } = [];
     public ICollection<MediaEntity> MediaItems { get; set; } = [];
+    public MediaCover? Cover { get; set; }
 
     public class Configuration : IEntityTypeConfiguration<MediaCollection>
     {
@@ -62,11 +60,7 @@ public class MediaCollection : ITimestampedEntity
                 .HasColumnType("date")
                 .IsRequired();
 
-            builder.Property(mc => mc.CoverFileUploadId);
-            builder.Property(mc => mc.CoverFileKey);
-            builder.Property(mc => mc.CoverFileName);
-            builder.Property(mc => mc.CoverFileSizeBytes);
-            builder.Property(mc => mc.CoverFileContentType);
+            builder.Property(mc => mc.CoverId);
 
             // Relationships
             builder.HasOne(mc => mc.MediaType)
@@ -77,6 +71,10 @@ public class MediaCollection : ITimestampedEntity
                 .WithMany(mc => mc.ChildCollections)
                 .HasForeignKey(mc => mc.ParentMediaCollectionId)
                 .OnDelete(DeleteBehavior.SetNull);
+            
+            builder.HasOne(mc => mc.Cover)
+                .WithMany()
+                .HasForeignKey(mc => mc.CoverId);
 
             // Indexes
             builder.HasIndex(mc => mc.MediaTypeId)

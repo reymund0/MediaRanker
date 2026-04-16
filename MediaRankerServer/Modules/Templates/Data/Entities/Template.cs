@@ -61,6 +61,18 @@ public class Template : ITimestampedEntity
             // Index for related entities
             builder.HasIndex(t => t.MediaTypeId)
                 .HasDatabaseName("ix_templates_media_type_id");
+
+            // Seed system template for Video Games
+            builder.HasData(
+                new Template
+                {
+                    Id = -1,
+                    MediaTypeId = -1,
+                    UserId = "system",
+                    Name = "Video Games",
+                    Description = "Default review template for video games."
+                }
+            );
         }
     }
 }
