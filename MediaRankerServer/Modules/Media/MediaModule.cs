@@ -18,6 +18,7 @@ public static class MediaModule
 
         services.AddScoped<IFileService, S3FileService>();
         services.AddScoped<IMediaCoverService, MediaCoverService>();
+        services.AddScoped<IMediaCoverCleanupService, MediaCoverService>();
         services.AddScoped<IImdbImportProvider, ImdbImportSqlProvider>();
         services.AddScoped<IMediaService, MediaService>();
         services.AddScoped<IMediaCollectionService, MediaCollectionService>();
@@ -31,6 +32,7 @@ public static class MediaModule
         if (!environment.IsEnvironment("Testing"))
         {
             services.AddHostedService<ImdbImportJob>();
+            services.AddHostedService<MediaCoverCleanupJob>();
         }
 
         return services;

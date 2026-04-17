@@ -16,7 +16,8 @@ public class MediaCoverService(
     IFileService fileService, 
     PostgreSQLContext dbContext, 
     IMediator mediator,
-    IValidator<GenerateUploadCoverUrlRequest> validator) : IMediaCoverService
+    IValidator<GenerateUploadCoverUrlRequest> validator,
+    ILogger<MediaCoverService> logger) : IMediaCoverService, IMediaCoverCleanupService
 {
     public async Task<GenerateUploadCoverUrlResponse> GenerateUploadCoverUrlAsync(string userId, GenerateUploadCoverUrlRequest request, CancellationToken cancellationToken)
     {
@@ -84,26 +85,54 @@ public class MediaCoverService(
         // Signal that the upload has been copied to the database.
         await fileService.MarkUploadCopiedAsync(uploadId, userId, cancellationToken);
     }
-
-    private async Task DeleteCoverFileIfUnusedAsync(long coverId, CancellationToken cancellationToken)
+    
+    // Our cleanup is a 2-step process:
+    // 1. Mark unreferenced covers for cleanup
+    // 2. Delete covers that have been marked for cleanup
+    public async Task CleanupAsync(CancellationToken cancellationToken)
     {
-        // Check if any media or media collections still references this cover.
-        var mediaCount = await dbContext.Media.CountAsync(m => m.CoverId == coverId, cancellationToken);
-        var mediaCollectionCount = await dbContext.MediaCollections.CountAsync(mc => mc.CoverId == coverId, cancellationToken);
-
-        if (mediaCount > 0 || mediaCollectionCount > 0)
-        {
-            return;
-        }
-
-        // Get the file key for the cover.
-        var cover = await dbContext.MediaCovers.FirstOrDefaultAsync(mc => mc.Id == coverId, cancellationToken);
-        if (cover == null)
-        {
-            return;
-        }
+        // Find all media covers that are not referenced by any media or media collection.
+        var unreferencedCovers = dbContext.MediaCovers
+            .Where(mc => !dbContext.Media.Any(m => m.CoverId == mc.Id) && !dbContext.MediaCollections.Any(mc2 => mc2.CoverId == mc.Id));
         
-        // Delete by publishing a FileDeletedEvent which Files module handles.
-        await mediator.Publish(new FileDeletedEvent(cover.FileKey, FileEntityType.MediaCover.ToString()), cancellationToken);
+        // For covers that are marked for deletion, we need to publish a FileDeleted event
+        var coversToCleanup = await unreferencedCovers
+            .Where(mc => mc.MarkedForCleanup)
+            .ToListAsync(cancellationToken);
+        
+        await DeleteCoversAsync(coversToCleanup, cancellationToken);
+
+        // Find covers to mark for cleanup (those that aren't already marked)
+        await unreferencedCovers
+            .Where(mc => !mc.MarkedForCleanup)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(mc => mc.MarkedForCleanup, true), cancellationToken);
+
+        // Unmark covers that were previously marked for cleanup however are still referenced
+        await dbContext.MediaCovers
+            .Where(mc => mc.MarkedForCleanup)
+            .Where(mc => dbContext.Media.Any(m => m.CoverId == mc.Id) || dbContext.MediaCollections.Any(mc2 => mc2.CoverId == mc.Id))
+            .ExecuteUpdateAsync(setters => setters.SetProperty(mc => mc.MarkedForCleanup, false), cancellationToken);
+    }
+
+    private async Task DeleteCoversAsync(List<MediaCover> covers, CancellationToken cancellationToken)
+    {   
+        List<MediaCover> coversToDelete = [];
+        foreach (var cover in covers)
+        {
+            try{
+                // Delete by publishing a FileDeletedEvent which Files module handles.
+                await mediator.Publish(new FileDeletedEvent(cover.FileKey, FileEntityType.MediaCover.ToString()), cancellationToken);
+                coversToDelete.Add(cover);
+            }
+            catch (Exception ex)
+            {
+                // Don't let 1 publish event stop us from continuing the cleanup process.
+                logger.LogError(ex, "Error publishing FileDeleteEvent for cover {CoverId}", cover.Id);
+            }
+        }
+
+        dbContext.MediaCovers.RemoveRange(coversToDelete);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }
