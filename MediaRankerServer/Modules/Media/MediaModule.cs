@@ -14,7 +14,8 @@ public static class MediaModule
         IConfiguration configuration,
         IHostEnvironment environment)
     {
-        services.Configure<ImdbImportOptions>(configuration.GetSection(ImdbImportOptions.SectionName));
+        services.Configure<ImdbImportOptions>(configuration.GetSection(ImdbImportOptions.SectionPath));
+        services.Configure<MediaCoverCleanupOptions>(configuration.GetSection(MediaCoverCleanupOptions.SectionPath));
 
         services.AddScoped<IFileService, S3FileService>();
         services.AddScoped<IMediaCoverService, MediaCoverService>();
