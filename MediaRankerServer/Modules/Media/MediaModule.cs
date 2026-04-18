@@ -14,10 +14,12 @@ public static class MediaModule
         IConfiguration configuration,
         IHostEnvironment environment)
     {
-        services.Configure<ImdbImportOptions>(configuration.GetSection(ImdbImportOptions.SectionName));
+        services.Configure<ImdbImportOptions>(configuration.GetSection(ImdbImportOptions.SectionPath));
+        services.Configure<MediaCoverCleanupOptions>(configuration.GetSection(MediaCoverCleanupOptions.SectionPath));
 
         services.AddScoped<IFileService, S3FileService>();
         services.AddScoped<IMediaCoverService, MediaCoverService>();
+        services.AddScoped<IMediaCoverCleanupService, MediaCoverService>();
         services.AddScoped<IImdbImportProvider, ImdbImportSqlProvider>();
         services.AddScoped<IMediaService, MediaService>();
         services.AddScoped<IMediaCollectionService, MediaCollectionService>();
@@ -31,6 +33,7 @@ public static class MediaModule
         if (!environment.IsEnvironment("Testing"))
         {
             services.AddHostedService<ImdbImportJob>();
+            services.AddHostedService<MediaCoverCleanupJob>();
         }
 
         return services;

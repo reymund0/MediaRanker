@@ -13,6 +13,7 @@ using Moq;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
+using Microsoft.Extensions.Logging;
 
 namespace MediaRankerServer.UnitTests.Modules.Media;
 
@@ -22,6 +23,7 @@ public class MediaCoverServiceTests : IDisposable
     private readonly Mock<IFileService> _mockFileService;
     private readonly Mock<IMediator> _mockMediator;
     private readonly Mock<IValidator<GenerateUploadCoverUrlRequest>> _mockValidator;
+    private readonly Mock<ILogger<MediaCoverService>> _mockLogger;
     private readonly MediaCoverService _service;
 
     private const string DefaultUserId = "test-user-1";
@@ -36,6 +38,7 @@ public class MediaCoverServiceTests : IDisposable
         _mockFileService = new Mock<IFileService>();
         _mockMediator = new Mock<IMediator>();
         _mockValidator = new Mock<IValidator<GenerateUploadCoverUrlRequest>>();
+        _mockLogger = new Mock<ILogger<MediaCoverService>>();
 
         _mockValidator.Setup(v => v.ValidateAsync(It.IsAny<GenerateUploadCoverUrlRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new FluentValidation.Results.ValidationResult());
@@ -44,7 +47,8 @@ public class MediaCoverServiceTests : IDisposable
             _mockFileService.Object,
             _dbContext,
             _mockMediator.Object,
-            _mockValidator.Object
+            _mockValidator.Object,
+            _mockLogger.Object
         );
     }
 

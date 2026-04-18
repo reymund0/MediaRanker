@@ -7,67 +7,29 @@ using Microsoft.Extensions.Options;
 
 namespace MediaRankerServer.Modules.Files.Jobs;
 
-// TODO: Convert this to something industry-standard like Quartz.NET or Hangfire.
+public class FileCleanupOptions : BaseJobOptions
+{
+    public static readonly string SectionPath = "Files:Cleanup";
+    public override string JobName => "File Upload Cleanup";
+    public override bool Enabled { get; set; } = true;
+    public override int ScheduleHourUtc { get; set; } = 12;
+    public int StaleDaysThreshold { get; set; } = 2;
+}
+
 public class FileUploadCleanupJob(
     IServiceScopeFactory scopeFactory,
     IOptions<FileCleanupOptions> options,
-    ILogger<FileUploadCleanupJob> logger) : BackgroundService
-{
-    private readonly FileCleanupOptions config = options.Value;
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        if (!config.Enabled)
-        {
-            logger.LogInformation("File upload cleanup job is disabled.");
-            return;
-        }
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            // Calculate the next run for Noon UTC tomorrow
-            var tomorrowNoonUtc = DateTimeOffset.UtcNow.Date.AddDays(1).AddHours(12);
-            var nextRunUtc = new DateTimeOffset(tomorrowNoonUtc, TimeSpan.Zero);
-
-            var delay = nextRunUtc - DateTimeOffset.UtcNow;
-
-            if (delay > TimeSpan.Zero)
-            {
-                logger.LogInformation("Next file upload cleanup job scheduled for {NextRun} UTC (Delay: {Delay})", nextRunUtc, delay);
-                await Task.Delay(delay, stoppingToken);
-            }
-
-            try
-            {
-                await RunCleanupAsync(stoppingToken);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "An error occurred during file upload cleanup job.");
-            }
-        }
-    }
-
-    private async Task RunCleanupAsync(CancellationToken stoppingToken)
+    ILogger<FileUploadCleanupJob> logger) : BaseJob<FileCleanupOptions>(scopeFactory, options, logger)
+{    
+    protected override async Task RunJobAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken)
     {
         logger.LogInformation("Starting file upload cleanup job run.");
 
-        using var scope = scopeFactory.CreateScope();
-        var cleanupRunner = scope.ServiceProvider.GetRequiredService<FileUploadCleanupRunner>();
+        var dbContext = serviceProvider.GetRequiredService<PostgreSQLContext>();
+        var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         var cutoff = DateTimeOffset.UtcNow.AddDays(-config.StaleDaysThreshold);
 
-        await cleanupRunner.RunAsync(cutoff, stoppingToken);
-    }
-}
-
-public class FileUploadCleanupRunner(
-    PostgreSQLContext dbContext,
-    IMediator mediator,
-    ILogger<FileUploadCleanupRunner> logger)
-{
-    public async Task RunAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default)
-    {
         var staleUploads = await dbContext.FileUploads
             .Where(u => u.State == FileUploadState.Uploaded && u.UpdatedAt <= cutoff)
             .ToListAsync(cancellationToken);
@@ -83,6 +45,11 @@ public class FileUploadCleanupRunner(
             {
                 await mediator.Publish(new FileDeletedEvent(upload.FileKey, upload.EntityType.ToString()), cancellationToken);
                 successCount++;
+            }
+            catch (TaskCanceledException)
+            {
+                // Bubble up the cancellation.
+                throw;
             }
             catch (Exception ex)
             {

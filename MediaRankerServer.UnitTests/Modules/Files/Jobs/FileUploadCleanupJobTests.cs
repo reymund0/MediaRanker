@@ -1,11 +1,12 @@
-using FluentAssertions;
 using MediaRankerServer.Modules.Files.Data.Entities;
 using MediaRankerServer.Modules.Files.Events;
 using MediaRankerServer.Modules.Files.Jobs;
 using MediaRankerServer.Shared.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -15,7 +16,8 @@ public class FileUploadCleanupJobTests : IDisposable
 {
     private readonly PostgreSQLContext _dbContext;
     private readonly Mock<IMediator> _mediatorMock;
-    private readonly FileUploadCleanupRunner _runner;
+    private readonly ServiceProvider _serviceProvider;
+    private readonly TestFileUploadCleanupJob _job;
 
     public FileUploadCleanupJobTests()
     {
@@ -30,11 +32,21 @@ public class FileUploadCleanupJobTests : IDisposable
             .Setup(m => m.Publish(It.IsAny<FileDeletedEvent>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var loggerMock = new Mock<ILogger<FileUploadCleanupRunner>>();
+        _serviceProvider = new ServiceCollection()
+            .AddSingleton(_dbContext)
+            .AddSingleton(_mediatorMock.Object)
+            .BuildServiceProvider();
 
-        _runner = new FileUploadCleanupRunner(
-            _dbContext,
-            _mediatorMock.Object,
+        var jobOptions = Options.Create(new FileCleanupOptions
+        {
+            StaleDaysThreshold = 2
+        });
+
+        var loggerMock = new Mock<ILogger<FileUploadCleanupJob>>();
+
+        _job = new TestFileUploadCleanupJob(
+            _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
+            jobOptions,
             loggerMock.Object);
     }
 
@@ -42,13 +54,13 @@ public class FileUploadCleanupJobTests : IDisposable
     public async Task RunAsync_WhenUploadsAreStaleAndUploaded_PublishesDeleteEventsOnlyForMatchingRows()
     {
         // Arrange
-        var cutoff = DateTimeOffset.UtcNow.AddDays(-1);
-        await SeedUploadAsync("stale-uploaded", FileUploadState.Uploaded, cutoff.AddHours(-1));
-        await SeedUploadAsync("fresh-uploaded", FileUploadState.Uploaded, cutoff.AddHours(1));
-        await SeedUploadAsync("stale-uploading", FileUploadState.Uploading, cutoff.AddHours(-1));
+        var now = DateTimeOffset.UtcNow;
+        await SeedUploadAsync("stale-uploaded", FileUploadState.Uploaded, now.AddDays(-7));
+        await SeedUploadAsync("fresh-uploaded", FileUploadState.Uploaded, now.AddHours(-12));
+        await SeedUploadAsync("stale-uploading", FileUploadState.Uploading, now.AddDays(-7));
 
         // Act
-        await _runner.RunAsync(cutoff, CancellationToken.None);
+        await _job.RunOnceForTestAsync(_serviceProvider, CancellationToken.None);
 
         // Assert
         _mediatorMock.Verify(
@@ -66,9 +78,9 @@ public class FileUploadCleanupJobTests : IDisposable
     public async Task RunAsync_WhenPublishFailsForOneUpload_ContinuesPublishingRemainingUploads()
     {
         // Arrange
-        var cutoff = DateTimeOffset.UtcNow.AddDays(-1);
-        await SeedUploadAsync("fail-upload", FileUploadState.Uploaded, cutoff.AddHours(-1));
-        await SeedUploadAsync("success-upload", FileUploadState.Uploaded, cutoff.AddHours(-1));
+        var now = DateTimeOffset.UtcNow;
+        await SeedUploadAsync("fail-upload", FileUploadState.Uploaded, now.AddDays(-7));
+        await SeedUploadAsync("success-upload", FileUploadState.Uploaded, now.AddDays(-7));
 
         _mediatorMock
             .Setup(m => m.Publish(
@@ -77,7 +89,7 @@ public class FileUploadCleanupJobTests : IDisposable
             .ThrowsAsync(new InvalidOperationException("test publish failure"));
 
         // Act
-        await _runner.RunAsync(cutoff, CancellationToken.None);
+        await _job.RunOnceForTestAsync(_serviceProvider, CancellationToken.None);
 
         // Assert
         _mediatorMock.Verify(
@@ -101,7 +113,18 @@ public class FileUploadCleanupJobTests : IDisposable
     {
         _dbContext.Database.EnsureDeleted();
         _dbContext.Dispose();
+        _serviceProvider.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    private sealed class TestFileUploadCleanupJob(
+        IServiceScopeFactory scopeFactory,
+        IOptions<FileCleanupOptions> options,
+        ILogger<FileUploadCleanupJob> logger)
+        : FileUploadCleanupJob(scopeFactory, options, logger)
+    {
+        public Task RunOnceForTestAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken) =>
+            RunJobAsync(serviceProvider, cancellationToken);
     }
 
     private async Task SeedUploadAsync(string fileKey, FileUploadState state, DateTimeOffset updatedAt)

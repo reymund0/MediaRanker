@@ -12,12 +12,11 @@ public static class FilesModule
 {
     public static IServiceCollection AddFilesModule(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
-        services.Configure<FileCleanupOptions>(configuration.GetSection(FileCleanupOptions.SectionName));
+        services.Configure<FileCleanupOptions>(configuration.GetSection(FileCleanupOptions.SectionPath));
 
         services.AddScoped<S3FileService>();
         services.AddScoped<IFileService>(sp => sp.GetRequiredService<S3FileService>());
         services.AddScoped<IFileCleanupService>(sp => sp.GetRequiredService<S3FileService>());
-        services.AddScoped<FileUploadCleanupRunner>();
         services.AddScoped<IValidator<StartUploadRequest>>(sp => new StartUploadRequestValidator());
         services.AddScoped<IValidator<FinishUploadRequest>>(sp => new FinishUploadRequestValidator());
 
