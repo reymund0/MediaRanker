@@ -12,7 +12,7 @@ public abstract class BaseJob<TOptions>(
     // Main method that each job must implement.
     protected abstract Task RunJobAsync(IServiceProvider serviceProvider, CancellationToken ct);
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
         if (!config.Enabled)
         {
@@ -20,7 +20,7 @@ public abstract class BaseJob<TOptions>(
             return;
         }
 
-        while (!stoppingToken.IsCancellationRequested)
+        while (!cancellationToken.IsCancellationRequested)
         {
             var nowUtc = DateTimeOffset.UtcNow;
             var nextRunUtc = nowUtc.Date.AddHours(config.ScheduleHourUtc);
@@ -31,16 +31,17 @@ public abstract class BaseJob<TOptions>(
                 "Next {JobName} scheduled for {NextRun} UTC (Delay: {Delay})",
                 config.JobName, nextRunUtc, delay);
 
-            if (delay > TimeSpan.Zero)
-                await Task.Delay(delay, stoppingToken);
-
             try
             {
+                if (delay > TimeSpan.Zero)
+                    await Task.Delay(delay, cancellationToken);
+                
                 using var scope = scopeFactory.CreateScope();
-                await RunJobAsync(scope.ServiceProvider, stoppingToken);
+                await RunJobAsync(scope.ServiceProvider, cancellationToken);
             }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                // Job was cancelled, exit gracefully
                 break;
             }
             catch (Exception ex)

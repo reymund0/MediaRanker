@@ -39,7 +39,7 @@ public class FileUploadCleanupJobTests : IDisposable
 
         var jobOptions = Options.Create(new FileCleanupOptions
         {
-            StaleDaysThreshold = -1
+            StaleDaysThreshold = 2
         });
 
         var loggerMock = new Mock<ILogger<FileUploadCleanupJob>>();
@@ -55,9 +55,9 @@ public class FileUploadCleanupJobTests : IDisposable
     {
         // Arrange
         var now = DateTimeOffset.UtcNow;
-        await SeedUploadAsync("stale-uploaded", FileUploadState.Uploaded, now.AddDays(-2));
+        await SeedUploadAsync("stale-uploaded", FileUploadState.Uploaded, now.AddDays(-7));
         await SeedUploadAsync("fresh-uploaded", FileUploadState.Uploaded, now.AddHours(-12));
-        await SeedUploadAsync("stale-uploading", FileUploadState.Uploading, now.AddDays(-2));
+        await SeedUploadAsync("stale-uploading", FileUploadState.Uploading, now.AddDays(-7));
 
         // Act
         await _job.RunOnceForTestAsync(_serviceProvider, CancellationToken.None);
@@ -79,8 +79,8 @@ public class FileUploadCleanupJobTests : IDisposable
     {
         // Arrange
         var now = DateTimeOffset.UtcNow;
-        await SeedUploadAsync("fail-upload", FileUploadState.Uploaded, now.AddDays(-2));
-        await SeedUploadAsync("success-upload", FileUploadState.Uploaded, now.AddDays(-2));
+        await SeedUploadAsync("fail-upload", FileUploadState.Uploaded, now.AddDays(-7));
+        await SeedUploadAsync("success-upload", FileUploadState.Uploaded, now.AddDays(-7));
 
         _mediatorMock
             .Setup(m => m.Publish(

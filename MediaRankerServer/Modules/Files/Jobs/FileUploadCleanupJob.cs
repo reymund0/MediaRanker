@@ -13,7 +13,7 @@ public class FileCleanupOptions : BaseJobOptions
     public override string JobName => "File Upload Cleanup";
     public override bool Enabled { get; set; } = true;
     public override int ScheduleHourUtc { get; set; } = 12;
-    public int StaleDaysThreshold { get; set; } = 1;
+    public int StaleDaysThreshold { get; set; } = 2;
 }
 
 public class FileUploadCleanupJob(
@@ -28,7 +28,7 @@ public class FileUploadCleanupJob(
         var dbContext = serviceProvider.GetRequiredService<PostgreSQLContext>();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
-        var cutoff = DateTimeOffset.UtcNow.AddDays(config.StaleDaysThreshold);
+        var cutoff = DateTimeOffset.UtcNow.AddDays(-config.StaleDaysThreshold);
 
         var staleUploads = await dbContext.FileUploads
             .Where(u => u.State == FileUploadState.Uploaded && u.UpdatedAt <= cutoff)
@@ -45,6 +45,11 @@ public class FileUploadCleanupJob(
             {
                 await mediator.Publish(new FileDeletedEvent(upload.FileKey, upload.EntityType.ToString()), cancellationToken);
                 successCount++;
+            }
+            catch (TaskCanceledException)
+            {
+                // Bubble up the cancellation.
+                throw;
             }
             catch (Exception ex)
             {
