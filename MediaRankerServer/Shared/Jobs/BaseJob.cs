@@ -23,7 +23,7 @@ public abstract class BaseJob<TOptions>(
         while (!cancellationToken.IsCancellationRequested)
         {
             var nowUtc = DateTimeOffset.UtcNow;
-            var nextRunUtc = nowUtc.Date.AddHours(config.ScheduleHourUtc);
+            var nextRunUtc = new DateTimeOffset(nowUtc.Year, nowUtc.Month, nowUtc.Day, config.ScheduleHourUtc, 0, 0, TimeSpan.Zero);
             if (nextRunUtc <= nowUtc) nextRunUtc = nextRunUtc.AddDays(1);
 
             var delay = nextRunUtc - nowUtc;
