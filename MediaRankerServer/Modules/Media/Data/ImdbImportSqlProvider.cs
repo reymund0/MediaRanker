@@ -69,8 +69,10 @@ public class ImdbImportSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbImpo
     {
         const string sql =
             """
-            DELETE FROM imdb_import_episodes
-            WHERE tconst NOT IN (SELECT tconst FROM imdb_imports);
+            DELETE FROM imdb_import_episodes e
+            WHERE NOT EXISTS (
+                SELECT 1 FROM imdb_imports i WHERE i.tconst = e.tconst
+            );
             """;
         try
         {
