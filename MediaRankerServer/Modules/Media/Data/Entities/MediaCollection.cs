@@ -20,6 +20,8 @@ public class MediaCollection : ITimestampedEntity
     public DateOnly ReleaseDate { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
+    public string? ExternalId { get; set; }
+    public ExternalSource? ExternalSource { get; set; }
     
     // Foreign keys
     public long? CoverId { get; set; }
@@ -61,6 +63,11 @@ public class MediaCollection : ITimestampedEntity
                 .IsRequired();
 
             builder.Property(mc => mc.CoverId);
+            
+            builder.Property(mc => mc.ExternalId);
+            
+            builder.Property(mc => mc.ExternalSource)
+                .HasConversion<string>();
 
             // Relationships
             builder.HasOne(mc => mc.MediaType)

@@ -5,6 +5,11 @@ using MediaRankerServer.Shared.Data.Interfaces;
 
 namespace MediaRankerServer.Modules.Media.Data.Entities;
 
+public enum ExternalSource
+{
+    Imdb
+}
+
 public class MediaEntity : ITimestampedEntity
 {
     public long Id { get; set; }
@@ -14,7 +19,7 @@ public class MediaEntity : ITimestampedEntity
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public string? ExternalId { get; set; }
-    public string? ExternalSource { get; set; }
+    public ExternalSource? ExternalSource { get; set; }
     
     // Foreign keys
     public long MediaTypeId { get; set; }
@@ -49,7 +54,8 @@ public class MediaEntity : ITimestampedEntity
             
             builder.Property(m => m.CoverId);
             builder.Property(m => m.ExternalId);
-            builder.Property(m => m.ExternalSource);
+            builder.Property(m => m.ExternalSource)
+                .HasConversion<string>();
             builder.Property(m => m.MediaCollectionId);
 
             // Relationships

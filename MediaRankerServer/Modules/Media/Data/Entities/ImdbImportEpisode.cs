@@ -38,7 +38,7 @@ public class ImdbImportEpisode : ITimestampedEntity
                 .IsUnique()
                 .HasDatabaseName("uq_imdb_import_episodes_tconst");
 
-            // Non-unique index on ParentTconst for lookup by series
+            // Non-unique index on ParentTconst to speed up joins on base imdbImport table for series data.
             builder.HasIndex(e => e.ParentTconst)
                 .HasDatabaseName("ix_imdb_import_episodes_parent_tconst");
         }

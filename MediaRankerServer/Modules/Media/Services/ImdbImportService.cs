@@ -103,6 +103,19 @@ public class ImdbImportService(
         logger.LogInformation("IMDB episodes import completed. Inserted: {Inserted}, Skipped: {Skipped}",
             episodesInserted, episodesSkipped);
 
+        // Because the imported episodes don't contain isAdult flag, we need to clean those up ourselves.
+        try
+        {
+            var deletedCount = await importProvider.DeleteOrphanEpisodesAsync(ct);
+            logger.LogInformation(
+                "Cleaned up {Count} orphan rows from imdb_import_episodes with no matching imdb_imports entry",
+                deletedCount >= 0 ? deletedCount.ToString() : "unknown");
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to delete orphan rows from imdb_import_episodes; continuing.");
+        }
+
         return new ImdbImportResult(episodesInserted, episodesSkipped);
     }
 

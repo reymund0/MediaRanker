@@ -65,6 +65,26 @@ public class ImdbImportSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbImpo
         return sb.ToString();
     }
 
+    public async Task<int> DeleteOrphanEpisodesAsync(CancellationToken ct)
+    {
+        const string sql =
+            """
+            DELETE FROM imdb_import_episodes e
+            WHERE NOT EXISTS (
+                SELECT 1 FROM imdb_imports i WHERE i.tconst = e.tconst
+            );
+            """;
+        try
+        {
+            return await dbContext.Database.ExecuteSqlRawAsync(sql, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting orphan rows from imdb_import_episodes");
+            throw;
+        }
+    }
+
     private static string BuildEpisodesInsertSql(List<ImdbEpisodeTsvRow> rows)
     {
         var sb = new StringBuilder();
