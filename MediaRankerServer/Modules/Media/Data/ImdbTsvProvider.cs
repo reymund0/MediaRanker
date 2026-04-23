@@ -15,14 +15,16 @@ public record ImdbTsvRow(
     int? StartYear,
     int? EndYear,
     int? RuntimeMinutes,
-    string? Genres
+    string? Genres,
+    string RawLine
 );
 
 public record ImdbEpisodeTsvRow(
     string Tconst,
     string ParentTconst,
     int SeasonNumber,
-    int EpisodeNumber
+    int EpisodeNumber,
+    string RawLine
 );
 
 public class ImdbTsvProvider(
@@ -30,6 +32,10 @@ public class ImdbTsvProvider(
     IOptions<ImdbImportOptions> options,
     ILogger<ImdbTsvProvider> logger)
 {
+    // Callback methods used by the importer.
+    public delegate TRow? ParseRowDelegate<TRow>(string[] columns, int lineNumber, string rawLine);
+    public delegate Task BatchHandlerDelegate<TRow>(List<TRow> batch, CancellationToken cancellationToken);
+    
     private readonly ImdbImportOptions config = options.Value;
 
     /// <summary>
@@ -45,8 +51,8 @@ public class ImdbTsvProvider(
     public async Task RunBatchImportAsync<TRow>(
         string datasetUrl,
         IReadOnlyList<string> expectedHeaders,
-        Func<string[], int, TRow?> parseRow,
-        Func<List<TRow>, CancellationToken, Task> batchHandler,
+        ParseRowDelegate<TRow> parseRow,
+        BatchHandlerDelegate<TRow> batchHandler,
         CancellationToken ct = default)
     {
         var batchSize = config.BatchSize;
@@ -113,7 +119,7 @@ public class ImdbTsvProvider(
     private async IAsyncEnumerable<TRow> ParseStreamAsync<TRow>(
         Stream stream,
         IReadOnlyList<string> expectedHeaders,
-        Func<string[], int, TRow?> parseRow,
+        ParseRowDelegate<TRow> parseRow,
         [EnumeratorCancellation] CancellationToken ct)
     {
         using var reader = new StreamReader(stream);
@@ -144,7 +150,7 @@ public class ImdbTsvProvider(
                 continue;
             }
 
-            var row = parseRow(columns, lineNumber);
+            var row = parseRow(columns, lineNumber, line);
             if (row is not null)
             {
                 yield return row;

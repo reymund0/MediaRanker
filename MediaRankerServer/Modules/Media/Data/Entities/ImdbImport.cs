@@ -22,6 +22,7 @@ public class ImdbImport : ITimestampedEntity
     public string? Genres { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
+    public string RawLine { get; set; } = null!;
 
     public class Configuration : IEntityTypeConfiguration<ImdbImport>
     {
@@ -40,6 +41,7 @@ public class ImdbImport : ITimestampedEntity
             builder.Property(i => i.EndYear);
             builder.Property(i => i.RuntimeMinutes);
             builder.Property(i => i.Genres);
+            builder.Property(i => i.RawLine).IsRequired();
             
             // Indexes
             builder.HasIndex(i => i.Tconst)

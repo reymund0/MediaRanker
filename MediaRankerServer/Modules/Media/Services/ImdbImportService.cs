@@ -51,6 +51,20 @@ public class ImdbImportService(
 
         logger.LogInformation("IMDB basics import completed. Inserted: {Inserted}, Skipped: {Skipped}",
             basicsInserted, basicsSkipped);
+        
+        // Delete unwanted rows from imdb_imports.
+        try 
+        {
+            var deletedTvPilot = await importProvider.DeleteTvPilotImportsAsync(ct);
+            logger.LogInformation("Deleted {Count} TV pilot imports", deletedTvPilot);
+            
+            var deletedFuture = await importProvider.DeleteFutureImportsAsync(ct);
+            logger.LogInformation("Deleted {Count} future imports", deletedFuture);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting unwanted rows from imdb_imports, continuing with import");
+        }
 
         return new ImdbImportResult(basicsInserted, basicsSkipped);
     }
@@ -70,7 +84,7 @@ public class ImdbImportService(
         }
     }
 
-    private static ImdbTsvRow? ParseBasicsRow(string[] columns, int lineNumber)
+    private static ImdbTsvRow? ParseBasicsRow(string[] columns, int lineNumber, string line)
     {
         // Skip adult content
         if (columns[4] == "1")
@@ -87,7 +101,8 @@ public class ImdbImportService(
             StartYear: ParseNullableInt(columns[5]),
             EndYear: ParseNullableInt(columns[6]),
             RuntimeMinutes: ParseNullableInt(columns[7]),
-            Genres: columns[8] == @"\N" ? null : columns[8]
+            Genres: columns[8] == @"\N" ? null : columns[8],
+            RawLine: line
         );
     }
 
@@ -134,7 +149,7 @@ public class ImdbImportService(
         }
     }
 
-    private static ImdbEpisodeTsvRow ParseEpisodeRow(string[] columns, int lineNumber)
+    private static ImdbEpisodeTsvRow ParseEpisodeRow(string[] columns, int lineNumber, string line)
     {
         var seasonNumber = ParseNullableInt(columns[2]);
         var episodeNumber = ParseNullableInt(columns[3]);
@@ -144,7 +159,8 @@ public class ImdbImportService(
             ParentTconst: columns[1],
             // NULL Season/Episode should never actually happen in the imdb dataset, but enter as -1 so we can find them later.
             SeasonNumber: seasonNumber ?? -1,
-            EpisodeNumber: episodeNumber ?? -1
+            EpisodeNumber: episodeNumber ?? -1,
+            RawLine: line
         );
     }
 

@@ -19,6 +19,7 @@ public class ImdbImportEpisode : ITimestampedEntity
     public int EpisodeNumber { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
+    public string RawLine { get; set; } = null!;
 
     public class Configuration : IEntityTypeConfiguration<ImdbImportEpisode>
     {
@@ -32,6 +33,7 @@ public class ImdbImportEpisode : ITimestampedEntity
             builder.Property(e => e.ParentTconst).IsRequired();
             builder.Property(e => e.SeasonNumber).IsRequired();
             builder.Property(e => e.EpisodeNumber).IsRequired();
+            builder.Property(e => e.RawLine).IsRequired();
 
             // Unique index on Tconst
             builder.HasIndex(e => e.Tconst)
