@@ -5,21 +5,22 @@ using MediaRankerServer.Shared.Data.Interfaces;
 
 namespace MediaRankerServer.Modules.Media.Data.Entities;
 
-public enum ExternalSource
+public enum MediaExternalSource
 {
     Imdb
 }
 
 public class MediaEntity : ITimestampedEntity
 {
+
     public long Id { get; set; }
 
     public string Title { get; set; } = null!;
-    public DateOnly ReleaseDate { get; set; }
+    public DateOnly? ReleaseDate { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public string? ExternalId { get; set; }
-    public ExternalSource? ExternalSource { get; set; }
+    public MediaExternalSource? ExternalSource { get; set; }
     
     // Foreign keys
     public long MediaTypeId { get; set; }
@@ -49,8 +50,7 @@ public class MediaEntity : ITimestampedEntity
                 .IsRequired();
 
             builder.Property(m => m.ReleaseDate)
-                .HasColumnType("date")
-                .IsRequired();
+                .HasColumnType("date");
             
             builder.Property(m => m.CoverId);
             builder.Property(m => m.ExternalId);
@@ -78,11 +78,6 @@ public class MediaEntity : ITimestampedEntity
 
             builder.HasIndex(m => m.ReleaseDate)
                 .HasDatabaseName("ix_media_release_date");
-
-            // Helps prevent duplicate media entries.
-            builder.HasIndex(m => new { m.Title, m.MediaTypeId, m.ReleaseDate })
-                .IsUnique()
-                .HasDatabaseName("uq_media_title_type_release_date");
 
             builder.HasIndex(m => m.MediaCollectionId)
                 .HasDatabaseName("ix_media_media_collection_id");

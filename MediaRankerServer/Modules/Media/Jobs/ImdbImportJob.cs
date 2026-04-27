@@ -23,5 +23,16 @@ public class ImdbImportJob(
     {
         var importService = serviceProvider.GetRequiredService<ImdbImportService>();
         await importService.ImportAsync(ct);
+
+        try
+        {
+            var loadService = serviceProvider.GetRequiredService<ImdbLoadService>();
+            var loadResult = await loadService.LoadAsync(ct);
+            logger.LogInformation("IMDB load completed. Affected rows: {Affected}", loadResult.Affected);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "IMDB load step failed; continuing.");
+        }
     }
 }

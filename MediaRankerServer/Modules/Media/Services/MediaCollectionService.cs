@@ -192,7 +192,7 @@ public class MediaCollectionService(
         // Validate TV show collection type business rules.
         if (mediaType.Name == "TV Show")
         {
-            if (request.CollectionType == CollectionType.Season)
+            if (request.CollectionType == MediaCollectionType.Season)
             {
                 // Validate that a Season cannot be created without being associated to a series.
                 if (!request.ParentMediaCollectionId.HasValue)
@@ -202,7 +202,7 @@ public class MediaCollectionService(
                         "collection_season_requires_series");
                 }
                 // Validate that the parent collection is a series.
-                if (parent?.CollectionType != CollectionType.Series)
+                if (parent?.CollectionType != MediaCollectionType.Series)
                 {
                     throw new DomainException(
                         "Season collections must be associated with a series collection.",
@@ -210,7 +210,7 @@ public class MediaCollectionService(
                 }
             }
             // Validate that a Series does not have a parent collection.
-            if (request.CollectionType == CollectionType.Series && request.ParentMediaCollectionId.HasValue)
+            if (request.CollectionType == MediaCollectionType.Series && request.ParentMediaCollectionId.HasValue)
             {
                 throw new DomainException(
                     "Series collections cannot have a parent collection.",
@@ -219,7 +219,7 @@ public class MediaCollectionService(
         }
         else {
             // For other media types, we only are supporting series collections for now.
-            if (request.CollectionType != CollectionType.Series)
+            if (request.CollectionType != MediaCollectionType.Series)
             {
                 throw new DomainException(
                     "Unsupported collection type for this media type.",

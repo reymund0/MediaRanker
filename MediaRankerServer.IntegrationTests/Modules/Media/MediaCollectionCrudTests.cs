@@ -30,7 +30,7 @@ public class MediaCollectionCrudTests(PostgresContainerFixture postgresFixture, 
         _testSeries = new MediaCollection
         {
             Title = "Test Series",
-            CollectionType = CollectionType.Series,
+            CollectionType = MediaCollectionType.Series,
             MediaTypeId = MovieTypeId,
             ReleaseDate = new DateOnly(2020, 1, 1),
         };
@@ -56,7 +56,7 @@ public class MediaCollectionCrudTests(PostgresContainerFixture postgresFixture, 
         var request = new MediaCollectionUpsertRequest
         {
             Title = "New Movie Series",
-            CollectionType = CollectionType.Series,
+            CollectionType = MediaCollectionType.Series,
             MediaTypeId = MovieTypeId,
             ReleaseDate = new DateOnly(2021, 5, 1),
         };
@@ -84,7 +84,7 @@ public class MediaCollectionCrudTests(PostgresContainerFixture postgresFixture, 
         {
             Id = _testSeries.Id,
             Title = "Updated Series Title",
-            CollectionType = CollectionType.Series,
+            CollectionType = MediaCollectionType.Series,
             MediaTypeId = MovieTypeId,
             ReleaseDate = new DateOnly(2020, 6, 15),
         };

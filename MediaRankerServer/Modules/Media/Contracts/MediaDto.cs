@@ -8,7 +8,7 @@ public class MediaDto
 {
     public long Id { get; set; }
     public string Title { get; set; } = string.Empty;
-    public DateOnly ReleaseDate { get; set; }
+    public DateOnly? ReleaseDate { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public long MediaTypeId { get; set; }

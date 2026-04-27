@@ -1,7 +1,7 @@
 export interface MediaDto {
   id: number;
   title: string;
-  releaseDate: string;
+  releaseDate: string | null;
   createdAt: string;
   updatedAt: string;
   mediaTypeId: number;
