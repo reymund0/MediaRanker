@@ -20,4 +20,3 @@ public class ImdbLoadService(IImdbLoadProvider loadProvider, ILogger<ImdbLoadSer
         return result;
     }
 }
-
