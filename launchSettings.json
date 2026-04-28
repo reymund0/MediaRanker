@@ -1,8 +1,21 @@
 {
   "profiles": {
-    "Docker Compose": {
+    "Docker Compose (Development)": {
       "commandName": "DockerCompose",
       "commandVersion": "1.0",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "serviceActions": {
+        "mediarankerserver": "StartDebugging"
+      }
+    },
+    "Docker Compose (Production)": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Production"
+      },
       "serviceActions": {
         "mediarankerserver": "StartDebugging"
       }

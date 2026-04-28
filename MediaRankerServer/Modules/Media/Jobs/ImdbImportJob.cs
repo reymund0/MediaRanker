@@ -22,6 +22,11 @@ public class ImdbImportJob(
     protected override async Task RunJobAsync(IServiceProvider serviceProvider, CancellationToken ct)
     {
         var importService = serviceProvider.GetRequiredService<ImdbImportService>();
-        await importService.ImportAsync(ct);
+        var importResult = await importService.ImportAsync(ct);
+        logger.LogInformation("IMDB import completed. Basics: {Basics}, Episodes: {Episodes}", importResult.Basics, importResult.Episodes);
+
+        var loadService = serviceProvider.GetRequiredService<ImdbLoadService>();
+        var loadResult = await loadService.LoadAsync(ct);
+        logger.LogInformation("IMDB load completed. Affected rows: {Affected}", loadResult.Affected);
     }
 }

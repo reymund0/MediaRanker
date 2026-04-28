@@ -111,7 +111,18 @@ public class ImdbImportSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbImpo
             sb.AppendLine($"    ('" + EscapeSql(row.Tconst) + "', '" + EscapeSql(row.TitleType) + "', '" + EscapeSql(row.PrimaryTitle) + "', '" + EscapeSql(row.OriginalTitle) + "', " + BoolToSql(row.IsAdult) + ", " + startYear + ", " + endYear + ", " + runtime + ", " + genres + ", '" + EscapeSql(row.RawLine) + "')" + comma);
         }
 
-        sb.AppendLine("ON CONFLICT (tconst) DO NOTHING");
+        sb.Append("""
+            ON CONFLICT (tconst) DO UPDATE SET
+                title_type       = EXCLUDED.title_type,
+                primary_title    = EXCLUDED.primary_title,
+                original_title   = EXCLUDED.original_title,
+                is_adult         = EXCLUDED.is_adult,
+                start_year       = EXCLUDED.start_year,
+                end_year         = EXCLUDED.end_year,
+                runtime_minutes  = EXCLUDED.runtime_minutes,
+                genres           = EXCLUDED.genres,
+                raw_line         = EXCLUDED.raw_line
+            """);
 
         return sb.ToString();
     }

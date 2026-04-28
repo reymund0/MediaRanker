@@ -5,7 +5,7 @@ using MediaRankerServer.Shared.Data.Interfaces;
 
 namespace MediaRankerServer.Modules.Media.Data.Entities;
 
-public enum CollectionType
+public enum MediaCollectionType
 {
     Series,
     Season
@@ -15,13 +15,13 @@ public class MediaCollection : ITimestampedEntity
 {
     public long Id { get; set; }
     public string Title { get; set; } = null!;
-    public CollectionType CollectionType { get; set; }
+    public MediaCollectionType CollectionType { get; set; }
     public long? ParentMediaCollectionId { get; set; }
     public DateOnly ReleaseDate { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public string? ExternalId { get; set; }
-    public ExternalSource? ExternalSource { get; set; }
+    public MediaExternalSource? ExternalSource { get; set; }
     
     // Foreign keys
     public long? CoverId { get; set; }

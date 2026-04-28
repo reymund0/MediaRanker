@@ -66,7 +66,7 @@ public class MediaCollectionServiceTests : IDisposable
         var act = () => _service.CreateCollectionAsync(DefaultUserId, new MediaCollectionUpsertRequest
         {
             Title = "",
-            CollectionType = CollectionType.Series,
+            CollectionType = MediaCollectionType.Series,
             MediaTypeId = MovieTypeId,
             ReleaseDate = new DateOnly(2020, 1, 1),
         });
@@ -83,7 +83,7 @@ public class MediaCollectionServiceTests : IDisposable
         var act = () => _service.CreateCollectionAsync(DefaultUserId, new MediaCollectionUpsertRequest
         {
             Title = "Season 1",
-            CollectionType = CollectionType.Season,
+            CollectionType = MediaCollectionType.Season,
             MediaTypeId = TvShowTypeId,
             ParentMediaCollectionId = 999,
             ReleaseDate = new DateOnly(2020, 1, 1),
@@ -101,7 +101,7 @@ public class MediaCollectionServiceTests : IDisposable
         {
             Id = 1,
             Title = "Existing Series",
-            CollectionType = CollectionType.Series,
+            CollectionType = MediaCollectionType.Series,
             MediaTypeId = TvShowTypeId,
             ReleaseDate = new DateOnly(2019, 1, 1),
         };
@@ -114,7 +114,7 @@ public class MediaCollectionServiceTests : IDisposable
         {
             Id = 1,  // Same as ParentMediaCollectionId
             Title = "Season 1",
-            CollectionType = CollectionType.Season,
+            CollectionType = MediaCollectionType.Season,
             MediaTypeId = TvShowTypeId,
             ParentMediaCollectionId = 1,
             ReleaseDate = new DateOnly(2020, 1, 1),
@@ -130,7 +130,7 @@ public class MediaCollectionServiceTests : IDisposable
         var series = new MediaCollection
         {
             Title = "Movie Series",
-            CollectionType = CollectionType.Series,
+            CollectionType = MediaCollectionType.Series,
             MediaTypeId = MovieTypeId,
             ReleaseDate = new DateOnly(2020, 1, 1),
         };
@@ -140,7 +140,7 @@ public class MediaCollectionServiceTests : IDisposable
         var act = () => _service.CreateCollectionAsync(DefaultUserId, new MediaCollectionUpsertRequest
         {
             Title = "Season 1",
-            CollectionType = CollectionType.Season,
+            CollectionType = MediaCollectionType.Season,
             MediaTypeId = TvShowTypeId,
             ParentMediaCollectionId = series.Id,
             ReleaseDate = new DateOnly(2021, 1, 1),
@@ -158,7 +158,7 @@ public class MediaCollectionServiceTests : IDisposable
         var act = () => _service.CreateCollectionAsync(DefaultUserId, new MediaCollectionUpsertRequest
         {
             Title = "Orphan Season",
-            CollectionType = CollectionType.Season,
+            CollectionType = MediaCollectionType.Season,
             MediaTypeId = TvShowTypeId,
             ReleaseDate = new DateOnly(2020, 1, 1),
         });
@@ -173,7 +173,7 @@ public class MediaCollectionServiceTests : IDisposable
         var parentSeries = new MediaCollection
         {
             Title = "Parent Series",
-            CollectionType = CollectionType.Series,
+            CollectionType = MediaCollectionType.Series,
             MediaTypeId = TvShowTypeId,
             ReleaseDate = new DateOnly(2019, 1, 1),
         };
@@ -183,7 +183,7 @@ public class MediaCollectionServiceTests : IDisposable
         var act = () => _service.CreateCollectionAsync(DefaultUserId, new MediaCollectionUpsertRequest
         {
             Title = "Nested Series",
-            CollectionType = CollectionType.Series,
+            CollectionType = MediaCollectionType.Series,
             MediaTypeId = TvShowTypeId,
             ParentMediaCollectionId = parentSeries.Id,
             ReleaseDate = new DateOnly(2020, 1, 1),
@@ -200,7 +200,7 @@ public class MediaCollectionServiceTests : IDisposable
         var seasonParent = new MediaCollection
         {
             Title = "Some Season",
-            CollectionType = CollectionType.Season,
+            CollectionType = MediaCollectionType.Season,
             MediaTypeId = TvShowTypeId,
             ReleaseDate = new DateOnly(2019, 1, 1),
         };
@@ -210,7 +210,7 @@ public class MediaCollectionServiceTests : IDisposable
         var act = () => _service.CreateCollectionAsync(DefaultUserId, new MediaCollectionUpsertRequest
         {
             Title = "Season 1",
-            CollectionType = CollectionType.Season,
+            CollectionType = MediaCollectionType.Season,
             MediaTypeId = TvShowTypeId,
             ParentMediaCollectionId = seasonParent.Id,
             ReleaseDate = new DateOnly(2020, 1, 1),
@@ -226,7 +226,7 @@ public class MediaCollectionServiceTests : IDisposable
         var act = () => _service.CreateCollectionAsync(DefaultUserId, new MediaCollectionUpsertRequest
         {
             Title = "Movie Season",
-            CollectionType = CollectionType.Season,
+            CollectionType = MediaCollectionType.Season,
             MediaTypeId = MovieTypeId,
             ReleaseDate = new DateOnly(2020, 1, 1),
         });
@@ -243,7 +243,7 @@ public class MediaCollectionServiceTests : IDisposable
         var act = () => _service.UpdateCollectionAsync(DefaultUserId, 999, new MediaCollectionUpsertRequest
         {
             Title = "Updated",
-            CollectionType = CollectionType.Series,
+            CollectionType = MediaCollectionType.Series,
             MediaTypeId = MovieTypeId,
             ReleaseDate = new DateOnly(2020, 1, 1),
         });
@@ -275,7 +275,7 @@ public class MediaCollectionServiceTests : IDisposable
         var result = await _service.CreateCollectionAsync(DefaultUserId, new MediaCollectionUpsertRequest
         {
             Title = "My Movie Series",
-            CollectionType = CollectionType.Series,
+            CollectionType = MediaCollectionType.Series,
             MediaTypeId = MovieTypeId,
             ReleaseDate = new DateOnly(2020, 1, 1),
             CoverUploadId = 42,
@@ -293,7 +293,7 @@ public class MediaCollectionServiceTests : IDisposable
         var existing = new MediaCollection
         {
             Title = "Series",
-            CollectionType = CollectionType.Series,
+            CollectionType = MediaCollectionType.Series,
             MediaTypeId = MovieTypeId,
             ReleaseDate = new DateOnly(2019, 1, 1),
             CoverId = null
@@ -306,7 +306,7 @@ public class MediaCollectionServiceTests : IDisposable
         {
             Id = existing.Id,
             Title = "Series Updated",
-            CollectionType = CollectionType.Series,
+            CollectionType = MediaCollectionType.Series,
             MediaTypeId = MovieTypeId,
             ReleaseDate = new DateOnly(2019, 1, 1),
             CoverUploadId = 99999,  // Non-existent

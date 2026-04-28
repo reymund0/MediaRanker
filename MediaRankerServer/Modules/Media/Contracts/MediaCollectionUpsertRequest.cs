@@ -8,7 +8,7 @@ public class MediaCollectionUpsertRequest
 {
     public long? Id { get; set; }
     public string Title { get; set; } = string.Empty;
-    public CollectionType CollectionType { get; set; }
+    public MediaCollectionType CollectionType { get; set; }
     public long MediaTypeId { get; set; }
     public long? ParentMediaCollectionId { get; set; }
     public DateOnly ReleaseDate { get; set; }

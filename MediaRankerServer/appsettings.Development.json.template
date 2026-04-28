@@ -18,7 +18,7 @@
     }
   },
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=mediarank;Username=<your-username>;Password=<your-password>;Timeout=15;Command Timeout=30"
+    "DefaultConnection": "Host=localhost;Port=5432;Database=mediarank;Username=<your-username>;Password=<your-password>;Timeout=15;Command Timeout=30;Include Error Detail=true"
   },
   "Cors": {
     "AllowedOrigins": [

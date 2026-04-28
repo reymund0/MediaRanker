@@ -28,7 +28,7 @@ export interface ReviewFieldDto {
 export interface UnreviewedMediaDto {
   id: number;
   title: string;
-  releaseDate: string;
+  releaseDate: string | null;
   coverImageUrl: string | null;
 }
 

@@ -8,6 +8,7 @@ public static class TestModule
     public static IServiceCollection AddTestModule(this IServiceCollection services)
     {
         services.AddScoped<ImdbImportService>();
+        services.AddScoped<ImdbLoadService>();
         return services;
     }
 }
