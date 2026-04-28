@@ -50,10 +50,21 @@ export default function Test() {
     route: "/api/test/triggerImdbImport",
     method: "POST",
     onSuccess: (data) => {
-      showSuccess(`IMDB import triggered! ${data}`);
+      showSuccess(`IMDB import ran! ${data}`);
     },
     onError: (error) => {
-      showError(error.message || "IMDB import trigger failed");
+      showError(error.message || "IMDB import run failed");
+    },
+  });
+
+  const imdbLoadMutation = useMutation<void, string>({
+    route: "/api/test/triggerImdbLoad",
+    method: "POST",
+    onSuccess: (data) => {
+      showSuccess(`IMDB load ran! ${data}`);
+    },
+    onError: (error) => {
+      showError(error.message || "IMDB load run failed");
     },
   });
 
@@ -134,6 +145,15 @@ export default function Test() {
             disabled={imdbImportMutation.isPending}
           >
             Trigger IMDB Import
+          </PrimaryButton>
+          
+          <PrimaryButton
+            onClick={() =>
+              callEndpoint(imdbLoadMutation, "/api/test/triggerImdbLoad")
+            }
+            disabled={imdbLoadMutation.isPending}
+          >
+            Trigger IMDB Load
           </PrimaryButton>
         </Box>
       </Box>

@@ -8,7 +8,7 @@ namespace MediaRankerServer.Modules.Test.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class TestController(ImdbImportService importService) : ControllerBase
+    public class TestController(ImdbImportService importService, ImdbLoadService loadService) : ControllerBase
     {
         [HttpPost("helloWorld")]
         public IActionResult HelloWorld()
@@ -37,6 +37,13 @@ namespace MediaRankerServer.Modules.Test.Controllers
             var result = await importService.ImportAsync(cancellationToken);
             
             return Ok(new { message = "IMDB import completed.", result });
+        }
+        [HttpPost("triggerImdbLoad")]
+        public async Task<IActionResult> TriggerImdbLoad(CancellationToken cancellationToken)
+        {
+            var result = await loadService.LoadAsync(cancellationToken);
+            
+            return Ok(new { message = "IMDB load completed.", result });
         }
     }
 }

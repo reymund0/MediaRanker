@@ -46,9 +46,11 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 media_type_id  = EXCLUDED.media_type_id,
                 updated_at     = now();
             """;
-
         try
         {
+            // Set a longer timeout for this operation since we're processing millions of rows.
+            dbContext.Database.SetCommandTimeout(TimeSpan.FromMinutes(15));
+
             var affected = await dbContext.Database.ExecuteSqlRawAsync(sql, ct);
             return new ImdbLoadResult(affected);
         }
@@ -56,6 +58,12 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
         {
             logger.LogError(ex, "Error loading non-series media from imdb_imports. SQL: {Sql}", sql);
             throw;
+        }
+        finally
+        {
+            // Reset the command timeout to the default value.
+            // Not really necessary since dbContext is disposed after loading, resetting the config.
+            dbContext.Database.SetCommandTimeout(null);
         }
     }
 
