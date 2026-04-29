@@ -20,8 +20,6 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
     private const string TconstVideoGame       = "tt0000003";
     // (d) ineligible tvSeries
     private const string TconstTvSeries        = "tt0000004";
-    // (e) duplicate of (a) with mutated title — used in idempotency run
-    private const string TconstDuplicateMovie  = TconstMovieWithYear;
 
     private async Task SeedImdbImportsAsync(bool withMutatedDuplicate = false)
     {
@@ -167,45 +165,47 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
     // -------------------------------------------------------------------------
 
     private const string TconstSeries1 = "tt1000001";
-    private const string TconstMiniSeries = "tt1000003";
 
-    private async Task SeedSeriesImportsAsync(PostgreSQLContext db, IEnumerable<ImdbImport> rows)
+    private async Task<PostgreSQLContext> SeedSeriesAsync(
+        IServiceScope scope,
+        IEnumerable<ImdbImport> imports,
+        IEnumerable<ImdbImportEpisode> episodes)
     {
-        foreach (var row in rows)
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+
+        foreach (var row in imports)
         {
             var exists = await db.ImdbImports.AnyAsync(i => i.Tconst == row.Tconst);
             if (!exists) db.ImdbImports.Add(row);
         }
-        await db.SaveChangesAsync();
-    }
 
-    private async Task SeedEpisodesAsync(PostgreSQLContext db, IEnumerable<ImdbImportEpisode> rows)
-    {
-        foreach (var row in rows)
+        foreach (var row in episodes)
         {
             var exists = await db.ImdbImportEpisodes.AnyAsync(e => e.Tconst == row.Tconst);
             if (!exists) db.ImdbImportEpisodes.Add(row);
         }
+
         await db.SaveChangesAsync();
+        return db;
     }
 
     [Fact]
     public async Task LoadAsync_LoadsMultipleSeasonsUnderOneSeries()
     {
         using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
 
-        await SeedSeriesImportsAsync(db,
-        [
-            new() { Tconst = TconstSeries1, TitleType = "tvSeries", PrimaryTitle = "Multi Season Show", OriginalTitle = "Multi Season Show", StartYear = 2000, RawLine = "s1" },
-            new() { Tconst = "tt1001001",   TitleType = "tvEpisode", PrimaryTitle = "S1E1", OriginalTitle = "S1E1", StartYear = 2001, RawLine = "e1" },
-            new() { Tconst = "tt1002001",   TitleType = "tvEpisode", PrimaryTitle = "S2E1", OriginalTitle = "S2E1", StartYear = 2002, RawLine = "e2" },
-        ]);
-        await SeedEpisodesAsync(db,
-        [
-            new() { Tconst = "tt1001001", ParentTconst = TconstSeries1, SeasonNumber = 1, EpisodeNumber = 1, RawLine = "e1" },
-            new() { Tconst = "tt1002001", ParentTconst = TconstSeries1, SeasonNumber = 2, EpisodeNumber = 1, RawLine = "e2" },
-        ]);
+        var db = await SeedSeriesAsync(scope,
+            imports:
+            [
+                new() { Tconst = TconstSeries1, TitleType = "tvSeries", PrimaryTitle = "Multi Season Show", OriginalTitle = "Multi Season Show", StartYear = 2000, RawLine = "s1" },
+                new() { Tconst = "tt1001001",   TitleType = "tvEpisode", PrimaryTitle = "S1E1", OriginalTitle = "S1E1", StartYear = 2001, RawLine = "e1" },
+                new() { Tconst = "tt1002001",   TitleType = "tvEpisode", PrimaryTitle = "S2E1", OriginalTitle = "S2E1", StartYear = 2002, RawLine = "e2" },
+            ],
+            episodes:
+            [
+                new() { Tconst = "tt1001001", ParentTconst = TconstSeries1, SeasonNumber = 1, EpisodeNumber = 1, RawLine = "e1" },
+                new() { Tconst = "tt1002001", ParentTconst = TconstSeries1, SeasonNumber = 2, EpisodeNumber = 1, RawLine = "e2" },
+            ]);
 
         var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
         await loadService.LoadAsync();
@@ -226,17 +226,17 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
     public async Task LoadAsync_SeasonNumberMinusOne_TitleIsUnknown()
     {
         using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
 
-        await SeedSeriesImportsAsync(db,
-        [
-            new() { Tconst = TconstSeries1, TitleType = "tvSeries", PrimaryTitle = "Unknown Season Show", OriginalTitle = "Unknown Season Show", StartYear = 2000, RawLine = "s1" },
-            new() { Tconst = "tt1001001",   TitleType = "tvEpisode", PrimaryTitle = "Ep1", OriginalTitle = "Ep1", StartYear = 2001, RawLine = "e1" },
-        ]);
-        await SeedEpisodesAsync(db,
-        [
-            new() { Tconst = "tt1001001", ParentTconst = TconstSeries1, SeasonNumber = -1, EpisodeNumber = 1, RawLine = "e1" },
-        ]);
+        var db = await SeedSeriesAsync(scope,
+            imports:
+            [
+                new() { Tconst = TconstSeries1, TitleType = "tvSeries", PrimaryTitle = "Unknown Season Show", OriginalTitle = "Unknown Season Show", StartYear = 2000, RawLine = "s1" },
+                new() { Tconst = "tt1001001",   TitleType = "tvEpisode", PrimaryTitle = "Ep1", OriginalTitle = "Ep1", StartYear = 2001, RawLine = "e1" },
+            ],
+            episodes:
+            [
+                new() { Tconst = "tt1001001", ParentTconst = TconstSeries1, SeasonNumber = -1, EpisodeNumber = 1, RawLine = "e1" },
+            ]);
 
         var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
         await loadService.LoadAsync();
@@ -251,19 +251,19 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
     public async Task LoadAsync_SeasonStartYear_IsMinOfEpisodeImports()
     {
         using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
 
-        await SeedSeriesImportsAsync(db,
-        [
-            new() { Tconst = TconstSeries1, TitleType = "tvSeries",  PrimaryTitle = "Year Test Show", OriginalTitle = "Year Test Show", StartYear = 2000, RawLine = "s1" },
-            new() { Tconst = "tt1001001",   TitleType = "tvEpisode", PrimaryTitle = "E1",             OriginalTitle = "E1",             StartYear = 2003, RawLine = "e1" },
-            new() { Tconst = "tt1001002",   TitleType = "tvEpisode", PrimaryTitle = "E2",             OriginalTitle = "E2",             StartYear = 2001, RawLine = "e2" },
-        ]);
-        await SeedEpisodesAsync(db,
-        [
-            new() { Tconst = "tt1001001", ParentTconst = TconstSeries1, SeasonNumber = 1, EpisodeNumber = 1, RawLine = "e1" },
-            new() { Tconst = "tt1001002", ParentTconst = TconstSeries1, SeasonNumber = 1, EpisodeNumber = 2, RawLine = "e2" },
-        ]);
+        var db = await SeedSeriesAsync(scope,
+            imports:
+            [
+                new() { Tconst = TconstSeries1, TitleType = "tvSeries",  PrimaryTitle = "Year Test Show", OriginalTitle = "Year Test Show", StartYear = 2000, RawLine = "s1" },
+                new() { Tconst = "tt1001001",   TitleType = "tvEpisode", PrimaryTitle = "E1",             OriginalTitle = "E1",             StartYear = 2003, RawLine = "e1" },
+                new() { Tconst = "tt1001002",   TitleType = "tvEpisode", PrimaryTitle = "E2",             OriginalTitle = "E2",             StartYear = 2001, RawLine = "e2" },
+            ],
+            episodes:
+            [
+                new() { Tconst = "tt1001001", ParentTconst = TconstSeries1, SeasonNumber = 1, EpisodeNumber = 1, RawLine = "e1" },
+                new() { Tconst = "tt1001002", ParentTconst = TconstSeries1, SeasonNumber = 1, EpisodeNumber = 2, RawLine = "e2" },
+            ]);
 
         var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
         await loadService.LoadAsync();
