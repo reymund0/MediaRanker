@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MediaRankerServer.Migrations
 {
     [DbContext(typeof(PostgreSQLContext))]
-    [Migration("20260429200052_AddIndexesAndRemoveConstraints")]
-    partial class AddIndexesAndRemoveConstraints
+    [Migration("20260429202110_AddMediaCollectionIndexesAndRemoveConstraints")]
+    partial class AddMediaCollectionIndexesAndRemoveConstraints
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -314,11 +314,6 @@ namespace MediaRankerServer.Migrations
                         .IsUnique()
                         .HasDatabaseName("uq_media_collections_external_id_source_series")
                         .HasFilter("external_id IS NOT NULL AND collection_type = 'Series'");
-
-                    b.HasIndex("Title", "CollectionType", "MediaTypeId")
-                        .IsUnique()
-                        .HasDatabaseName("uq_media_collections_title_type_mediatype_root")
-                        .HasFilter("parent_media_collection_id IS NULL");
 
                     b.HasIndex("Title", "CollectionType", "MediaTypeId", "ParentMediaCollectionId")
                         .IsUnique()

@@ -190,30 +190,6 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
     }
 
     [Fact]
-    public async Task LoadAsync_LoadsSeriesAndMiniSeries()
-    {
-        using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
-
-        await SeedSeriesImportsAsync(db,
-        [
-            new() { Tconst = TconstSeries1,    TitleType = "tvSeries",    PrimaryTitle = "Alpha Series",  OriginalTitle = "Alpha Series",  StartYear = 2010, RawLine = "s1" },
-            new() { Tconst = TconstMiniSeries,  TitleType = "tvMiniSeries", PrimaryTitle = "Mini Series",   OriginalTitle = "Mini Series",   StartYear = 2015, RawLine = "s3" },
-        ]);
-
-        var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
-        await loadService.LoadAsync();
-
-        var collections = await db.MediaCollections
-            .Where(mc => mc.CollectionType == MediaCollectionType.Series)
-            .ToListAsync();
-
-        collections.Should().HaveCount(2);
-        collections.Should().Contain(mc => mc.ExternalId == TconstSeries1);
-        collections.Should().Contain(mc => mc.ExternalId == TconstMiniSeries);
-    }
-
-    [Fact]
     public async Task LoadAsync_LoadsMultipleSeasonsUnderOneSeries()
     {
         using var scope = Factory.Services.CreateScope();

@@ -102,11 +102,6 @@ public class MediaCollection : ITimestampedEntity
                 .IsUnique()
                 .HasDatabaseName("uq_media_collections_external_id_source_series")
                 .HasFilter("external_id IS NOT NULL AND collection_type = 'Series'");
-
-            builder.HasIndex(mc => new { mc.Title, mc.CollectionType, mc.MediaTypeId })
-                .IsUnique()
-                .HasDatabaseName("uq_media_collections_title_type_mediatype_root")
-                .HasFilter("parent_media_collection_id IS NULL");
         }
     }
 }

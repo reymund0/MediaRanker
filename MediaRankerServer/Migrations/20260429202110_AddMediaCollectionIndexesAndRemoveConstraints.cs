@@ -6,11 +6,15 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace MediaRankerServer.Migrations
 {
     /// <inheritdoc />
-    public partial class AddIndexesAndRemoveConstraints : Migration
+    public partial class AddMediaCollectionIndexesAndRemoveConstraints : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropIndex(
+                name: "uq_media_collections_title_type_mediatype_root",
+                table: "media_collections");
+
             migrationBuilder.AlterColumn<DateOnly>(
                 name: "release_date",
                 table: "media_collections",
@@ -61,6 +65,13 @@ namespace MediaRankerServer.Migrations
                 oldClrType: typeof(DateOnly),
                 oldType: "date",
                 oldNullable: true);
+
+            migrationBuilder.CreateIndex(
+                name: "uq_media_collections_title_type_mediatype_root",
+                table: "media_collections",
+                columns: new[] { "title", "collection_type", "media_type_id" },
+                unique: true,
+                filter: "parent_media_collection_id IS NULL");
         }
     }
 }
