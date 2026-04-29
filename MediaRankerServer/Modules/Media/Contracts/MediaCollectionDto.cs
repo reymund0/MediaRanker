@@ -13,7 +13,7 @@ public class MediaCollectionDto
     public string MediaTypeName { get; set; } = string.Empty;
     public long? ParentMediaCollectionId { get; set; }
     public string? ParentMediaCollectionTitle { get; set; }
-    public DateOnly ReleaseDate { get; set; }
+    public DateOnly? ReleaseDate { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public string? CoverImageUrl { get; set; }
