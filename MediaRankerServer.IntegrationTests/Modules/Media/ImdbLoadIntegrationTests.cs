@@ -275,4 +275,180 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         season.Should().NotBeNull();
         season!.ReleaseDate.Should().Be(new DateOnly(2001, 7, 1), "MIN(start_year) across season episodes is 2001");
     }
+
+    // -------------------------------------------------------------------------
+    // Episode media load tests
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task LoadEpisodeMediaAsync_HappyPath_TvSeriesAndTvMiniSeries_BothLinkedToSeason()
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        const string miniSeriesTconst = "tt2100001";
+
+        var db = await SeedSeriesAsync(scope,
+            imports:
+            [
+                new() { Tconst = TconstSeries1,    TitleType = "tvSeries",    PrimaryTitle = "My Show",   OriginalTitle = "My Show",   StartYear = 2000, RawLine = "s1" },
+                new() { Tconst = miniSeriesTconst, TitleType = "tvMiniSeries",PrimaryTitle = "Mini Show", OriginalTitle = "Mini Show", StartYear = 2015, RawLine = "s2" },
+                new() { Tconst = "tt2001001",      TitleType = "tvEpisode",   PrimaryTitle = "Pilot",     OriginalTitle = "Pilot",     StartYear = 2001, RawLine = "e1" },
+                new() { Tconst = "tt2100002",      TitleType = "tvEpisode",   PrimaryTitle = "Part 1",    OriginalTitle = "Part 1",    StartYear = 2015, RawLine = "e2" },
+            ],
+            episodes:
+            [
+                new() { Tconst = "tt2001001", ParentTconst = TconstSeries1,    SeasonNumber = 1, EpisodeNumber = 1, RawLine = "e1" },
+                new() { Tconst = "tt2100002", ParentTconst = miniSeriesTconst, SeasonNumber = 1, EpisodeNumber = 1, RawLine = "e2" },
+            ]);
+
+        var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
+        await loadService.LoadAsync();
+
+        var tvSeriesRow   = await db.MediaCollections.FirstAsync(mc => mc.ExternalId == TconstSeries1);
+        var tvSeriesSeason = await db.MediaCollections.FirstAsync(mc =>
+            mc.CollectionType == MediaCollectionType.Season && mc.ParentMediaCollectionId == tvSeriesRow.Id && mc.Title == "1");
+
+        var tvMiniSeriesRow    = await db.MediaCollections.FirstAsync(mc => mc.ExternalId == miniSeriesTconst);
+        var tvMiniSeriesSeason = await db.MediaCollections.FirstAsync(mc =>
+            mc.CollectionType == MediaCollectionType.Season && mc.ParentMediaCollectionId == tvMiniSeriesRow.Id && mc.Title == "1");
+
+        var tvSeriesEp   = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == "tt2001001");
+        var tvMiniSeriesEp = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == "tt2100002");
+
+        tvSeriesEp.Should().NotBeNull();
+        tvSeriesEp!.MediaTypeId.Should().Be(-4L);
+        tvSeriesEp.ExternalSource.Should().Be(MediaExternalSource.Imdb);
+        tvSeriesEp.ReleaseDate.Should().Be(new DateOnly(2001, 7, 1));
+        tvSeriesEp.MediaCollectionId.Should().Be(tvSeriesSeason.Id);
+
+        tvMiniSeriesEp.Should().NotBeNull();
+        tvMiniSeriesEp!.MediaTypeId.Should().Be(-4L);
+        tvMiniSeriesEp.MediaCollectionId.Should().Be(tvMiniSeriesSeason.Id);
+    }
+
+    [Fact]
+    public async Task LoadEpisodeMediaAsync_SeasonMinusOne_LinksToUnknownSeason()
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var db = await SeedSeriesAsync(scope,
+            imports:
+            [
+                new() { Tconst = TconstSeries1, TitleType = "tvSeries",  PrimaryTitle = "Unknown Season Show", OriginalTitle = "Unknown Season Show", StartYear = 2000, RawLine = "s" },
+                new() { Tconst = "tt2200001",   TitleType = "tvEpisode", PrimaryTitle = "Lost Ep",             OriginalTitle = "Lost Ep",             StartYear = 2002, RawLine = "e" },
+            ],
+            episodes:
+            [
+                new() { Tconst = "tt2200001", ParentTconst = TconstSeries1, SeasonNumber = -1, EpisodeNumber = 1, RawLine = "e" },
+            ]);
+
+        var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
+        await loadService.LoadAsync();
+
+        var seriesRow  = await db.MediaCollections.FirstAsync(mc => mc.ExternalId == TconstSeries1);
+        var unknownSeason = await db.MediaCollections.FirstAsync(mc =>
+            mc.CollectionType == MediaCollectionType.Season && mc.ParentMediaCollectionId == seriesRow.Id && mc.Title == "Unknown");
+
+        var mediaRow = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == "tt2200001");
+
+        mediaRow.Should().NotBeNull();
+        mediaRow!.MediaCollectionId.Should().Be(unknownSeason.Id);
+    }
+
+    [Fact]
+    public async Task LoadEpisodeMediaAsync_NullStartYear_HasNullReleaseDate()
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var db = await SeedSeriesAsync(scope,
+            imports:
+            [
+                new() { Tconst = TconstSeries1, TitleType = "tvSeries",  PrimaryTitle = "Null Year Show", OriginalTitle = "Null Year Show", StartYear = 2000, RawLine = "s" },
+                new() { Tconst = "tt2400001",   TitleType = "tvEpisode", PrimaryTitle = "No Year Ep",     OriginalTitle = "No Year Ep",     StartYear = null, RawLine = "e" },
+            ],
+            episodes:
+            [
+                new() { Tconst = "tt2400001", ParentTconst = TconstSeries1, SeasonNumber = 1, EpisodeNumber = 1, RawLine = "e" },
+            ]);
+
+        var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
+        await loadService.LoadAsync();
+
+        var mediaRow = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == "tt2400001");
+
+        mediaRow.Should().NotBeNull();
+        mediaRow!.ReleaseDate.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task LoadEpisodeMediaAsync_Orphan_NoMatchingSeason_NotInserted()
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        var db = await SeedSeriesAsync(scope,
+            imports:
+            [
+                new() { Tconst = TconstSeries1, TitleType = "tvSeries",  PrimaryTitle = "No Season Show", OriginalTitle = "No Season Show", StartYear = 2000, RawLine = "s" },
+                new() { Tconst = "tt2600001",   TitleType = "tvEpisode", PrimaryTitle = "Orphan Ep",      OriginalTitle = "Orphan Ep",      StartYear = 2001, RawLine = "e" },
+            ],
+            episodes:
+            [
+                new() { Tconst = "tt2600001", ParentTconst = TconstSeries1, SeasonNumber = 99, EpisodeNumber = 1, RawLine = "e" },
+            ]);
+
+        var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
+        await loadService.LoadAsync();
+
+        var mediaRow = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == "tt2600001");
+        mediaRow.Should().BeNull("no Season collection exists with title '99' under the parent Series");
+    }
+
+    [Fact]
+    public async Task LoadEpisodeMediaAsync_ReRun_SeasonRelink_UpdatesMediaCollectionId()
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        const string episodeTconst = "tt2700001";
+
+        var db = await SeedSeriesAsync(scope,
+            imports:
+            [
+                new() { Tconst = TconstSeries1, TitleType = "tvSeries",  PrimaryTitle = "Relink Show", OriginalTitle = "Relink Show", StartYear = 2000, RawLine = "s" },
+                new() { Tconst = episodeTconst, TitleType = "tvEpisode", PrimaryTitle = "Ep1",         OriginalTitle = "Ep1",         StartYear = 2001, RawLine = "e" },
+                new() { Tconst = "tt2700002",   TitleType = "tvEpisode", PrimaryTitle = "Ep2 S2",      OriginalTitle = "Ep2 S2",      StartYear = 2002, RawLine = "e2" },
+            ],
+            episodes:
+            [
+                new() { Tconst = episodeTconst, ParentTconst = TconstSeries1, SeasonNumber = 1, EpisodeNumber = 1, RawLine = "e" },
+                new() { Tconst = "tt2700002",   ParentTconst = TconstSeries1, SeasonNumber = 2, EpisodeNumber = 1, RawLine = "e2" },
+            ]);
+
+        var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
+
+        // First run — episode lands in Season 1
+        await loadService.LoadAsync();
+
+        var seriesRow = await db.MediaCollections.FirstAsync(mc => mc.ExternalId == TconstSeries1);
+        var season1   = await db.MediaCollections.FirstAsync(mc =>
+            mc.CollectionType == MediaCollectionType.Season && mc.ParentMediaCollectionId == seriesRow.Id && mc.Title == "1");
+        var season2   = await db.MediaCollections.FirstAsync(mc =>
+            mc.CollectionType == MediaCollectionType.Season && mc.ParentMediaCollectionId == seriesRow.Id && mc.Title == "2");
+
+        var afterFirstRun = await db.Media.FirstAsync(m => m.ExternalId == episodeTconst);
+        afterFirstRun.MediaCollectionId.Should().Be(season1.Id);
+
+        // Mutate season_number from 1 → 2 in imdb_import_episodes
+        await db.Database.ExecuteSqlRawAsync($"""
+            UPDATE imdb_import_episodes SET season_number = 2 WHERE tconst = '{episodeTconst}'
+            """);
+
+        // Second run — upsert should relink to Season 2
+        await loadService.LoadAsync();
+
+        await db.Entry(afterFirstRun).ReloadAsync();
+
+        var allEpisodeMedia = await db.Media.Where(m => m.ExternalId == episodeTconst).ToListAsync();
+        allEpisodeMedia.Should().HaveCount(1, "upsert must not create a duplicate row");
+        allEpisodeMedia[0].MediaCollectionId.Should().Be(season2.Id);
+    }
 }

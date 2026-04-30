@@ -9,7 +9,8 @@ public class ImdbLoadService(IImdbLoadProvider loadProvider, ILogger<ImdbLoadSer
         var nonSeries = await LoadNonSeriesMediaAsync(ct);
         var series    = await LoadSeriesCollectionsAsync(ct);
         var seasons   = await LoadSeasonCollectionsAsync(ct);
-        return new ImdbLoadResult(nonSeries.Affected + series.Affected + seasons.Affected);
+        var episodes  = await LoadEpisodeMediaAsync(ct);
+        return new ImdbLoadResult(nonSeries.Affected + series.Affected + seasons.Affected + episodes.Affected);
     }
 
     public async Task<ImdbLoadResult> LoadNonSeriesMediaAsync(CancellationToken ct = default)
@@ -39,6 +40,16 @@ public class ImdbLoadService(IImdbLoadProvider loadProvider, ILogger<ImdbLoadSer
         var result = await loadProvider.LoadSeasonCollectionsAsync(ct);
 
         logger.LogInformation("IMDB load: season collections completed. Affected rows: {Affected}", result.Affected);
+        return result;
+    }
+
+    public async Task<ImdbLoadResult> LoadEpisodeMediaAsync(CancellationToken ct = default)
+    {
+        logger.LogInformation("Starting IMDB load: episode media.");
+
+        var result = await loadProvider.LoadEpisodeMediaAsync(ct);
+
+        logger.LogInformation("IMDB load: episode media completed. Affected rows: {Affected}", result.Affected);
         return result;
     }
 }

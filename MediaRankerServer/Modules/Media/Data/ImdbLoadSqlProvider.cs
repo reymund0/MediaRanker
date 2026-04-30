@@ -1,29 +1,13 @@
 using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Shared.Data;
 using Microsoft.EntityFrameworkCore;
-using System.Text;
 
 namespace MediaRankerServer.Modules.Media.Data;
 
 public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSqlProvider> logger) : IImdbLoadProvider
 {
-    // Maps IMDB title_type values to stable MediaType IDs.
-    // -1 = Video Game, -3 = Movie.
-    internal static readonly IReadOnlyDictionary<string, long> NonSeriesTitleTypeMap =
-        new Dictionary<string, long>
-        {
-            ["videoGame"] = -1L,
-            ["movie"]     = -3L,
-            ["tvMovie"]   = -3L,
-            ["short"]     = -3L,
-            ["tvShort"]   = -3L,
-            ["video"]     = -3L,
-        };
-
     public async Task<ImdbLoadResult> LoadNonSeriesMediaAsync(CancellationToken ct)
     {
-        var caseClause = BuildCaseClause(NonSeriesTitleTypeMap);
-        var inClause   = BuildInClause(NonSeriesTitleTypeMap);
         // NOTE: With ON CONFLICT DO UPDATE, Postgres reports both inserted and updated rows in the
         // affected-row count. We cannot cheaply distinguish inserted vs updated without RETURNING xmax = 0.
         // Logging a single "affected" count is acceptable for now.
@@ -34,11 +18,18 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 CASE WHEN i.start_year IS NULL THEN NULL ELSE make_date(i.start_year, 7, 1) END,
                 i.tconst,
                 '{nameof(MediaExternalSource.Imdb)}',
-                {caseClause},
+                CASE i.title_type
+                    WHEN 'videoGame' THEN -1
+                    WHEN 'movie'     THEN -3
+                    WHEN 'tvMovie'   THEN -3
+                    WHEN 'short'     THEN -3
+                    WHEN 'tvShort'   THEN -3
+                    WHEN 'video'     THEN -3
+                END,
                 now(),
                 now()
             FROM imdb_imports i
-            WHERE i.title_type IN ({inClause})
+            WHERE i.title_type IN ('videoGame', 'movie', 'tvMovie', 'short', 'tvShort', 'video')
             ON CONFLICT (external_id, external_source) WHERE external_id IS NOT NULL
             DO UPDATE SET
                 title          = EXCLUDED.title,
@@ -166,20 +157,56 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
         }
     }
 
-    internal static string BuildCaseClause(IReadOnlyDictionary<string, long> map)
+    public async Task<ImdbLoadResult> LoadEpisodeMediaAsync(CancellationToken ct)
     {
-        var sb = new StringBuilder();
-        sb.AppendLine("CASE i.title_type");
-        foreach (var (titleType, mediaTypeId) in map)
+        var sql = $"""
+            INSERT INTO media (title, release_date, external_id, external_source,
+                               media_type_id, media_collection_id, created_at, updated_at)
+            SELECT
+                i.primary_title,
+                CASE WHEN i.start_year IS NULL THEN NULL ELSE make_date(i.start_year, 7, 1) END,
+                i.tconst,
+                '{nameof(MediaExternalSource.Imdb)}',
+                -4,
+                season.id,
+                now(),
+                now()
+            FROM imdb_imports i
+            INNER JOIN imdb_import_episodes e ON e.tconst = i.tconst
+            INNER JOIN media_collections series
+                ON series.external_id = e.parent_tconst
+               AND series.external_source = '{nameof(MediaExternalSource.Imdb)}'
+               AND series.collection_type = 'Series'
+            INNER JOIN media_collections season
+                ON season.parent_media_collection_id = series.id
+               AND season.collection_type = 'Season'
+               AND season.title = CASE WHEN e.season_number = -1 THEN 'Unknown'
+                                       ELSE e.season_number::text END
+            WHERE i.title_type = 'tvEpisode'
+            ON CONFLICT (external_id, external_source) WHERE external_id IS NOT NULL
+            DO UPDATE SET
+                title               = EXCLUDED.title,
+                release_date        = EXCLUDED.release_date,
+                media_type_id       = EXCLUDED.media_type_id,
+                media_collection_id = EXCLUDED.media_collection_id,
+                updated_at          = now();
+            """;
+        try
         {
-            sb.AppendLine($"    WHEN '{titleType}' THEN {mediaTypeId}");
+            dbContext.Database.SetCommandTimeout(TimeSpan.FromMinutes(15));
+
+            var affected = await dbContext.Database.ExecuteSqlRawAsync(sql, ct);
+            return new ImdbLoadResult(affected);
         }
-        sb.Append("END");
-        return sb.ToString();
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error loading episode media from imdb_imports. SQL: {Sql}", sql);
+            throw;
+        }
+        finally
+        {
+            dbContext.Database.SetCommandTimeout(null);
+        }
     }
 
-    internal static string BuildInClause(IReadOnlyDictionary<string, long> map)
-    {
-        return string.Join(", ", map.Keys.Select(k => $"'{k}'"));
-    }
 }
