@@ -37,25 +37,7 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 media_type_id  = EXCLUDED.media_type_id,
                 updated_at     = now();
             """;
-        try
-        {
-            // Set a longer timeout for this operation since we're processing millions of rows.
-            dbContext.Database.SetCommandTimeout(TimeSpan.FromMinutes(15));
-
-            var affected = await dbContext.Database.ExecuteSqlRawAsync(sql, ct);
-            return new ImdbLoadResult(affected);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error loading non-series media from imdb_imports. SQL: {Sql}", sql);
-            throw;
-        }
-        finally
-        {
-            // Reset the command timeout to the default value.
-            // Not really necessary since dbContext is disposed after loading, resetting the config.
-            dbContext.Database.SetCommandTimeout(null);
-        }
+        return new ImdbLoadResult(await ExecuteBulkSqlAsync(sql, "Error loading non-series media from imdb_imports.", ct));
     }
 
     public async Task<ImdbLoadResult> LoadSeriesCollectionsAsync(CancellationToken ct)
@@ -83,22 +65,7 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 media_type_id = EXCLUDED.media_type_id,
                 updated_at    = now();
             """;
-        try
-        {
-            dbContext.Database.SetCommandTimeout(TimeSpan.FromMinutes(15));
-
-            var affected = await dbContext.Database.ExecuteSqlRawAsync(sql, ct);
-            return new ImdbLoadResult(affected);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error loading series collections from imdb_imports. SQL: {Sql}", sql);
-            throw;
-        }
-        finally
-        {
-            dbContext.Database.SetCommandTimeout(null);
-        }
+        return new ImdbLoadResult(await ExecuteBulkSqlAsync(sql, "Error loading series collections from imdb_imports.", ct));
     }
 
     public async Task<ImdbLoadResult> LoadSeasonCollectionsAsync(CancellationToken ct)
@@ -139,22 +106,7 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 external_source = EXCLUDED.external_source,
                 updated_at      = now();
             """;
-        try
-        {
-            dbContext.Database.SetCommandTimeout(TimeSpan.FromMinutes(15));
-
-            var affected = await dbContext.Database.ExecuteSqlRawAsync(sql, ct);
-            return new ImdbLoadResult(affected);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error loading season collections from imdb_import_episodes. SQL: {Sql}", sql);
-            throw;
-        }
-        finally
-        {
-            dbContext.Database.SetCommandTimeout(null);
-        }
+        return new ImdbLoadResult(await ExecuteBulkSqlAsync(sql, "Error loading season collections from imdb_import_episodes.", ct));
     }
 
     public async Task<ImdbLoadResult> LoadEpisodeMediaAsync(CancellationToken ct)
@@ -191,16 +143,21 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 media_collection_id = EXCLUDED.media_collection_id,
                 updated_at          = now();
             """;
+        return new ImdbLoadResult(await ExecuteBulkSqlAsync(sql, "Error loading episode media from imdb_imports.", ct));
+    }
+
+    // Set a longer timeout for bulk operations since we're processing millions of rows.
+    // Not scoped to the constructor so that incidental EF queries on the same dbContext are unaffected.
+    private async Task<int> ExecuteBulkSqlAsync(string sql, string errorMessage, CancellationToken ct)
+    {
         try
         {
             dbContext.Database.SetCommandTimeout(TimeSpan.FromMinutes(15));
-
-            var affected = await dbContext.Database.ExecuteSqlRawAsync(sql, ct);
-            return new ImdbLoadResult(affected);
+            return await dbContext.Database.ExecuteSqlRawAsync(sql, ct);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error loading episode media from imdb_imports. SQL: {Sql}", sql);
+            logger.LogError(ex, "{ErrorMessage} SQL: {Sql}", errorMessage, sql);
             throw;
         }
         finally
@@ -208,5 +165,4 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
             dbContext.Database.SetCommandTimeout(null);
         }
     }
-
 }
