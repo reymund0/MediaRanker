@@ -82,6 +82,9 @@ public class MediaEntity : ITimestampedEntity
             builder.HasIndex(m => m.MediaCollectionId)
                 .HasDatabaseName("ix_media_media_collection_id");
 
+            builder.HasIndex(m => m.ExternalId)
+                .HasDatabaseName("ix_media_external_id");
+
             // Unique partial index on ExternalId + ExternalSource (only when ExternalId is not null)
             builder.HasIndex(m => new { m.ExternalId, m.ExternalSource })
                 .IsUnique()

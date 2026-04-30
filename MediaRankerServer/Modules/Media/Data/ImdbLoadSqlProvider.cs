@@ -67,6 +67,105 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
         }
     }
 
+    public async Task<ImdbLoadResult> LoadSeriesCollectionsAsync(CancellationToken ct)
+    {
+        var sql = $"""
+            INSERT INTO media_collections
+                (title, release_date, external_id, external_source, collection_type,
+                 media_type_id, parent_media_collection_id, created_at, updated_at)
+            SELECT
+                i.primary_title,
+                CASE WHEN i.start_year IS NULL THEN NULL ELSE make_date(i.start_year, 7, 1) END,
+                i.tconst,
+                '{nameof(MediaExternalSource.Imdb)}',
+                'Series',
+                -4,
+                NULL,
+                now(),
+                now()
+            FROM imdb_imports i
+            WHERE i.title_type IN ('tvSeries', 'tvMiniSeries')
+            ON CONFLICT (external_id, external_source) WHERE external_id IS NOT NULL AND collection_type = 'Series'
+            DO UPDATE SET
+                title         = EXCLUDED.title,
+                release_date  = EXCLUDED.release_date,
+                media_type_id = EXCLUDED.media_type_id,
+                updated_at    = now();
+            """;
+        try
+        {
+            dbContext.Database.SetCommandTimeout(TimeSpan.FromMinutes(15));
+
+            var affected = await dbContext.Database.ExecuteSqlRawAsync(sql, ct);
+            return new ImdbLoadResult(affected);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error loading series collections from imdb_imports. SQL: {Sql}", sql);
+            throw;
+        }
+        finally
+        {
+            dbContext.Database.SetCommandTimeout(null);
+        }
+    }
+
+    public async Task<ImdbLoadResult> LoadSeasonCollectionsAsync(CancellationToken ct)
+    {
+        // Conflict target matches uq_media_collections_title_type_mediatype_parent:
+        // (title, collection_type, media_type_id, parent_media_collection_id) WHERE parent IS NOT NULL.
+        var sql = $"""
+            INSERT INTO media_collections
+                (title, release_date, external_id, external_source, collection_type,
+                 media_type_id, parent_media_collection_id, created_at, updated_at)
+            SELECT
+                CASE WHEN agg.season_number = -1 THEN 'Unknown' ELSE agg.season_number::text END,
+                CASE WHEN agg.season_start_year IS NULL THEN NULL ELSE make_date(agg.season_start_year, 7, 1) END,
+                agg.parent_tconst,
+                '{nameof(MediaExternalSource.Imdb)}',
+                'Season',
+                -4,
+                agg.parent_id,
+                now(),
+                now()
+            FROM (
+                SELECT mc.id AS parent_id,
+                       e.parent_tconst,
+                       e.season_number,
+                       MIN(i.start_year) AS season_start_year
+                FROM imdb_import_episodes e
+                INNER JOIN imdb_imports i       ON i.tconst = e.tconst
+                INNER JOIN media_collections mc ON mc.external_id = e.parent_tconst
+                                                AND mc.external_source = '{nameof(MediaExternalSource.Imdb)}'
+                                                AND mc.collection_type = 'Series'
+                GROUP BY mc.id, e.parent_tconst, e.season_number
+            ) agg
+            ON CONFLICT (title, collection_type, media_type_id, parent_media_collection_id)
+                WHERE parent_media_collection_id IS NOT NULL
+            DO UPDATE SET
+                release_date    = EXCLUDED.release_date,
+                external_id     = EXCLUDED.external_id,
+                external_source = EXCLUDED.external_source,
+                updated_at      = now();
+            """;
+        try
+        {
+            dbContext.Database.SetCommandTimeout(TimeSpan.FromMinutes(15));
+
+            var affected = await dbContext.Database.ExecuteSqlRawAsync(sql, ct);
+            return new ImdbLoadResult(affected);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error loading season collections from imdb_import_episodes. SQL: {Sql}", sql);
+            throw;
+        }
+        finally
+        {
+            dbContext.Database.SetCommandTimeout(null);
+        }
+    }
+
     internal static string BuildCaseClause(IReadOnlyDictionary<string, long> map)
     {
         var sb = new StringBuilder();

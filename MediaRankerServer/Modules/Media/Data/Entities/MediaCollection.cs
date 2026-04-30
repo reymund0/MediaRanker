@@ -17,7 +17,7 @@ public class MediaCollection : ITimestampedEntity
     public string Title { get; set; } = null!;
     public MediaCollectionType CollectionType { get; set; }
     public long? ParentMediaCollectionId { get; set; }
-    public DateOnly ReleaseDate { get; set; }
+    public DateOnly? ReleaseDate { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public string? ExternalId { get; set; }
@@ -59,8 +59,7 @@ public class MediaCollection : ITimestampedEntity
             builder.Property(mc => mc.ParentMediaCollectionId);
 
             builder.Property(mc => mc.ReleaseDate)
-                .HasColumnType("date")
-                .IsRequired();
+                .HasColumnType("date");
 
             builder.Property(mc => mc.CoverId);
             
@@ -90,16 +89,19 @@ public class MediaCollection : ITimestampedEntity
             builder.HasIndex(mc => mc.ParentMediaCollectionId)
                 .HasDatabaseName("ix_media_collections_parent_id");
 
+            builder.HasIndex(mc => mc.ExternalId)
+                .HasDatabaseName("ix_media_collections_external_id");
+
             // Partial unique indexes to prevent duplicate collections. One with parent included, one without.
             builder.HasIndex(mc => new { mc.Title, mc.CollectionType, mc.MediaTypeId, mc.ParentMediaCollectionId })
                 .IsUnique()
                 .HasDatabaseName("uq_media_collections_title_type_mediatype_parent")
                 .HasFilter("parent_media_collection_id IS NOT NULL");
 
-            builder.HasIndex(mc => new { mc.Title, mc.CollectionType, mc.MediaTypeId })
+            builder.HasIndex(mc => new { mc.ExternalId, mc.ExternalSource })
                 .IsUnique()
-                .HasDatabaseName("uq_media_collections_title_type_mediatype_root")
-                .HasFilter("parent_media_collection_id IS NULL");
+                .HasDatabaseName("uq_media_collections_external_id_source_series")
+                .HasFilter("external_id IS NOT NULL AND collection_type = 'Series'");
         }
     }
 }
