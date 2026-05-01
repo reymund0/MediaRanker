@@ -3,10 +3,11 @@ using MediatR;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Modules.Media.Events;
-using MediaRankerServer.Modules.Files.Contracts;
+using MediaRankerServer.Modules.Media.Services.Interfaces;
 using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
+using MediaRankerServer.Shared.Paging;
 using Microsoft.EntityFrameworkCore;
 
 namespace MediaRankerServer.Modules.Media.Services;
@@ -18,30 +19,40 @@ public class MediaService(
     IPublisher publisher
 ) : IMediaService
 {
-    public Task<List<MediaTypeDto>> GetMediaTypesAsync(CancellationToken cancellationToken = default)
+    public async Task<List<MediaTypeDto>> GetMediaTypesAsync(CancellationToken cancellationToken = default)
     {
-        return dbContext.MediaTypes
+        return await dbContext.MediaTypes
             .Select(mt => MediaTypeDtoMapper.Map(mt))
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<List<MediaDto>> GetAllMediaAsync(CancellationToken cancellationToken = default)
+    public async Task<MediaTypeDto?> GetMediaTypeByIdAsync(long id, CancellationToken cancellationToken = default)
     {
-        var media = await dbContext.Media
+        var mediaType = await dbContext.MediaTypes
             .AsNoTracking()
-            .Include(m => m.MediaType)
-            .Include(m => m.Cover)
-            .ToListAsync(cancellationToken);
+            .FirstOrDefaultAsync(mt => mt.Id == id, cancellationToken);
 
-        return [.. media.Select(m => MediaDtoMapper.Map(m, fileService))];
+        return mediaType == null ? null : MediaTypeDtoMapper.Map(mediaType);
+    }
+
+    public async Task<PageResult<MediaDto>> GetAllMediaAsync(PageRequest request, CancellationToken cancellationToken = default)
+    {
+        var v = PagingValidator.Validate(request, MediaQueryBuilder.SortFields, MediaQueryBuilder.SearchFields, "title");
+
+        var query = MediaQueryBuilder.ApplySearch(MediaQueryBuilder.BaseQuery(dbContext), v);
+        var totalCount = await query.CountAsync(cancellationToken);
+        query = MediaQueryBuilder.ApplySort(query, v);
+
+        var page = await query.Skip(v.Skip).Take(v.Take).ToListAsync(cancellationToken);
+
+        return new PageResult<MediaDto>(
+            [.. page.Select(m => MediaDtoMapper.Map(m, fileService))],
+            totalCount, v.Page, v.PageSize);
     }
 
     public async Task<MediaDto?> GetMediaByIdAsync(long mediaId, CancellationToken cancellationToken)
     {
-        var media = await dbContext.Media
-            .AsNoTracking()
-            .Include(m => m.MediaType)
-            .Include(m => m.Cover)
+        var media = await MediaQueryBuilder.BaseQuery(dbContext)
             .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
 
         return media is null ? null : MediaDtoMapper.Map(media, fileService);
@@ -122,15 +133,6 @@ public class MediaService(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         await publisher.Publish(new MediaDeletedEvent(mediaId), cancellationToken);
-    }
-
-    public async Task<MediaTypeDto?> GetMediaTypeByIdAsync(long id, CancellationToken cancellationToken = default)
-    {
-        var mediaType = await dbContext.MediaTypes
-            .AsNoTracking()
-            .FirstOrDefaultAsync(mt => mt.Id == id, cancellationToken);
-
-        return mediaType == null ? null : MediaTypeDtoMapper.Map(mediaType);
     }
 
     private async Task ValidateMediaRequestOrThrow(MediaUpsertRequest request, CancellationToken cancellationToken)

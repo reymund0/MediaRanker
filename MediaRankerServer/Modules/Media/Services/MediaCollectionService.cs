@@ -1,10 +1,11 @@
 using FluentValidation;
-using MediaRankerServer.Modules.Files.Contracts;
 using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Data.Entities;
+using MediaRankerServer.Modules.Media.Services.Interfaces;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
+using MediaRankerServer.Shared.Paging;
 using Microsoft.EntityFrameworkCore;
 
 namespace MediaRankerServer.Modules.Media.Services;
@@ -15,25 +16,24 @@ public class MediaCollectionService(
     IValidator<MediaCollectionUpsertRequest> validator
 ) : IMediaCollectionService
 {
-    public async Task<List<MediaCollectionDto>> GetAllCollectionsAsync(CancellationToken cancellationToken = default)
+    public async Task<PageResult<MediaCollectionDto>> GetAllCollectionsAsync(PageRequest request, CancellationToken cancellationToken = default)
     {
-        var collections = await dbContext.MediaCollections
-            .AsNoTracking()
-            .Include(mc => mc.MediaType)
-            .Include(mc => mc.ParentMediaCollection)
-            .Include(mc => mc.Cover)
-            .ToListAsync(cancellationToken);
+        var v = PagingValidator.Validate(request, MediaCollectionQueryBuilder.SortFields, MediaCollectionQueryBuilder.SearchFields, "title");
 
-        return [.. collections.Select(mc => MediaCollectionDtoMapper.Map(mc, fileService))];
+        var query = MediaCollectionQueryBuilder.ApplySearch(MediaCollectionQueryBuilder.BaseQuery(dbContext), v);
+        var totalCount = await query.CountAsync(cancellationToken);
+        query = MediaCollectionQueryBuilder.ApplySort(query, v);
+
+        var page = await query.Skip(v.Skip).Take(v.Take).ToListAsync(cancellationToken);
+
+        return new PageResult<MediaCollectionDto>(
+            [.. page.Select(mc => MediaCollectionDtoMapper.Map(mc, fileService))],
+            totalCount, v.Page, v.PageSize);
     }
 
     public async Task<MediaCollectionDto?> GetCollectionByIdAsync(long id, CancellationToken cancellationToken = default)
     {
-        var collection = await dbContext.MediaCollections
-            .AsNoTracking()
-            .Include(mc => mc.MediaType)
-            .Include(mc => mc.ParentMediaCollection)
-            .Include(mc => mc.Cover)
+        var collection = await MediaCollectionQueryBuilder.BaseQuery(dbContext)
             .FirstOrDefaultAsync(mc => mc.Id == id, cancellationToken);
 
         return collection is null ? null : MediaCollectionDtoMapper.Map(collection, fileService);

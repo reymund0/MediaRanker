@@ -1,7 +1,6 @@
-using MediaRankerServer.Modules.Files.Contracts;
 using MediaRankerServer.Modules.Media.Contracts;
 
-namespace MediaRankerServer.Modules.Media.Services;
+namespace MediaRankerServer.Modules.Media.Services.Interfaces;
 
 public interface IMediaCoverService
 {

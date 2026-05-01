@@ -7,6 +7,7 @@ using MediaRankerServer.Modules.Reviews.Contracts;
 using MediaRankerServer.Modules.Reviews.Data.Entities;
 using MediaRankerServer.Modules.Templates.Data.Entities;
 using MediaRankerServer.Shared.Data;
+using MediaRankerServer.Shared.Paging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -87,12 +88,33 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
         var response = await Client.GetAsync($"{basePath}/unreviewedByType?mediaTypeId={_testUnreviewedMedia.MediaTypeId}");
         TestUtils.AssertSuccessResponse(response);
 
-        var unreviewedMedia = await response.Content.ReadFromJsonAsync<List<UnreviewedMediaDto>>();
-        unreviewedMedia.Should().NotBeNull();
-        unreviewedMedia.Should().NotBeEmpty();
-        unreviewedMedia.Should().Contain(m => m.Id == _testUnreviewedMedia.Id);
+        var result = await response.Content.ReadFromJsonAsync<PageResult<UnreviewedMediaDto>>();
+        result.Should().NotBeNull();
+        result!.Items.Should().NotBeEmpty();
+        result.Items.Should().Contain(m => m.Id == _testUnreviewedMedia.Id);
+        result.TotalCount.Should().BeGreaterThanOrEqualTo(1);
     }
-    
+
+    [Fact]
+    public async Task GetUnreviewedMedia_Paging_SortSearchAndPageWork()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+        db.Media.AddRange(
+            new MediaEntity { Title = "PagingTestAlpha", MediaTypeId = _testTemplate.MediaTypeId, ReleaseDate = new DateOnly(2020, 1, 1) },
+            new MediaEntity { Title = "PagingTestBeta",  MediaTypeId = _testTemplate.MediaTypeId, ReleaseDate = new DateOnly(2021, 1, 1) }
+        );
+        await db.SaveChangesAsync();
+
+        var response = await Client.GetAsync($"{basePath}/unreviewedByType?mediaTypeId={_testTemplate.MediaTypeId}&searchField=title&searchTerm=PagingTest&sortField=releaseDate&sortDirection=desc&page=0&pageSize=1");
+        TestUtils.AssertSuccessResponse(response);
+        var result = await response.Content.ReadFromJsonAsync<PageResult<UnreviewedMediaDto>>();
+
+        result!.Items.Should().HaveCount(1);
+        result.TotalCount.Should().Be(2);
+        result.Items.First().Title.Should().Be("PagingTestBeta");
+    }
+
     [Fact]
     public async Task CreateReviews_CreatesNewRecord()
     {

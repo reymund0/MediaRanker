@@ -6,7 +6,7 @@ using MediaRankerServer.IntegrationTests.Utils;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Shared.Data;
-using Microsoft.AspNetCore.Mvc;
+using MediaRankerServer.Shared.Paging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -44,10 +44,31 @@ public class MediaCollectionCrudTests(PostgresContainerFixture postgresFixture, 
         var response = await Client.GetAsync("/api/mediacollection");
 
         TestUtils.AssertSuccessResponse(response);
-        var collections = await response.Content.ReadFromJsonAsync<List<MediaCollectionDto>>();
+        var result = await response.Content.ReadFromJsonAsync<PageResult<MediaCollectionDto>>();
 
-        collections.Should().NotBeNull();
-        collections.Should().Contain(c => c.Title == _testSeries.Title);
+        result.Should().NotBeNull();
+        result!.Items.Should().Contain(c => c.Title == _testSeries.Title);
+        result.TotalCount.Should().BeGreaterThanOrEqualTo(1);
+    }
+
+    [Fact]
+    public async Task GetCollections_Paging_SortSearchAndPageWork()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+        db.MediaCollections.AddRange(
+            new MediaCollection { Title = "PagingTestAlpha", CollectionType = MediaCollectionType.Series, MediaTypeId = MovieTypeId, ReleaseDate = new DateOnly(2020, 1, 1) },
+            new MediaCollection { Title = "PagingTestBeta",  CollectionType = MediaCollectionType.Series, MediaTypeId = MovieTypeId, ReleaseDate = new DateOnly(2021, 1, 1) }
+        );
+        await db.SaveChangesAsync();
+
+        var response = await Client.GetAsync("/api/mediacollection?searchField=title&searchTerm=PagingTest&sortField=releaseDate&sortDirection=desc&page=0&pageSize=1");
+        TestUtils.AssertSuccessResponse(response);
+        var result = await response.Content.ReadFromJsonAsync<PageResult<MediaCollectionDto>>();
+
+        result!.Items.Should().HaveCount(1);
+        result.TotalCount.Should().Be(2);
+        result.Items.First().Title.Should().Be("PagingTestBeta");
     }
 
     [Fact]

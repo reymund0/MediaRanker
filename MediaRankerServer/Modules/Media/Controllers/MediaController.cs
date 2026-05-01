@@ -1,6 +1,7 @@
 using MediaRankerServer.Modules.Media.Contracts;
-using MediaRankerServer.Modules.Media.Services;
+using MediaRankerServer.Modules.Media.Services.Interfaces;
 using MediaRankerServer.Shared.Extensions;
+using MediaRankerServer.Shared.Paging;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MediaRankerServer.Modules.Media.Controllers;
@@ -10,9 +11,9 @@ namespace MediaRankerServer.Modules.Media.Controllers;
 public class MediaController(IMediaService mediaService, IMediaCoverService mediaCoverService) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetMedia(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetMedia([FromQuery] PageRequest request, CancellationToken cancellationToken)
     {
-        var media = await mediaService.GetAllMediaAsync(cancellationToken);
+        var media = await mediaService.GetAllMediaAsync(request, cancellationToken);
         return Ok(media);
     }
 

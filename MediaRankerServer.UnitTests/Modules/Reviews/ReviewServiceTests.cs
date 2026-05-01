@@ -1,4 +1,4 @@
-using MediaRankerServer.Modules.Media.Services;
+using MediaRankerServer.Modules.Media.Services.Interfaces;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Templates.Services;
 using MediaRankerServer.Modules.Templates.Contracts;

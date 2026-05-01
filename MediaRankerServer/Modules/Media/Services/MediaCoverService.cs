@@ -1,5 +1,7 @@
 using FluentValidation;
 using MediaRankerServer.Modules.Media.Contracts;
+using MediaRankerServer.Modules.Media.Data.Entities;
+using MediaRankerServer.Modules.Media.Services.Interfaces;
 using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Modules.Files.Contracts;
 using MediaRankerServer.Modules.Files.Events;
@@ -8,7 +10,7 @@ using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using MediaRankerServer.Modules.Media.Data.Entities;
+
 
 namespace MediaRankerServer.Modules.Media.Services;
 

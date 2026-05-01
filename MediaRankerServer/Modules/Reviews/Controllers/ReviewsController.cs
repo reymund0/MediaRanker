@@ -1,7 +1,8 @@
 using MediaRankerServer.Modules.Reviews.Services;
 using MediaRankerServer.Modules.Reviews.Contracts;
-using Microsoft.AspNetCore.Mvc;
 using MediaRankerServer.Shared.Extensions;
+using MediaRankerServer.Shared.Paging;
+using Microsoft.AspNetCore.Mvc;
 
 namespace MediaRankerServer.Modules.Reviews.Controllers;
 
@@ -18,10 +19,10 @@ public class ReviewsController(IReviewService reviewService) : ControllerBase
     }
 
     [HttpGet("unreviewedByType")]
-    public async Task<IActionResult> GetUnreviewedMediaByType(long mediaTypeId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetUnreviewedMediaByType(long mediaTypeId, [FromQuery] PageRequest request, CancellationToken cancellationToken)
     {
       var userId = User.GetAuthenticatedUserId();
-      var unreviewedMedia = await reviewService.GetUnreviewedMediaByTypeAsync(userId, mediaTypeId, cancellationToken);
+      var unreviewedMedia = await reviewService.GetUnreviewedMediaByTypeAsync(userId, mediaTypeId, request, cancellationToken);
       return Ok(unreviewedMedia);
     }
 

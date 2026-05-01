@@ -9,9 +9,7 @@ using MediaRankerServer.Modules.Templates.Services;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
 using MediaRankerServer.UnitTests.Shared;
-using Microsoft.EntityFrameworkCore;
-using Xunit;
-using MediaRankerServer.Modules.Media.Services;
+using MediaRankerServer.Modules.Media.Services.Interfaces;
 using MediaRankerServer.Modules.Media.Contracts;
 
 namespace MediaRankerServer.UnitTests.Modules.Templates;

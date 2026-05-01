@@ -1,4 +1,4 @@
-using MediaRankerServer.Modules.Media.Services;
+using MediaRankerServer.Modules.Media.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MediaRankerServer.Modules.Media.Controllers;

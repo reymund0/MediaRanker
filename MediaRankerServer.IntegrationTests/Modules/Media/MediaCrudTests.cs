@@ -5,6 +5,7 @@ using MediaRankerServer.IntegrationTests.Utils;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Shared.Data;
+using MediaRankerServer.Shared.Paging;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,11 +45,33 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
         var response = await Client.GetAsync("/api/media");
 
         TestUtils.AssertSuccessResponse(response);
-        var media = await response.Content.ReadFromJsonAsync<List<MediaDto>>();
+        var result = await response.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
 
-        media.Should().NotBeNull();
-        media.Should().Contain(m => m.Title == _testMedia.Title);
+        result.Should().NotBeNull();
+        result!.Items.Should().Contain(m => m.Title == _testMedia.Title);
+        result.TotalCount.Should().BeGreaterThanOrEqualTo(1);
     }
+
+    [Fact]
+    public async Task GetMedia_Paging_SortSearchAndPageWork()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+        db.Media.AddRange(
+            new MediaEntity { Title = "PagingTestAlpha", MediaTypeId = MovieMediaTypeId, ReleaseDate = new DateOnly(2020, 1, 1) },
+            new MediaEntity { Title = "PagingTestBeta",  MediaTypeId = MovieMediaTypeId, ReleaseDate = new DateOnly(2021, 1, 1) }
+        );
+        await db.SaveChangesAsync();
+
+        var response = await Client.GetAsync("/api/media?searchField=title&searchTerm=PagingTest&sortField=releaseDate&sortDirection=desc&page=0&pageSize=1");
+        TestUtils.AssertSuccessResponse(response);
+        var result = await response.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
+
+        result!.Items.Should().HaveCount(1);
+        result.TotalCount.Should().Be(2);
+        result.Items.First().Title.Should().Be("PagingTestBeta");
+    }
+
 
     [Fact]
     public async Task UpsertMedia_Create_PersistsMedia()

@@ -1,4 +1,4 @@
-using MediaRankerServer.Modules.Media.Services;
+using MediaRankerServer.Modules.Media.Services.Interfaces;
 using Microsoft.Extensions.Options;
 
 namespace MediaRankerServer.Modules.Media.Jobs;

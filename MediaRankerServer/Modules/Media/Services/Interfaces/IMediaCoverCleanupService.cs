@@ -1,4 +1,4 @@
-namespace MediaRankerServer.Modules.Media.Services;
+namespace MediaRankerServer.Modules.Media.Services.Interfaces;
 
 public interface IMediaCoverCleanupService
 {
