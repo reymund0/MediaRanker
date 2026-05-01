@@ -5,6 +5,7 @@ using MediaRankerServer.IntegrationTests.Utils;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Shared.Data;
+using MediaRankerServer.Shared.Paging;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,10 +45,119 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
         var response = await Client.GetAsync("/api/media");
 
         TestUtils.AssertSuccessResponse(response);
-        var media = await response.Content.ReadFromJsonAsync<List<MediaDto>>();
+        var result = await response.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
 
-        media.Should().NotBeNull();
-        media.Should().Contain(m => m.Title == _testMedia.Title);
+        result.Should().NotBeNull();
+        result!.Items.Should().Contain(m => m.Title == _testMedia.Title);
+        result.TotalCount.Should().BeGreaterThanOrEqualTo(1);
+    }
+
+    [Fact]
+    public async Task GetMedia_DefaultPaging_ReturnsAtMost25Items()
+    {
+        var response = await Client.GetAsync("/api/media");
+        TestUtils.AssertSuccessResponse(response);
+        var result = await response.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
+
+        result!.Items.Count.Should().BeLessThanOrEqualTo(25);
+        result.PageSize.Should().Be(25);
+        result.Page.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GetMedia_ExplicitPageAndSize_ReturnsCorrectSlice()
+    {
+        var response = await Client.GetAsync("/api/media?page=0&pageSize=1");
+        TestUtils.AssertSuccessResponse(response);
+        var result = await response.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
+
+        result!.Items.Count.Should().Be(1);
+        result.PageSize.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetMedia_PastEndPage_ReturnsEmptyItemsAndCorrectTotalCount()
+    {
+        var response = await Client.GetAsync("/api/media?page=9999&pageSize=25");
+        TestUtils.AssertSuccessResponse(response);
+        var result = await response.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
+
+        result!.Items.Should().BeEmpty();
+        result.TotalCount.Should().BeGreaterThanOrEqualTo(1);
+    }
+
+    [Fact]
+    public async Task GetMedia_SortByReleaseDateDesc_NullsLast()
+    {
+        // Seed one with null ReleaseDate
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+        db.Media.Add(new MediaEntity { Title = "NullDate Media", MediaTypeId = MovieMediaTypeId, ReleaseDate = null });
+        db.Media.Add(new MediaEntity { Title = "Dated Media", MediaTypeId = MovieMediaTypeId, ReleaseDate = new DateOnly(2020, 1, 1) });
+        await db.SaveChangesAsync();
+
+        var response = await Client.GetAsync("/api/media?sortField=releaseDate&sortDirection=desc&pageSize=100");
+        TestUtils.AssertSuccessResponse(response);
+        var result = await response.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
+
+        var items = result!.Items;
+        var nullDateIndex = items.ToList().FindIndex(m => m.ReleaseDate == null);
+        nullDateIndex.Should().BeGreaterThan(-1);
+        // All non-null dates should come before nulls
+        items.Take(nullDateIndex).Should().OnlyContain(m => m.ReleaseDate != null);
+    }
+
+    [Fact]
+    public async Task GetMedia_TitleTiebreaker_DeterministicIdAscOrder()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+        var a = new MediaEntity { Title = "Tie Title", MediaTypeId = MovieMediaTypeId };
+        var b = new MediaEntity { Title = "Tie Title", MediaTypeId = MovieMediaTypeId };
+        db.Media.AddRange(a, b);
+        await db.SaveChangesAsync();
+
+        var response = await Client.GetAsync("/api/media?sortField=title&sortDirection=asc&pageSize=100");
+        TestUtils.AssertSuccessResponse(response);
+        var result = await response.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
+
+        var ties = result!.Items.Where(m => m.Title == "Tie Title").ToList();
+        ties.Count.Should().Be(2);
+        ties[0].Id.Should().BeLessThan(ties[1].Id);
+    }
+
+    [Fact]
+    public async Task GetMedia_InvalidSortField_ReturnsPagingValidationErrorProblemType()
+    {
+        var response = await Client.GetAsync("/api/media?sortField=notAllowedForThisEndpoint");
+
+        response.IsSuccessStatusCode.Should().BeFalse();
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        problem!.Type.Should().Be("paging_validation_error");
+    }
+
+    [Fact]
+    public async Task GetMedia_SearchByTitle_FiltersResults()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+        db.Media.Add(new MediaEntity { Title = "UniqueSearchableXyz", MediaTypeId = MovieMediaTypeId });
+        await db.SaveChangesAsync();
+
+        var response = await Client.GetAsync("/api/media?searchField=title&searchTerm=UniqueSearchableXyz");
+        TestUtils.AssertSuccessResponse(response);
+        var result = await response.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
+
+        result!.Items.Should().OnlyContain(m => m.Title.Contains("UniqueSearchableXyz"));
+        result.TotalCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetMedia_MalformedPage_DefaultBindingError_400()
+    {
+        var response = await Client.GetAsync("/api/media?page=abc");
+        response.IsSuccessStatusCode.Should().BeFalse();
+        ((int)response.StatusCode).Should().Be(400);
     }
 
     [Fact]

@@ -1,7 +1,8 @@
 using FluentValidation;
 using MediaRankerServer.Modules.Templates.Contracts;
 using MediaRankerServer.Modules.Templates.Services;
-using Microsoft.Extensions.DependencyInjection;
+using MediaRankerServer.Modules.Media.Services;
+using MediaRankerServer.Modules.Media.Services.Interfaces;
 
 namespace MediaRankerServer.Modules.Templates;
 

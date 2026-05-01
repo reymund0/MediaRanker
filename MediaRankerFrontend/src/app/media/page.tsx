@@ -12,7 +12,7 @@ import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import { BaseDialog } from "@/lib/components/feedback/dialog/base-dialog";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { MediaDto, MediaUpsertRequest } from "./contracts";
-import { MediaTypeDto } from "@/lib/contracts/shared";
+import { MediaTypeDto, PageResult } from "@/lib/contracts/shared";
 import { buildMediaColumns, MediaRow, mapMediaToRow } from "./grid-utils";
 import { MediaEditModal } from "./media-edit-modal";
 import { PageCard } from "@/lib/components/layout/page-card";
@@ -36,7 +36,7 @@ export default function MediaPage() {
     data: media,
     isLoading: isMediaLoading,
     isError: isMediaError,
-  } = useQuery<MediaDto[]>({
+  } = useQuery<PageResult<MediaDto>>({
     route: "/api/media",
     queryKey: ["media"],
     enabled: !!userId && !editingRow,
@@ -58,7 +58,7 @@ export default function MediaPage() {
         return;
       }
 
-      setRows(media.map((mediaRecord) => mapMediaToRow(mediaRecord)));
+      setRows(media.items.map((mediaRecord) => mapMediaToRow(mediaRecord)));
     };
 
     updateRows();

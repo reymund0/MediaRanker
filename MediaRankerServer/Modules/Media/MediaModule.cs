@@ -3,6 +3,7 @@ using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Jobs;
 using MediaRankerServer.Modules.Media.Services;
+using MediaRankerServer.Modules.Media.Services.Interfaces;
 using MediaRankerServer.Modules.Media.Data;
 
 namespace MediaRankerServer.Modules.Media;

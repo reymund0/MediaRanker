@@ -1,5 +1,12 @@
 // If this grows too large, split into module-based files.
 
+export interface PageResult<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface MediaTypeDto {
   id: number;
   name: string;

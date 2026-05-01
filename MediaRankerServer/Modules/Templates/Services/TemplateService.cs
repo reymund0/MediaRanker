@@ -1,5 +1,5 @@
 using FluentValidation;
-using MediaRankerServer.Modules.Media.Services;
+using MediaRankerServer.Modules.Media.Services.Interfaces;
 using MediatR;
 using MediaRankerServer.Modules.Templates.Data.Entities;
 using MediaRankerServer.Shared.Data;

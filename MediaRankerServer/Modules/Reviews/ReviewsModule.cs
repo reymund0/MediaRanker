@@ -3,6 +3,7 @@ using MediaRankerServer.Modules.Reviews.Contracts;
 using MediaRankerServer.Modules.Reviews.Services;
 using MediaRankerServer.Modules.Templates.Services;
 using MediaRankerServer.Modules.Media.Services;
+using MediaRankerServer.Modules.Media.Services.Interfaces;
 using MediaRankerServer.Modules.Files.Services;
 
 

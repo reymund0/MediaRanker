@@ -1,12 +1,13 @@
 using FluentValidation;
-using MediaRankerServer.Modules.Media.Services;
+using MediaRankerServer.Modules.Media.Data.Entities;
+using MediaRankerServer.Modules.Media.Services.Interfaces;
 using MediaRankerServer.Modules.Reviews.Data.Entities;
-using MediaRankerServer.Modules.Reviews.Data.Views;
 using MediaRankerServer.Modules.Templates.Services;
 using MediaRankerServer.Modules.Reviews.Contracts;
 using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
+using MediaRankerServer.Shared.Paging;
 
 using Microsoft.EntityFrameworkCore;
 namespace MediaRankerServer.Modules.Reviews.Services;
@@ -43,8 +44,10 @@ public class ReviewService(
         return [.. reviewDetails.Select(r => ReviewDtoMapper.Map(fileService, r, fields.Where(f => f.Field.ReviewId == r.Id)))];
     }
     
-    public async Task<List<UnreviewedMediaDto>> GetUnreviewedMediaByTypeAsync(string userId, long mediaTypeId, CancellationToken cancellationToken = default)
+    public async Task<PageResult<UnreviewedMediaDto>> GetUnreviewedMediaByTypeAsync(string userId, long mediaTypeId, PageRequest request, CancellationToken cancellationToken = default)
     {
+        var v = PagingValidator.Validate(request, UnreviewedMediaQueryBuilder.SortFields, UnreviewedMediaQueryBuilder.SearchFields, "title");
+
         // Get IDs of media the user HAS reviewed
         var reviewedMediaIds = await dbContext.Reviews
             .AsNoTracking()
@@ -52,15 +55,16 @@ public class ReviewService(
             .Select(r => r.MediaId)
             .ToListAsync(cancellationToken);
 
-        // Fetch all media of this type that are NOT in the reviewed list
-        var userUnreviewedMedia = await dbContext.Media
-            .AsNoTracking()
-            .Where(m => m.MediaTypeId == mediaTypeId && !reviewedMediaIds.Contains(m.Id))
-            .Include(m => m.MediaType)
-            .Include(m => m.Cover)
-            .ToListAsync(cancellationToken);
+        var query = UnreviewedMediaQueryBuilder.ApplySearch(
+            UnreviewedMediaQueryBuilder.BaseQuery(dbContext, mediaTypeId, reviewedMediaIds), v);
+        var totalCount = await query.CountAsync(cancellationToken);
+        query = UnreviewedMediaQueryBuilder.ApplySort(query, v);
 
-        return [.. userUnreviewedMedia.Select(m => UnreviewedMediaDtoMapper.Map(m, fileService))];
+        var page = await query.Skip(v.Skip).Take(v.Take).ToListAsync(cancellationToken);
+
+        return new PageResult<UnreviewedMediaDto>(
+            [.. page.Select(m => UnreviewedMediaDtoMapper.Map(m, fileService))],
+            totalCount, v.Page, v.PageSize);
     }
 
     public async Task<ReviewDto> CreateReviewAsync(string userId, ReviewInsertRequest request, CancellationToken cancellationToken = default)
