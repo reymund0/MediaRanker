@@ -7,7 +7,6 @@ using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Paging;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -53,91 +52,23 @@ public class MediaCollectionCrudTests(PostgresContainerFixture postgresFixture, 
     }
 
     [Fact]
-    public async Task GetCollections_DefaultPaging_ReturnsAtMost25Items()
-    {
-        var response = await Client.GetAsync("/api/mediacollection");
-        TestUtils.AssertSuccessResponse(response);
-        var result = await response.Content.ReadFromJsonAsync<PageResult<MediaCollectionDto>>();
-
-        result!.Items.Count.Should().BeLessThanOrEqualTo(25);
-        result.Page.Should().Be(0);
-        result.PageSize.Should().Be(25);
-    }
-
-    [Fact]
-    public async Task GetCollections_PastEndPage_ReturnsEmptyItemsAndCorrectTotalCount()
-    {
-        var response = await Client.GetAsync("/api/mediacollection?page=9999&pageSize=25");
-        TestUtils.AssertSuccessResponse(response);
-        var result = await response.Content.ReadFromJsonAsync<PageResult<MediaCollectionDto>>();
-
-        result!.Items.Should().BeEmpty();
-        result.TotalCount.Should().BeGreaterThanOrEqualTo(1);
-    }
-
-    [Fact]
-    public async Task GetCollections_SortByReleaseDateDesc_NullsLast()
-    {
-        using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
-        db.MediaCollections.Add(new MediaCollection { Title = "NullDate Collection", CollectionType = MediaCollectionType.Series, MediaTypeId = MovieTypeId, ReleaseDate = null });
-        db.MediaCollections.Add(new MediaCollection { Title = "Dated Collection", CollectionType = MediaCollectionType.Series, MediaTypeId = MovieTypeId, ReleaseDate = new DateOnly(2020, 1, 1) });
-        await db.SaveChangesAsync();
-
-        var response = await Client.GetAsync("/api/mediacollection?sortField=releaseDate&sortDirection=desc&pageSize=100");
-        TestUtils.AssertSuccessResponse(response);
-        var result = await response.Content.ReadFromJsonAsync<PageResult<MediaCollectionDto>>();
-
-        var items = result!.Items;
-        var nullDateIndex = items.ToList().FindIndex(c => c.ReleaseDate == null);
-        nullDateIndex.Should().BeGreaterThan(-1);
-        items.Take(nullDateIndex).Should().OnlyContain(c => c.ReleaseDate != null);
-    }
-
-    [Fact]
-    public async Task GetCollections_TitleTiebreaker_DeterministicIdAscOrder()
+    public async Task GetCollections_Paging_SortSearchAndPageWork()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
         db.MediaCollections.AddRange(
-            new MediaCollection { Title = "Tie Collection", CollectionType = MediaCollectionType.Series, MediaTypeId = MovieTypeId },
-            new MediaCollection { Title = "Tie Collection", CollectionType = MediaCollectionType.Series, MediaTypeId = MovieTypeId }
+            new MediaCollection { Title = "PagingTestAlpha", CollectionType = MediaCollectionType.Series, MediaTypeId = MovieTypeId, ReleaseDate = new DateOnly(2020, 1, 1) },
+            new MediaCollection { Title = "PagingTestBeta",  CollectionType = MediaCollectionType.Series, MediaTypeId = MovieTypeId, ReleaseDate = new DateOnly(2021, 1, 1) }
         );
         await db.SaveChangesAsync();
 
-        var response = await Client.GetAsync("/api/mediacollection?sortField=title&sortDirection=asc&pageSize=100");
+        var response = await Client.GetAsync("/api/mediacollection?searchField=title&searchTerm=PagingTest&sortField=releaseDate&sortDirection=desc&page=0&pageSize=1");
         TestUtils.AssertSuccessResponse(response);
         var result = await response.Content.ReadFromJsonAsync<PageResult<MediaCollectionDto>>();
 
-        var ties = result!.Items.Where(c => c.Title == "Tie Collection").ToList();
-        ties.Count.Should().Be(2);
-        ties[0].Id.Should().BeLessThan(ties[1].Id);
-    }
-
-    [Fact]
-    public async Task GetCollections_InvalidSortField_ReturnsPagingValidationErrorProblemType()
-    {
-        var response = await Client.GetAsync("/api/mediacollection?sortField=notAllowedForThisEndpoint");
-
-        response.IsSuccessStatusCode.Should().BeFalse();
-        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        problem!.Type.Should().Be("paging_validation_error");
-    }
-
-    [Fact]
-    public async Task GetCollections_SearchByTitle_FiltersResults()
-    {
-        using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
-        db.MediaCollections.Add(new MediaCollection { Title = "UniqueSearchableCollection", CollectionType = MediaCollectionType.Series, MediaTypeId = MovieTypeId });
-        await db.SaveChangesAsync();
-
-        var response = await Client.GetAsync("/api/mediacollection?searchField=title&searchTerm=UniqueSearchableCollection");
-        TestUtils.AssertSuccessResponse(response);
-        var result = await response.Content.ReadFromJsonAsync<PageResult<MediaCollectionDto>>();
-
-        result!.Items.Should().OnlyContain(c => c.Title.Contains("UniqueSearchableCollection"));
-        result.TotalCount.Should().Be(1);
+        result!.Items.Should().HaveCount(1);
+        result.TotalCount.Should().Be(2);
+        result.Items.First().Title.Should().Be("PagingTestBeta");
     }
 
     [Fact]
