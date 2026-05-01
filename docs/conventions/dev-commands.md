@@ -9,6 +9,10 @@ This document captures common local commands for MediaRanker.
 - Backend (from `MediaRankerServer`):
   - `dotnet run`
 
+## Docker Compose
+
+- Local Postgres is configured with `max_wal_size=4GB` in `docker-compose.yml` to support large IMDB import/load operations.
+
 ## EF Core Migrations
 
 From `MediaRankerServer`:

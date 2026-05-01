@@ -59,6 +59,7 @@ Do not edit build artifacts:
 - Make job behavior configuration-driven (`IOptions<T>`), including an enable/disable flag and thresholds/timing settings.
 - Wrap each run in exception handling, log start/finish with counts, and continue scheduling subsequent runs unless cancellation is requested.
 - For large external dataset ingestion, use a provider class with a callback-driven batch pattern: `RunBatchImportAsync(Func<List<TRow>, CancellationToken, Task> batchHandler, ct)`. The provider owns download/decompression/parse; the caller supplies the batch insert logic. See `docs/conventions/backend-conventions.md` for the full pattern.
+- For staged external data loads into domain tables, keep bulk SQL in a module-owned data provider, keep orchestration/order in the service, and make loads idempotent with `INSERT ... ON CONFLICT` where practical.
 
 ### File Upload Lifecycle (Files Module)
 
