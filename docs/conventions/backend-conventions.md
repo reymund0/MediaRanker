@@ -53,6 +53,12 @@ For importing large external datasets (e.g., IMDB TSV files), use a callback-dri
   - Per-batch exception handling (log error and continue; don't abort the whole import on a single batch failure)
 - **Staging table** (e.g., `imdb_imports`) is append-only for record keeping purposes. Duplicates are prevent by unique identifiers from external source.
 - **`BackgroundService` job** for regular syncs of datasets (if dataset is small enough)
+- Keep import and load responsibilities separate:
+  - Import providers/services move external rows into staging tables.
+  - Load providers/services transform staged rows into domain tables.
+- For staged-to-domain loads, prefer module-owned raw SQL providers for large set-based operations. Keep sequencing in the service when one load depends on another, such as Series before Seasons before Episodes.
+- Make load operations idempotent where practical with `INSERT ... ON CONFLICT DO UPDATE`, and log affected counts as affected rows rather than inserted-only counts.
+- For long-running bulk SQL, set command timeout around the operation and reset it in `finally` so incidental queries on the same context are not affected.
 
 ## File Upload Lifecycle (Module + Files Module)
 - The upload flow is two-phase and module-driven:
