@@ -63,5 +63,5 @@ _ReSharper*/
 **/appsettings.Development.json
 **/appsettings.Production.json
 
-# Claude Code
-.claude/*
+# Clanker files
+.clanker/

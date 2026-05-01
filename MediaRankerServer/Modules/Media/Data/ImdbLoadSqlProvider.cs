@@ -1,29 +1,13 @@
 using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Shared.Data;
 using Microsoft.EntityFrameworkCore;
-using System.Text;
 
 namespace MediaRankerServer.Modules.Media.Data;
 
 public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSqlProvider> logger) : IImdbLoadProvider
 {
-    // Maps IMDB title_type values to stable MediaType IDs.
-    // -1 = Video Game, -3 = Movie.
-    internal static readonly IReadOnlyDictionary<string, long> NonSeriesTitleTypeMap =
-        new Dictionary<string, long>
-        {
-            ["videoGame"] = -1L,
-            ["movie"]     = -3L,
-            ["tvMovie"]   = -3L,
-            ["short"]     = -3L,
-            ["tvShort"]   = -3L,
-            ["video"]     = -3L,
-        };
-
     public async Task<ImdbLoadResult> LoadNonSeriesMediaAsync(CancellationToken ct)
     {
-        var caseClause = BuildCaseClause(NonSeriesTitleTypeMap);
-        var inClause   = BuildInClause(NonSeriesTitleTypeMap);
         // NOTE: With ON CONFLICT DO UPDATE, Postgres reports both inserted and updated rows in the
         // affected-row count. We cannot cheaply distinguish inserted vs updated without RETURNING xmax = 0.
         // Logging a single "affected" count is acceptable for now.
@@ -34,11 +18,18 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 CASE WHEN i.start_year IS NULL THEN NULL ELSE make_date(i.start_year, 7, 1) END,
                 i.tconst,
                 '{nameof(MediaExternalSource.Imdb)}',
-                {caseClause},
+                CASE i.title_type
+                    WHEN 'videoGame' THEN -1
+                    WHEN 'movie'     THEN -3
+                    WHEN 'tvMovie'   THEN -3
+                    WHEN 'short'     THEN -3
+                    WHEN 'tvShort'   THEN -3
+                    WHEN 'video'     THEN -3
+                END,
                 now(),
                 now()
             FROM imdb_imports i
-            WHERE i.title_type IN ({inClause})
+            WHERE i.title_type IN ('videoGame', 'movie', 'tvMovie', 'short', 'tvShort', 'video')
             ON CONFLICT (external_id, external_source) WHERE external_id IS NOT NULL
             DO UPDATE SET
                 title          = EXCLUDED.title,
@@ -46,25 +37,7 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 media_type_id  = EXCLUDED.media_type_id,
                 updated_at     = now();
             """;
-        try
-        {
-            // Set a longer timeout for this operation since we're processing millions of rows.
-            dbContext.Database.SetCommandTimeout(TimeSpan.FromMinutes(15));
-
-            var affected = await dbContext.Database.ExecuteSqlRawAsync(sql, ct);
-            return new ImdbLoadResult(affected);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error loading non-series media from imdb_imports. SQL: {Sql}", sql);
-            throw;
-        }
-        finally
-        {
-            // Reset the command timeout to the default value.
-            // Not really necessary since dbContext is disposed after loading, resetting the config.
-            dbContext.Database.SetCommandTimeout(null);
-        }
+        return new ImdbLoadResult(await ExecuteBulkSqlAsync(sql, "Error loading non-series media from imdb_imports.", ct));
     }
 
     public async Task<ImdbLoadResult> LoadSeriesCollectionsAsync(CancellationToken ct)
@@ -92,22 +65,7 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 media_type_id = EXCLUDED.media_type_id,
                 updated_at    = now();
             """;
-        try
-        {
-            dbContext.Database.SetCommandTimeout(TimeSpan.FromMinutes(15));
-
-            var affected = await dbContext.Database.ExecuteSqlRawAsync(sql, ct);
-            return new ImdbLoadResult(affected);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error loading series collections from imdb_imports. SQL: {Sql}", sql);
-            throw;
-        }
-        finally
-        {
-            dbContext.Database.SetCommandTimeout(null);
-        }
+        return new ImdbLoadResult(await ExecuteBulkSqlAsync(sql, "Error loading series collections from imdb_imports.", ct));
     }
 
     public async Task<ImdbLoadResult> LoadSeasonCollectionsAsync(CancellationToken ct)
@@ -148,38 +106,63 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 external_source = EXCLUDED.external_source,
                 updated_at      = now();
             """;
+        return new ImdbLoadResult(await ExecuteBulkSqlAsync(sql, "Error loading season collections from imdb_import_episodes.", ct));
+    }
+
+    public async Task<ImdbLoadResult> LoadEpisodeMediaAsync(CancellationToken ct)
+    {
+        var sql = $"""
+            INSERT INTO media (title, release_date, external_id, external_source,
+                               media_type_id, media_collection_id, created_at, updated_at)
+            SELECT
+                i.primary_title,
+                CASE WHEN i.start_year IS NULL THEN NULL ELSE make_date(i.start_year, 7, 1) END,
+                i.tconst,
+                '{nameof(MediaExternalSource.Imdb)}',
+                -4,
+                season.id,
+                now(),
+                now()
+            FROM imdb_imports i
+            INNER JOIN imdb_import_episodes e ON e.tconst = i.tconst
+            INNER JOIN media_collections series
+                ON series.external_id = e.parent_tconst
+               AND series.external_source = '{nameof(MediaExternalSource.Imdb)}'
+               AND series.collection_type = 'Series'
+            INNER JOIN media_collections season
+                ON season.parent_media_collection_id = series.id
+               AND season.collection_type = 'Season'
+               AND season.title = CASE WHEN e.season_number = -1 THEN 'Unknown'
+                                       ELSE e.season_number::text END
+            WHERE i.title_type = 'tvEpisode'
+            ON CONFLICT (external_id, external_source) WHERE external_id IS NOT NULL
+            DO UPDATE SET
+                title               = EXCLUDED.title,
+                release_date        = EXCLUDED.release_date,
+                media_type_id       = EXCLUDED.media_type_id,
+                media_collection_id = EXCLUDED.media_collection_id,
+                updated_at          = now();
+            """;
+        return new ImdbLoadResult(await ExecuteBulkSqlAsync(sql, "Error loading episode media from imdb_imports.", ct));
+    }
+
+    // Set a longer timeout for bulk operations since we're processing millions of rows.
+    // Not scoped to the constructor so that incidental EF queries on the same dbContext are unaffected.
+    private async Task<int> ExecuteBulkSqlAsync(string sql, string errorMessage, CancellationToken ct)
+    {
         try
         {
             dbContext.Database.SetCommandTimeout(TimeSpan.FromMinutes(15));
-
-            var affected = await dbContext.Database.ExecuteSqlRawAsync(sql, ct);
-            return new ImdbLoadResult(affected);
+            return await dbContext.Database.ExecuteSqlRawAsync(sql, ct);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error loading season collections from imdb_import_episodes. SQL: {Sql}", sql);
+            logger.LogError(ex, "{ErrorMessage} SQL: {Sql}", errorMessage, sql);
             throw;
         }
         finally
         {
             dbContext.Database.SetCommandTimeout(null);
         }
-    }
-
-    internal static string BuildCaseClause(IReadOnlyDictionary<string, long> map)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine("CASE i.title_type");
-        foreach (var (titleType, mediaTypeId) in map)
-        {
-            sb.AppendLine($"    WHEN '{titleType}' THEN {mediaTypeId}");
-        }
-        sb.Append("END");
-        return sb.ToString();
-    }
-
-    internal static string BuildInClause(IReadOnlyDictionary<string, long> map)
-    {
-        return string.Join(", ", map.Keys.Select(k => $"'{k}'"));
     }
 }
