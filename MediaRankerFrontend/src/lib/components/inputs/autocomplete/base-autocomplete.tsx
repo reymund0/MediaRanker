@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Autocomplete,
   CircularProgress,
@@ -8,18 +9,28 @@ import {
 } from "@mui/material";
 import { BaseSelectOption } from "../select/base-select";
 
+type TextFieldPassthroughProps = Omit<
+  TextFieldProps,
+  "value" | "defaultValue" | "onChange" | "select"
+>;
+
 export type BaseAutocompleteProps<T = unknown> = {
   options: BaseSelectOption<T>[];
-  isLoading?: boolean;
-  renderOptionContent?: (option: BaseSelectOption<T>) => React.ReactNode;
   onSelectOption?: (option: BaseSelectOption<T> | null) => void;
-} & TextFieldProps;
+  renderOptionContent?: (option: BaseSelectOption<T>) => React.ReactNode;
+  isLoading?: boolean;
+  searchInput: string;
+  onSearchChange: (input: string) => void;
+} & TextFieldPassthroughProps;
 
 export function BaseAutocomplete<T = unknown>({
   options,
-  isLoading,
-  renderOptionContent,
   onSelectOption,
+  renderOptionContent,
+  isLoading,
+  searchInput,
+  onSearchChange,
+  disabled,
   ...props
 }: BaseAutocompleteProps<T>) {
   return (
@@ -27,7 +38,18 @@ export function BaseAutocomplete<T = unknown>({
       fullWidth
       options={options}
       getOptionLabel={(option) => option.label}
-      onChange={(_e, value) => onSelectOption?.(value)}
+      onChange={(_e, val) => onSelectOption?.(val)}
+      disabled={disabled}
+      popupIcon={isLoading ? <CircularProgress size={20} /> : undefined}
+      inputValue={searchInput}
+      onInputChange={(_e, val, reason) => {
+        // Only trigger search when user is typing or clearing.
+        if (reason === "input" || reason === "clear") {
+          onSearchChange(val);
+        }
+      }}
+      filterOptions={(x) => x}
+      noOptionsText={searchInput.length === 0 ? "Type to search" : "No options"}
       renderInput={(params) => (
         <TextField
           {...params}
@@ -35,8 +57,6 @@ export function BaseAutocomplete<T = unknown>({
           label={isLoading ? undefined : props.label}
         />
       )}
-      disabled={isLoading || props.disabled}
-      popupIcon={isLoading ? <CircularProgress size={20} /> : undefined}
       renderOption={(optionProps, option) => {
         const { key, ...restOptionProps } = optionProps;
 

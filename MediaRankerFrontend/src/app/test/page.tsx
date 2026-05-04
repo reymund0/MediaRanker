@@ -146,7 +146,7 @@ export default function Test() {
           >
             Trigger IMDB Import
           </PrimaryButton>
-          
+
           <PrimaryButton
             onClick={() =>
               callEndpoint(imdbLoadMutation, "/api/test/triggerImdbLoad")

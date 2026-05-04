@@ -2,12 +2,17 @@
 
 import { Button, Stack, Typography } from "@mui/material";
 import { BaseAutocomplete } from "@/lib/components/inputs/autocomplete/base-autocomplete";
-import { BaseSelect } from "@/lib/components/inputs/select/base-select";
+import {
+  BaseSelect,
+  BaseSelectOption,
+} from "@/lib/components/inputs/select/base-select";
 import { TemplateDto } from "@/lib/contracts/shared";
 import { UnreviewedMediaDto } from "../contracts";
+import { usePagedQuery } from "@/lib/api/use-paged-query";
 import { useQuery } from "@/lib/api/use-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useUser } from "@/lib/auth/user-provider";
+import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import { ReviewFormValues } from "./review-card-utils";
 import { TemplateFieldDisplay } from "./review-card-edit";
 
@@ -29,28 +34,39 @@ export function ReviewCardNewSteps({
   onNewReview,
 }: ReviewCardNewStepsProps) {
   const { userId } = useUser();
+  const { showError } = useAlert();
 
-  const [selectedUnreviewedMediaId, setSelectedUnreviewedMediaId] = useState<
-    number | undefined
-  >(undefined);
-
+  const [selectedMedia, setSelectedMedia] =
+    useState<BaseSelectOption<UnreviewedMediaDto> | null>(null);
+  const [searchInput, setSearchInput] = useState("");
   const [currentStep, setCurrentStep] = useState<NewReviewStep>("select-media");
 
-  const { data: unreviewedMedia, isLoading: unreviewedLoading } = useQuery<
-    UnreviewedMediaDto[]
-  >({
-    route: `/api/reviews/unreviewedByType?mediaTypeId=${mediaTypeId ?? 0}`,
+  const {
+    items: unreviewedMedia,
+    isLoading: unreviewedLoading,
+    error: unreviewedError,
+  } = usePagedQuery<UnreviewedMediaDto>({
+    route: "/api/reviews/unreviewedByType",
+    routeParams: { mediaTypeId },
+    pageRequest: { searchTerm: searchInput, searchField: "title" },
     queryKey: ["unreviewed", mediaTypeId],
     enabled: !!userId,
   });
+
+  useEffect(() => {
+    if (unreviewedError) {
+      showError(unreviewedError.message);
+    }
+  }, [unreviewedError, showError]);
 
   const { data: templates, isLoading: templatesLoading } = useQuery<
     TemplateDto[]
   >({
     route: `/api/templates/${mediaTypeId ?? 0}`,
     queryKey: ["templates-by-type", mediaTypeId],
-    enabled: !!userId && !!selectedUnreviewedMediaId,
+    enabled: !!userId && !!selectedMedia,
   });
+
   if (currentStep === "select-media") {
     return (
       <Stack
@@ -62,15 +78,17 @@ export function ReviewCardNewSteps({
         <Typography variant="subtitle2">Select Media</Typography>
         <BaseAutocomplete<UnreviewedMediaDto>
           label="Search media"
-          options={(unreviewedMedia ?? []).map((m) => ({
+          options={unreviewedMedia.map((m) => ({
             id: m.id,
             label: m.title,
             metadata: m,
           }))}
           isLoading={unreviewedLoading}
+          searchInput={searchInput}
+          onSearchChange={setSearchInput}
           onSelectOption={(option) => {
             if (option?.metadata) {
-              setSelectedUnreviewedMediaId(option.metadata.id);
+              setSelectedMedia(option);
               setCurrentStep("select-template");
             }
           }}
@@ -111,11 +129,10 @@ export function ReviewCardNewSteps({
                     {} as Record<string, number>,
                   ),
                   id: 0,
-                  mediaId: selectedUnreviewedMediaId!,
+                  mediaId: selectedMedia!.metadata!.id,
                   templateId: id,
                 },
-                unreviewedMedia?.find((m) => m.id === selectedUnreviewedMediaId)
-                  ?.title ?? "",
+                selectedMedia?.metadata?.title ?? "",
                 tmpl.fields,
               );
             }
