@@ -49,6 +49,7 @@ export function BaseAutocomplete<T = unknown>({
         }
       }}
       filterOptions={(x) => x}
+      noOptionsText={searchInput.length === 0 ? "Type to search" : "No options"}
       renderInput={(params) => (
         <TextField
           {...params}
