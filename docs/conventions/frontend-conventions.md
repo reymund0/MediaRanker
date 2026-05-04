@@ -19,6 +19,7 @@ This document contains non-always-on frontend details for MediaRanker.
   - Example naming: `FormTextField`, `FormSelect`.
 - Keep naming and folder organization aligned with MUI docs conventions where practical.
 - Prefer evolving shared base/form components over adding one-off inline MUI usage for repeated patterns.
+- For async autocomplete/search scenarios, keep server filtering in the caller via controlled search input and pass results into the base component. The base autocomplete should not apply client-side filtering when options already come from the server.
 
 ## Layout and Navigation
 
@@ -54,6 +55,8 @@ This document contains non-always-on frontend details for MediaRanker.
 
 - `useQuery<TResponse>` is GET-only and should be used for read scenarios.
 - `useMutation<TRequest, TResponse>` is for write scenarios (`POST`/`PUT`/`DELETE`) and supports dynamic route builders (`route: (data) => string`).
+- `usePagedQuery<T>` is for GET endpoints that return `PageResult<T>` and accept `PageRequest` query params. Use it for paged/searchable list reads instead of manually assembling paging URLs at each callsite.
+- When a hook constructs a request URL internally, keep the React Query key aligned with the generated route/query params so cached data cannot drift from the actual request.
 - Keep request/response contracts explicit at hook callsites to preserve strong typing for mutation data and callbacks.
 
 ## Dialog and form pattern
