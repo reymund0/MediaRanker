@@ -65,7 +65,7 @@ export function BaseAutocomplete<T = unknown>({
       defaultValue={defaultValue !== undefined ? defaultValue : undefined}
       onChange={(_e, val) => onSelectOption?.(val)}
       isOptionEqualToValue={isOptionEqualToValue ?? ((a, b) => a.id === b.id)}
-      disabled={disabled || isLoading}
+      disabled={disabled || (!isAsync && isLoading)} // If async, allow user to interact with the component even when loading
       popupIcon={isLoading ? <CircularProgress size={20} /> : undefined}
       inputValue={inputValue !== undefined ? inputValue : undefined}
       onInputChange={
