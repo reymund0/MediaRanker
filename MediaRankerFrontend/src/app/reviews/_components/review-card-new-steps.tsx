@@ -84,7 +84,7 @@ export function ReviewCardNewSteps({
             metadata: m,
           }))}
           isLoading={unreviewedLoading}
-          inputValue={searchInput}
+          searchInput={searchInput}
           onSearchChange={setSearchInput}
           onSelectOption={(option) => {
             if (option?.metadata) {

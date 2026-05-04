@@ -19,7 +19,7 @@ export type BaseAutocompleteProps<T = unknown> = {
   onSelectOption?: (option: BaseSelectOption<T> | null) => void;
   renderOptionContent?: (option: BaseSelectOption<T>) => React.ReactNode;
   isLoading?: boolean;
-  inputValue: string;
+  searchInput: string;
   onSearchChange: (input: string) => void;
 } & TextFieldPassthroughProps;
 
@@ -28,7 +28,7 @@ export function BaseAutocomplete<T = unknown>({
   onSelectOption,
   renderOptionContent,
   isLoading,
-  inputValue,
+  searchInput,
   onSearchChange,
   disabled,
   ...props
@@ -41,8 +41,9 @@ export function BaseAutocomplete<T = unknown>({
       onChange={(_e, val) => onSelectOption?.(val)}
       disabled={disabled}
       popupIcon={isLoading ? <CircularProgress size={20} /> : undefined}
-      inputValue={inputValue}
+      inputValue={searchInput}
       onInputChange={(_e, val, reason) => {
+        // Only trigger search when user is typing or clearing.
         if (reason === "input" || reason === "clear") {
           onSearchChange(val);
         }
