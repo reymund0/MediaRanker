@@ -2,7 +2,10 @@
 
 import { Button, Stack, Typography } from "@mui/material";
 import { BaseAutocomplete } from "@/lib/components/inputs/autocomplete/base-autocomplete";
-import { BaseSelect, BaseSelectOption } from "@/lib/components/inputs/select/base-select";
+import {
+  BaseSelect,
+  BaseSelectOption,
+} from "@/lib/components/inputs/select/base-select";
 import { TemplateDto } from "@/lib/contracts/shared";
 import { UnreviewedMediaDto } from "../contracts";
 import { usePagedQuery } from "@/lib/api/use-paged-query";

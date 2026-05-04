@@ -64,9 +64,7 @@ export function BaseAutocomplete<T = unknown>({
       value={value !== undefined ? value : undefined}
       defaultValue={defaultValue !== undefined ? defaultValue : undefined}
       onChange={(_e, val) => onSelectOption?.(val)}
-      isOptionEqualToValue={
-        isOptionEqualToValue ?? ((a, b) => a.id === b.id)
-      }
+      isOptionEqualToValue={isOptionEqualToValue ?? ((a, b) => a.id === b.id)}
       disabled={disabled || isLoading}
       popupIcon={isLoading ? <CircularProgress size={20} /> : undefined}
       inputValue={inputValue !== undefined ? inputValue : undefined}

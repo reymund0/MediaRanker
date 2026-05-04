@@ -37,7 +37,11 @@ export function usePagedQuery<T>({
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(rawSearchTerm);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const nonSearchKey = JSON.stringify({ route, routeParams, pageRequest: { ...pageRequest, searchTerm: undefined } });
+  const nonSearchKey = JSON.stringify({
+    route,
+    routeParams,
+    pageRequest: { ...pageRequest, searchTerm: undefined },
+  });
   const prevNonSearchKey = useRef(nonSearchKey);
 
   useEffect(() => {
@@ -65,7 +69,7 @@ export function usePagedQuery<T>({
         timerRef.current = null;
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawSearchTerm, nonSearchKey]);
 
   const params = new URLSearchParams();

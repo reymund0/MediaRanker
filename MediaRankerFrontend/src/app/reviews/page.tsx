@@ -23,9 +23,7 @@ export default function ReviewsPage() {
   return (
     <PageCard>
       <Box sx={{ mb: 2 }}>
-        <Typography variant="h4">
-          Reviews
-        </Typography>
+        <Typography variant="h4">Reviews</Typography>
         <Typography color="text.secondary">
           Browse and manage your reviews by media type.
         </Typography>
