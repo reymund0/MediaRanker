@@ -65,3 +65,4 @@ _ReSharper*/
 
 # Clanker files
 .clanker/
+.claude/

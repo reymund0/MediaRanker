@@ -7,6 +7,15 @@ export interface PageResult<T> {
   pageSize: number;
 }
 
+export interface PageRequest {
+  page?: number;
+  pageSize?: number;
+  sortField?: string;
+  sortDirection?: "asc" | "desc";
+  searchTerm?: string;
+  searchField?: string;
+}
+
 export interface MediaTypeDto {
   id: number;
   name: string;
