@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { keepPreviousData } from "@tanstack/react-query";
 import { PageRequest, PageResult } from "../contracts/shared";
 import { ProblemDetailsError } from "./problem-details";
 import { useQuery } from "./use-query";
@@ -115,6 +116,8 @@ export function usePagedQuery<T>({
       debouncedSearchTerm,
     ],
     enabled: isFetchEnabled,
+    // Prevent clearing old data on refetch, mostly used to keep totalCount stable to prevent Datagrid from resetting.
+    placeholderData: keepPreviousData,
   });
 
   return {
