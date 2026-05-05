@@ -6,7 +6,7 @@ import { useQuery } from "./use-query";
 export type UsePagedQueryOptions = {
   route: string;
   routeParams?: Record<string, string | number | boolean | undefined | null>;
-  pageRequest?: Omit<PageRequest, "page" | "pageSize">;
+  pageRequest?: Omit<PageRequest, "pageSize">;
   queryKey: readonly unknown[];
   enabled?: boolean;
   pageSize?: number;
@@ -82,7 +82,7 @@ export function usePagedQuery<T>({
     }
   }
 
-  params.set("page", "0");
+  params.set("page", String(pageRequest?.page ?? 0));
   params.set("pageSize", String(clampedPageSize));
 
   if (pageRequest) {
@@ -98,12 +98,19 @@ export function usePagedQuery<T>({
   const queryString = params.toString();
   const fullRoute = queryString ? `${route}?${queryString}` : route;
 
-  const isFetchEnabled =
-    enabled !== false && debouncedSearchTerm.length >= minSearchChars;
+  const isFetchEnabled = enabled !== false && debouncedSearchTerm.length >= minSearchChars;
 
   const { data, isLoading, error } = useQuery<PageResult<T>>({
     route: fullRoute,
-    queryKey: [...queryKey, debouncedSearchTerm, clampedPageSize],
+    queryKey: [
+      ...queryKey,
+      pageRequest?.page ?? 0,
+      clampedPageSize,
+      pageRequest?.sortField,
+      pageRequest?.sortDirection,
+      pageRequest?.searchField,
+      debouncedSearchTerm,
+    ],
     enabled: isFetchEnabled,
   });
 
