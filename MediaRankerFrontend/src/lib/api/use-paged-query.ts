@@ -120,9 +120,10 @@ export function usePagedQuery<T>({
     placeholderData: keepPreviousData,
   });
 
+  // When fetch is disabled, return empty rows instead of potentially cached data.
   return {
-    items: data?.items ?? [],
-    totalCount: data?.totalCount ?? 0,
+    items: isFetchEnabled ? (data?.items ?? []) : [],
+    totalCount: isFetchEnabled ? (data?.totalCount ?? 0) : 0,
     isLoading,
     error: error ?? null,
   };
