@@ -2,7 +2,11 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ImageIcon from "@mui/icons-material/Image";
 import { Chip, IconButton, Stack, Typography, Box } from "@mui/material";
-import { getGridStringOperators, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import {
+  getGridStringOperators,
+  GridColDef,
+  GridRenderCellParams,
+} from "@mui/x-data-grid";
 import { format, parseISO } from "date-fns";
 import { MediaDto } from "./contracts";
 import { DateTimeCell } from "@/lib/components/data-grid/datetime-cell";

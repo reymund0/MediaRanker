@@ -49,7 +49,10 @@ export function usePaginatedDatagrid({
 
   const filterItem = filterModel.items[0];
   const filterValue = String(filterItem?.value ?? "").trim();
-  const searchField = filterItem?.field !== undefined && filterValue.length > 0 ? filterItem.field : undefined;
+  const searchField =
+    filterItem?.field !== undefined && filterValue.length > 0
+      ? filterItem.field
+      : undefined;
   const searchTerm = searchField ? filterValue : undefined;
 
   const pageRequest: Omit<PageRequest, "pageSize"> = {
@@ -60,7 +63,10 @@ export function usePaginatedDatagrid({
     searchTerm,
   };
 
-  const onPaginationModelChange = (next: { page: number; pageSize: number }) => {
+  const onPaginationModelChange = (next: {
+    page: number;
+    pageSize: number;
+  }) => {
     setPaginationModel((prev) =>
       next.pageSize !== prev.pageSize ? { ...next, page: 0 } : next,
     );

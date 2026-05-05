@@ -33,14 +33,18 @@ export default function MediaPage() {
     pageSizeOptions: [10, 25, 50, 100],
   });
 
-  const { items, totalCount, isLoading: isMediaLoading, error: mediaError } =
-    usePagedQuery<MediaDto>({
-      route: "/api/media",
-      queryKey: ["media"],
-      enabled: !!userId,
-      pageSize: dataGridProps.paginationModel.pageSize,
-      pageRequest,
-    });
+  const {
+    items,
+    totalCount,
+    isLoading: isMediaLoading,
+    error: mediaError,
+  } = usePagedQuery<MediaDto>({
+    route: "/api/media",
+    queryKey: ["media"],
+    enabled: !!userId,
+    pageSize: dataGridProps.paginationModel.pageSize,
+    pageRequest,
+  });
 
   const {
     data: mediaTypes,
