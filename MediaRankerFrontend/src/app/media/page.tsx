@@ -2,8 +2,9 @@
 
 import AddIcon from "@mui/icons-material/Add";
 import { Box, Stack, Typography } from "@mui/material";
-import { GridColDef, GridFilterModel, GridSortModel } from "@mui/x-data-grid";
+import { GridColDef } from "@mui/x-data-grid";
 import { useState } from "react";
+import { usePaginatedDatagrid } from "@/lib/components/data-grid/use-paginated-datagrid";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMutation } from "@/lib/api/use-mutation";
 import { usePagedQuery } from "@/lib/api/use-paged-query";
@@ -24,46 +25,21 @@ export default function MediaPage() {
   const { userId } = useUser();
   const queryClient = useQueryClient();
 
-  const [paginationModel, setPaginationModel] = useState({
-    page: 0,
-    pageSize: 25,
-  });
-  const [sortModel, setSortModel] = useState<GridSortModel>([]);
-  const [filterModel, setFilterModel] = useState<GridFilterModel>({ items: [] });
   const [draftRow, setDraftRow] = useState<MediaRow | undefined>(undefined);
   const [deleteRowId, setDeleteRowId] = useState<number | undefined>(undefined);
 
-  const sortField =
-    sortModel[0]?.sort === "asc" || sortModel[0]?.sort === "desc"
-      ? sortModel[0].field
-      : undefined;
-  const sortDirection =
-    sortModel[0]?.sort === "asc" || sortModel[0]?.sort === "desc"
-      ? sortModel[0].sort
-      : undefined;
-  const filterItem = filterModel.items[0];
-  const filterValue = String(filterItem?.value ?? "").trim();
-  const searchField =
-    filterItem?.field === "title" &&
-    filterItem?.operator === "contains" &&
-    filterValue.length > 0
-      ? "title"
-      : undefined;
-  const searchTerm = searchField ? filterValue : undefined;
+  const { dataGridProps, pageRequest } = usePaginatedDatagrid({
+    defaultPageSize: 25,
+    pageSizeOptions: [10, 25, 50, 100],
+  });
 
   const { items, totalCount, isLoading: isMediaLoading, error: mediaError } =
     usePagedQuery<MediaDto>({
       route: "/api/media",
       queryKey: ["media"],
       enabled: !!userId,
-      pageSize: paginationModel.pageSize,
-      pageRequest: {
-        page: paginationModel.page,
-        sortField,
-        sortDirection,
-        searchField,
-        searchTerm,
-      },
+      pageSize: dataGridProps.paginationModel.pageSize,
+      pageRequest,
     });
 
   const {
@@ -180,27 +156,7 @@ export default function MediaPage() {
           rows={rows}
           columns={columns}
           rowCount={totalCount}
-          paginationMode="server"
-          sortingMode="server"
-          filterMode="server"
-          paginationModel={paginationModel}
-          onPaginationModelChange={(next) =>
-            setPaginationModel((prev) =>
-              next.pageSize !== prev.pageSize ? { ...next, page: 0 } : next,
-            )
-          }
-          sortModel={sortModel}
-          onSortModelChange={(m) => {
-            setSortModel(m);
-            setPaginationModel((p) => ({ ...p, page: 0 }));
-          }}
-          filterModel={filterModel}
-          onFilterModelChange={(m) => {
-            setFilterModel(m);
-            setPaginationModel((p) => ({ ...p, page: 0 }));
-          }}
-          pageSizeOptions={[10, 25, 50, 100]}
-          hideFooter={false}
+          {...dataGridProps}
         />
       </Box>
 

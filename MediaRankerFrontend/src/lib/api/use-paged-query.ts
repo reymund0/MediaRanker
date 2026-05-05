@@ -98,7 +98,10 @@ export function usePagedQuery<T>({
   const queryString = params.toString();
   const fullRoute = queryString ? `${route}?${queryString}` : route;
 
-  const isFetchEnabled = enabled !== false && debouncedSearchTerm.length >= minSearchChars;
+  const isSearching = !!pageRequest?.searchField; // If not searching we shouldn't prevent fetching.
+  const isFetchEnabled =
+    enabled !== false &&
+    (!isSearching || debouncedSearchTerm.length >= minSearchChars);
 
   const { data, isLoading, error } = useQuery<PageResult<T>>({
     route: fullRoute,
