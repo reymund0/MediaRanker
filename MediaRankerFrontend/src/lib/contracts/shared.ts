@@ -2,7 +2,7 @@
 
 export interface PageResult<T> {
   items: T[];
-  totalCount: number;
+  totalCount?: number;
   page: number;
   pageSize: number;
 }
@@ -14,6 +14,7 @@ export interface PageRequest {
   sortDirection?: "asc" | "desc";
   searchTerm?: string;
   searchField?: string;
+  includeTotalCount?: boolean;
 }
 
 export interface MediaTypeDto {

@@ -21,7 +21,9 @@ public class MediaCollectionService(
         var v = PagingValidator.Validate(request, MediaCollectionQueryBuilder.SortFields, MediaCollectionQueryBuilder.SearchFields, "title");
 
         var query = MediaCollectionQueryBuilder.ApplySearch(MediaCollectionQueryBuilder.BaseQuery(dbContext), v);
-        var totalCount = await query.CountAsync(cancellationToken);
+        int? totalCount = null;
+        if (request.IncludeTotalCount == true)
+            totalCount = await query.CountAsync(cancellationToken);
         query = MediaCollectionQueryBuilder.ApplySort(query, v);
 
         var page = await query.Skip(v.Skip).Take(v.Take).ToListAsync(cancellationToken);

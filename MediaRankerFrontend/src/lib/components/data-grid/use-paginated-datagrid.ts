@@ -55,7 +55,7 @@ export function usePaginatedDatagrid({
       : undefined;
   const searchTerm = searchField ? filterValue : undefined;
 
-  const pageRequest: Omit<PageRequest, "pageSize"> = {
+  const pageRequest: Omit<PageRequest, "pageSize" | "includeTotalCount"> = {
     page: paginationModel.page,
     sortField,
     sortDirection,

@@ -6,5 +6,6 @@ public sealed record PageRequest(
     string? SortField = null,
     string? SortDirection = "asc",
     string? SearchTerm = null,
-    string? SearchField = null
+    string? SearchField = null,
+    bool? IncludeTotalCount = null
 );
