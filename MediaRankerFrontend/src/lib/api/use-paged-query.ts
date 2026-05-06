@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { keepPreviousData } from "@tanstack/react-query";
 import { PageRequest, PageResult } from "../contracts/shared";
 import { ProblemDetailsError } from "./problem-details";
 import { useQuery } from "./use-query";
@@ -6,7 +7,7 @@ import { useQuery } from "./use-query";
 export type UsePagedQueryOptions = {
   route: string;
   routeParams?: Record<string, string | number | boolean | undefined | null>;
-  pageRequest?: Omit<PageRequest, "page" | "pageSize">;
+  pageRequest?: Omit<PageRequest, "pageSize" | "includeTotalCount">;
   queryKey: readonly unknown[];
   enabled?: boolean;
   pageSize?: number;
@@ -72,6 +73,18 @@ export function usePagedQuery<T>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawSearchTerm, nonSearchKey]);
 
+  // Filter key: changes only when route, routeParams, or filter criteria change.
+  // Page, pageSize, sort do NOT affect this key, so they will not trigger a recount.
+  const filterKey = JSON.stringify({
+    route,
+    routeParams,
+    searchField: pageRequest?.searchField,
+    searchTerm: debouncedSearchTerm,
+  });
+
+  const [storedTotalCount, setStoredTotalCount] = useState(0);
+  const [lastCountedFilterKey, setLastCountedFilterKey] = useState<string | null>(null);
+
   const params = new URLSearchParams();
 
   if (routeParams) {
@@ -82,7 +95,7 @@ export function usePagedQuery<T>({
     }
   }
 
-  params.set("page", "0");
+  params.set("page", String(pageRequest?.page ?? 0));
   params.set("pageSize", String(clampedPageSize));
 
   if (pageRequest) {
@@ -95,21 +108,49 @@ export function usePagedQuery<T>({
     }
   }
 
+  const isSearching = !!pageRequest?.searchField; // If not searching we shouldn't prevent fetching.
+  const isFetchEnabled =
+    enabled !== false &&
+    (!isSearching || debouncedSearchTerm.length >= minSearchChars);
+
+  const shouldIncludeCount = isFetchEnabled && filterKey !== lastCountedFilterKey;
+  if (shouldIncludeCount) {
+    params.set("includeTotalCount", "true");
+  }
+
   const queryString = params.toString();
   const fullRoute = queryString ? `${route}?${queryString}` : route;
 
-  const isFetchEnabled =
-    enabled !== false && debouncedSearchTerm.length >= minSearchChars;
-
   const { data, isLoading, error } = useQuery<PageResult<T>>({
     route: fullRoute,
-    queryKey: [...queryKey, debouncedSearchTerm, clampedPageSize],
+    queryKey: [
+      ...queryKey,
+      pageRequest?.page ?? 0,
+      clampedPageSize,
+      pageRequest?.sortField,
+      pageRequest?.sortDirection,
+      pageRequest?.searchField,
+      debouncedSearchTerm,
+      shouldIncludeCount,
+    ],
     enabled: isFetchEnabled,
+    // Prevent clearing old data on refetch, avoiding flickering in UI from options/rows changing.
+    placeholderData: keepPreviousData,
   });
 
+  // Capture the returned count whenever the server includes it (i.e. on filter changes).
+  useEffect(() => {
+    if (data?.totalCount != null) {
+      setStoredTotalCount(data.totalCount);
+      setLastCountedFilterKey(filterKey);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, filterKey]);
+
+  // When fetch is disabled, return empty rows instead of potentially cached data.
   return {
-    items: data?.items ?? [],
-    totalCount: data?.totalCount ?? 0,
+    items: isFetchEnabled ? (data?.items ?? []) : [],
+    totalCount: isFetchEnabled ? storedTotalCount : 0,
     isLoading,
     error: error ?? null,
   };

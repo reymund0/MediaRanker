@@ -57,7 +57,9 @@ public class ReviewService(
 
         var query = UnreviewedMediaQueryBuilder.ApplySearch(
             UnreviewedMediaQueryBuilder.BaseQuery(dbContext, mediaTypeId, reviewedMediaIds), v);
-        var totalCount = await query.CountAsync(cancellationToken);
+        int? totalCount = null;
+        if (request.IncludeTotalCount == true)
+            totalCount = await query.CountAsync(cancellationToken);
         query = UnreviewedMediaQueryBuilder.ApplySort(query, v);
 
         var page = await query.Skip(v.Skip).Take(v.Take).ToListAsync(cancellationToken);

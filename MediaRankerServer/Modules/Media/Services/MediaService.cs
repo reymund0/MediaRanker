@@ -40,7 +40,10 @@ public class MediaService(
         var v = PagingValidator.Validate(request, MediaQueryBuilder.SortFields, MediaQueryBuilder.SearchFields, "title");
 
         var query = MediaQueryBuilder.ApplySearch(MediaQueryBuilder.BaseQuery(dbContext), v);
-        var totalCount = await query.CountAsync(cancellationToken);
+        int? totalCount = null;
+        if (request.IncludeTotalCount == true) 
+            totalCount = await query.CountAsync(cancellationToken);
+            
         query = MediaQueryBuilder.ApplySort(query, v);
 
         var page = await query.Skip(v.Skip).Take(v.Take).ToListAsync(cancellationToken);

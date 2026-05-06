@@ -56,7 +56,9 @@ This document contains non-always-on frontend details for MediaRanker.
 - `useQuery<TResponse>` is GET-only and should be used for read scenarios.
 - `useMutation<TRequest, TResponse>` is for write scenarios (`POST`/`PUT`/`DELETE`) and supports dynamic route builders (`route: (data) => string`).
 - `usePagedQuery<T>` is for GET endpoints that return `PageResult<T>` and accept `PageRequest` query params. Use it for paged/searchable list reads instead of manually assembling paging URLs at each callsite.
+- For MUI DataGrid tables backed by `PageResult<T>`, use `usePaginatedDatagrid` to keep server pagination, sorting, and filtering state mapped to `PageRequest`.
 - When a hook constructs a request URL internally, keep the React Query key aligned with the generated route/query params so cached data cannot drift from the actual request.
+- When `usePagedQuery` disables fetching because search input is below `minSearchChars`, callers should expect empty items rather than stale cached results.
 - Keep request/response contracts explicit at hook callsites to preserve strong typing for mutation data and callbacks.
 
 ## Dialog and form pattern

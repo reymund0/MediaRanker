@@ -69,7 +69,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
 
         result!.Items.Should().HaveCount(1);
         result.TotalCount.Should().Be(2);
-        result.Items.First().Title.Should().Be("PagingTestBeta");
+        result.Items[0].Title.Should().Be("PagingTestBeta");
     }
 
 

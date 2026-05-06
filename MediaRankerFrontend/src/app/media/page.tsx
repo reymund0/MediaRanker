@@ -3,8 +3,11 @@
 import AddIcon from "@mui/icons-material/Add";
 import { Box, Stack, Typography } from "@mui/material";
 import { GridColDef } from "@mui/x-data-grid";
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
+import { usePaginatedDatagrid } from "@/lib/components/data-grid/use-paginated-datagrid";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMutation } from "@/lib/api/use-mutation";
+import { usePagedQuery } from "@/lib/api/use-paged-query";
 import { useQuery } from "@/lib/api/use-query";
 import { useUser } from "@/lib/auth/user-provider";
 import { BaseDataGrid } from "@/lib/components/data-grid/base-data-grid";
@@ -12,7 +15,7 @@ import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import { BaseDialog } from "@/lib/components/feedback/dialog/base-dialog";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { MediaDto, MediaUpsertRequest } from "./contracts";
-import { MediaTypeDto, PageResult } from "@/lib/contracts/shared";
+import { MediaTypeDto } from "@/lib/contracts/shared";
 import { buildMediaColumns, MediaRow, mapMediaToRow } from "./grid-utils";
 import { MediaEditModal } from "./media-edit-modal";
 import { PageCard } from "@/lib/components/layout/page-card";
@@ -20,26 +23,27 @@ import { PageCard } from "@/lib/components/layout/page-card";
 export default function MediaPage() {
   const { showSuccess, showError } = useAlert();
   const { userId } = useUser();
+  const queryClient = useQueryClient();
 
-  const [rows, setRows] = useState<MediaRow[]>([]);
+  const [draftRow, setDraftRow] = useState<MediaRow | undefined>(undefined);
   const [deleteRowId, setDeleteRowId] = useState<number | undefined>(undefined);
-  const [editingRowId, setEditingRowId] = useState<number | undefined>(
-    undefined,
-  );
 
-  const editingRow = useMemo(
-    () => rows.find((row) => row.id === editingRowId) ?? undefined,
-    [rows, editingRowId],
-  );
+  const { dataGridProps, pageRequest } = usePaginatedDatagrid({
+    defaultPageSize: 25,
+    pageSizeOptions: [10, 25, 50, 100],
+  });
 
   const {
-    data: media,
+    items,
+    totalCount,
     isLoading: isMediaLoading,
-    isError: isMediaError,
-  } = useQuery<PageResult<MediaDto>>({
+    error: mediaError,
+  } = usePagedQuery<MediaDto>({
     route: "/api/media",
     queryKey: ["media"],
-    enabled: !!userId && !editingRow,
+    enabled: !!userId,
+    pageSize: dataGridProps.paginationModel.pageSize,
+    pageRequest,
   });
 
   const {
@@ -52,17 +56,7 @@ export default function MediaPage() {
     enabled: !!userId,
   });
 
-  useEffect(() => {
-    const updateRows = async () => {
-      if (!media) {
-        return;
-      }
-
-      setRows(media.items.map((mediaRecord) => mapMediaToRow(mediaRecord)));
-    };
-
-    updateRows();
-  }, [media]);
+  const rows = items.map(mapMediaToRow);
 
   const { mutate: upsertMedia } = useMutation<MediaUpsertRequest, MediaDto>({
     route: "/api/media",
@@ -75,31 +69,19 @@ export default function MediaPage() {
   });
 
   const onEditClick = (row: MediaRow) => {
-    setEditingRowId(row.id);
+    setDraftRow({ ...row });
   };
 
   const cancelEditing = () => {
-    if (!editingRow) {
-      return;
-    }
-
-    if (editingRow.id === 0) {
-      setRows((prev) => prev.filter((row) => row.id !== editingRow.id));
-    }
-
-    setEditingRowId(undefined);
+    setDraftRow(undefined);
   };
 
   const submitEditing = (data: MediaUpsertRequest) => {
     upsertMedia(data, {
-      onSuccess: (response) => {
+      onSuccess: () => {
         showSuccess("Media saved successfully");
-        setRows((prev) =>
-          prev.map((row) =>
-            row.id !== editingRowId ? row : mapMediaToRow(response),
-          ),
-        );
-        setEditingRowId(undefined);
+        queryClient.invalidateQueries({ queryKey: ["media"] });
+        setDraftRow(undefined);
       },
       onError: (error) => {
         showError(error.message);
@@ -110,18 +92,15 @@ export default function MediaPage() {
   const addMedia = () => {
     const defaultMediaType = mediaTypes?.[0] ?? { id: 0, name: "" };
 
-    const newRow: MediaRow = {
-      id: 0,
+    setDraftRow({
+      id: undefined,
       title: "",
       mediaTypeId: defaultMediaType.id,
       mediaTypeName: defaultMediaType.name,
       releaseDate: null,
       createdAt: null,
       updatedAt: null,
-    };
-
-    setRows((prev) => [newRow, ...prev]);
-    setEditingRowId(newRow.id);
+    });
   };
 
   const onDeleteClick = (row: MediaRow) => {
@@ -129,16 +108,10 @@ export default function MediaPage() {
   };
 
   const onDeleteConfirm = (rowId: number) => {
-    if (rowId === 0) {
-      setRows((prev) => prev.filter((candidate) => candidate.id !== rowId));
-      setDeleteRowId(undefined);
-      return;
-    }
-
     deleteMedia(rowId, {
       onSuccess: () => {
         showSuccess("Media deleted successfully");
-        setRows((prev) => prev.filter((candidate) => candidate.id !== rowId));
+        queryClient.invalidateQueries({ queryKey: ["media"] });
         setDeleteRowId(undefined);
       },
       onError: (error) => {
@@ -183,16 +156,18 @@ export default function MediaPage() {
       >
         <BaseDataGrid
           loading={isMediaLoading || isMediaTypesLoading}
-          error={isMediaError || isMediaTypesError}
+          error={!!mediaError || isMediaTypesError}
           rows={rows}
           columns={columns}
+          rowCount={totalCount}
+          {...dataGridProps}
         />
       </Box>
 
-      {editingRow ? (
+      {draftRow ? (
         <MediaEditModal
           open={true}
-          row={editingRow}
+          row={draftRow}
           mediaTypes={mediaTypes || []}
           onSubmit={submitEditing}
           onCancel={cancelEditing}
@@ -209,7 +184,7 @@ export default function MediaPage() {
           confirmLoading={false}
         >
           {"Are you sure you want to delete " +
-            rows.find((r) => r.id === deleteRowId)?.title +
+            (rows.find((r) => r.id === deleteRowId)?.title ?? "this media") +
             "?"}
         </BaseDialog>
       ) : null}
