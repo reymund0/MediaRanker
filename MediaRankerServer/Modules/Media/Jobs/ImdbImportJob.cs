@@ -11,7 +11,9 @@ public class ImdbImportOptions : BaseJobOptions
     public override int ScheduleHourUtc { get; set; } = 3;
     public string DatasetUrl { get; set; } = "https://datasets.imdbws.com/title.basics.tsv.gz";
     public string EpisodesDatasetUrl { get; set; } = "https://datasets.imdbws.com/title.episode.tsv.gz";
+    public string RatingsDatasetUrl { get; set; } = "https://datasets.imdbws.com/title.ratings.tsv.gz";
     public int BatchSize { get; set; } = 5000;
+    public int MinVotes { get; set; } = 50;
 }
 
 public class ImdbImportJob(
@@ -23,7 +25,14 @@ public class ImdbImportJob(
     {
         var importService = serviceProvider.GetRequiredService<ImdbImportService>();
         var importResult = await importService.ImportAsync(ct);
-        logger.LogInformation("IMDB import completed. Basics: {Basics}, Episodes: {Episodes}", importResult.Basics, importResult.Episodes);
+        logger.LogInformation("IMDB import completed. Basics: {Basics}, Episodes: {Episodes}, Ratings: {Ratings}",
+            importResult.Basics, importResult.Episodes, importResult.Ratings);
+
+        if (!importResult.RatingsSucceeded)
+        {
+            logger.LogError("IMDB ratings ingestion failed; skipping load phase to avoid suppressing existing media.");
+            return;
+        }
 
         var loadService = serviceProvider.GetRequiredService<ImdbLoadService>();
         var loadResult = await loadService.LoadAsync(ct);

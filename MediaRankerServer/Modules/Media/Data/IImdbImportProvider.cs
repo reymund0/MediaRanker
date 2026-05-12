@@ -9,4 +9,6 @@ public interface IImdbImportProvider
   Task<int> DeleteTvPilotImportsAsync(CancellationToken ct);
   Task<ImdbImportResult> ImportBasicsAsync(List<ImdbTsvRow> rows, CancellationToken ct);
   Task<int> DeleteOrphanEpisodesAsync(CancellationToken ct);
+  Task<ImdbImportResult> ImportRatingsAsync(List<ImdbRatingTsvRow> rows, CancellationToken ct);
+  Task<int> DeleteStaleRatingsAsync(DateTimeOffset runStartUtc, CancellationToken ct);
 }

@@ -34,11 +34,15 @@ Manages **media entries** and **media types** (movies, video games, etc.).
 - Publishes `MediaDeletedEvent` when media is deleted.
 - Publishes `FileDeletedEvent` for invalid media cover uploads and explicit cover-file deletion flows.
 - Includes SQL seed data for system-owned media types (negative IDs).
-- Includes an **IMDB import pipeline** that downloads, parses, and stages the IMDB title dataset into an `imdb_imports` table:
-  - `ImdbTsvProvider` — streams and parses the `.tsv.gz` dataset; supplies batches to the caller via a `RunBatchImportAsync` callback
-  - `ImdbImportService` — wires the provider to raw SQL batch inserts with `ON CONFLICT (tconst) DO NOTHING` dedup
-  - `ImdbImportJob` — `BackgroundService` that runs the import on a configurable daily schedule
-  - Disabled by default; enable via `Media:ImdbImport:Enabled` in config
+- Includes an **IMDB import pipeline** that downloads, parses, and stages the IMDB title datasets:
+    - `ImdbTsvProvider` — streams and parses `.tsv.gz` datasets; supplies batches to the caller via a `RunBatchImportAsync` callback
+    - `ImdbImportService` — orchestrates three dataset imports in order: ratings → basics → episodes
+      - Ratings from `title.ratings.tsv.gz` are ingested into `imdb_import_ratings` with upsert; stale tconsts are evicted after each successful run
+      - If ratings ingestion fails or produces zero rows, the load phase is skipped to avoid suppressing existing media
+    - `ImdbLoadService` — promotes staged rows into `media` and `media_collections`; uses an INNER JOIN on `imdb_import_ratings` to filter titles below `MinVotes` (default 50) or missing from the ratings table
+    - `ImdbImportJob` — `BackgroundService` that runs the full import+load pipeline on a configurable daily schedule
+    - Disabled by default; enable via `Media:ImdbImport:Enabled` in config
+    - Configurable thresholds: `Media:ImdbImport:MinVotes` (default `50`), `Media:ImdbImport:RatingsDatasetUrl`
 
 ### Reviews
 

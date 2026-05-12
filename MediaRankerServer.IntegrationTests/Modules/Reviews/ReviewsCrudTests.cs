@@ -85,7 +85,7 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
     [Fact]
     public async Task GetUnreviewedMedia_ReturnsUnreviewedMedia()
     {
-        var response = await Client.GetAsync($"{basePath}/unreviewedByType?mediaTypeId={_testUnreviewedMedia.MediaTypeId}");
+        var response = await Client.GetAsync($"{basePath}/unreviewedByType?mediaTypeId={_testUnreviewedMedia.MediaTypeId}&includeTotalCount=true");
         TestUtils.AssertSuccessResponse(response);
 
         var result = await response.Content.ReadFromJsonAsync<PageResult<UnreviewedMediaDto>>();
@@ -106,7 +106,7 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
         );
         await db.SaveChangesAsync();
 
-        var response = await Client.GetAsync($"{basePath}/unreviewedByType?mediaTypeId={_testTemplate.MediaTypeId}&searchField=title&searchTerm=PagingTest&sortField=releaseDate&sortDirection=desc&page=0&pageSize=1");
+        var response = await Client.GetAsync($"{basePath}/unreviewedByType?mediaTypeId={_testTemplate.MediaTypeId}&searchField=title&searchTerm=PagingTest&sortField=releaseDate&sortDirection=desc&page=0&pageSize=1&includeTotalCount=true");
         TestUtils.AssertSuccessResponse(response);
         var result = await response.Content.ReadFromJsonAsync<PageResult<UnreviewedMediaDto>>();
 

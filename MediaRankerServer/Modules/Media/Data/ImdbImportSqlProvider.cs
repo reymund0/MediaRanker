@@ -146,6 +146,61 @@ public class ImdbImportSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbImpo
         return sb.ToString();
     }
 
+    public async Task<ImdbImportResult> ImportRatingsAsync(List<ImdbRatingTsvRow> rows, CancellationToken ct)
+    {
+        string sql = string.Empty;
+        try
+        {
+            sql = BuildRatingsInsertSql(rows);
+            var result = await dbContext.Database.ExecuteSqlRawAsync(sql, ct);
+            var skipped = rows.Count - result;
+            return new ImdbImportResult(result, skipped);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error importing batch of IMDB ratings rows. SQL: {Sql}", sql);
+            throw;
+        }
+    }
+
+    public async Task<int> DeleteStaleRatingsAsync(DateTimeOffset runStartUtc, CancellationToken ct)
+    {
+        try
+        {
+            return await dbContext.Database.ExecuteSqlInterpolatedAsync($"""
+                DELETE FROM imdb_import_ratings WHERE updated_at < {runStartUtc};
+                """, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting stale rows from imdb_import_ratings");
+            throw;
+        }
+    }
+
+    private static string BuildRatingsInsertSql(List<ImdbRatingTsvRow> rows)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("INSERT INTO imdb_import_ratings (tconst, average_rating, num_votes)");
+        sb.AppendLine("VALUES");
+
+        for (int i = 0; i < rows.Count; i++)
+        {
+            var row = rows[i];
+            var comma = i < rows.Count - 1 ? "," : "";
+            sb.AppendLine($"    ('{EscapeSql(row.Tconst)}', {row.AverageRating.ToString(System.Globalization.CultureInfo.InvariantCulture)}, {row.NumVotes}){comma}");
+        }
+
+        sb.Append("""
+            ON CONFLICT (tconst) DO UPDATE SET
+                average_rating = EXCLUDED.average_rating,
+                num_votes      = EXCLUDED.num_votes,
+                updated_at     = now()
+            """);
+
+        return sb.ToString();
+    }
+
     private static string EscapeSql(string value)
     {
         return value.Replace("'", "''");

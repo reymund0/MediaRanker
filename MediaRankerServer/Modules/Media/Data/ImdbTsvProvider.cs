@@ -27,6 +27,13 @@ public record ImdbEpisodeTsvRow(
     string RawLine
 );
 
+public record ImdbRatingTsvRow(
+    string Tconst,
+    decimal AverageRating,
+    int NumVotes,
+    string RawLine
+);
+
 public class ImdbTsvProvider(
     HttpClient httpClient,
     IOptions<ImdbImportOptions> options,

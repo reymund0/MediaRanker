@@ -52,6 +52,25 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         }
 
         await db.SaveChangesAsync();
+
+        // Seed matching ratings rows so the load phase INNER JOIN passes (num_votes >= MinVotes default 50).
+        await SeedRatingsAsync(db,
+        [
+            new() { Tconst = TconstMovieWithYear, AverageRating = 7.5m, NumVotes = 500 },
+            new() { Tconst = TconstMovieNullYear, AverageRating = 6.0m, NumVotes = 100 },
+            new() { Tconst = TconstVideoGame,     AverageRating = 8.0m, NumVotes = 200 },
+            new() { Tconst = TconstTvSeries,      AverageRating = 7.0m, NumVotes = 300 },
+        ]);
+    }
+
+    private static async Task SeedRatingsAsync(PostgreSQLContext db, IEnumerable<ImdbImportRating> ratings)
+    {
+        foreach (var r in ratings)
+        {
+            var exists = await db.ImdbImportRatings.AnyAsync(x => x.Tconst == r.Tconst);
+            if (!exists) db.ImdbImportRatings.Add(r);
+        }
+        await db.SaveChangesAsync();
     }
 
     [Fact]
@@ -169,11 +188,13 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
     private async Task<PostgreSQLContext> SeedSeriesAsync(
         IServiceScope scope,
         IEnumerable<ImdbImport> imports,
-        IEnumerable<ImdbImportEpisode> episodes)
+        IEnumerable<ImdbImportEpisode> episodes,
+        IEnumerable<ImdbImportRating>? ratings = null)
     {
         var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
 
-        foreach (var row in imports)
+        var importList = imports.ToList();
+        foreach (var row in importList)
         {
             var exists = await db.ImdbImports.AnyAsync(i => i.Tconst == row.Tconst);
             if (!exists) db.ImdbImports.Add(row);
@@ -186,6 +207,15 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         }
 
         await db.SaveChangesAsync();
+
+        // Seed ratings for every seeded import so the load-phase INNER JOIN passes by default.
+        // Callers may override via the ratings parameter to test filter behaviour.
+        var effectiveRatings = ratings ?? importList
+            .Where(i => i.TitleType is "tvSeries" or "tvMiniSeries")
+            .Select(i => new ImdbImportRating { Tconst = i.Tconst, AverageRating = 7.0m, NumVotes = 100 });
+
+        await SeedRatingsAsync(db, effectiveRatings);
+
         return db;
     }
 
@@ -394,7 +424,8 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
             episodes:
             [
                 new() { Tconst = "tt2600001", ParentTconst = TconstSeries1, SeasonNumber = 99, EpisodeNumber = 1, RawLine = "e" },
-            ]);
+            ],
+            ratings: []);
 
         var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
         await loadService.LoadAsync();
@@ -451,4 +482,114 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         allEpisodeMedia.Should().HaveCount(1, "upsert must not create a duplicate row");
         allEpisodeMedia[0].MediaCollectionId.Should().Be(season2.Id);
     }
+
+    // -------------------------------------------------------------------------
+    // Ratings filter tests
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task LoadNonSeriesMediaAsync_ExcludesMedia_WhenNumVotesBelowMinVotes()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+
+        const string tconst = "tt9000001";
+        db.ImdbImports.Add(new() { Tconst = tconst, TitleType = "movie", PrimaryTitle = "Low Vote Movie", OriginalTitle = "Low Vote Movie", StartYear = 2020, RawLine = "r" });
+        await db.SaveChangesAsync();
+        await SeedRatingsAsync(db, [new() { Tconst = tconst, AverageRating = 9.0m, NumVotes = 49 }]);
+
+        var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
+        await loadService.LoadAsync();
+
+        var row = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == tconst);
+        row.Should().BeNull("num_votes=49 is below the default MinVotes=50 threshold");
+    }
+
+    [Fact]
+    public async Task LoadNonSeriesMediaAsync_IncludesMedia_WhenNumVotesAtMinVotes()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+
+        const string tconst = "tt9000002";
+        db.ImdbImports.Add(new() { Tconst = tconst, TitleType = "movie", PrimaryTitle = "Exactly 50 Movie", OriginalTitle = "Exactly 50 Movie", StartYear = 2020, RawLine = "r" });
+        await db.SaveChangesAsync();
+        await SeedRatingsAsync(db, [new() { Tconst = tconst, AverageRating = 7.0m, NumVotes = 50 }]);
+
+        var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
+        await loadService.LoadAsync();
+
+        var row = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == tconst);
+        row.Should().NotBeNull("num_votes=50 is exactly at the MinVotes threshold and should be included");
+    }
+
+    [Fact]
+    public async Task LoadNonSeriesMediaAsync_ExcludesMedia_WhenTconstAbsentFromRatings()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+
+        const string tconst = "tt9000003";
+        db.ImdbImports.Add(new() { Tconst = tconst, TitleType = "movie", PrimaryTitle = "Unrated Movie", OriginalTitle = "Unrated Movie", StartYear = 2020, RawLine = "r" });
+        await db.SaveChangesAsync();
+        // No matching ratings row seeded.
+
+        var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
+        await loadService.LoadAsync();
+
+        var row = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == tconst);
+        row.Should().BeNull("tconst absent from imdb_import_ratings must be excluded by INNER JOIN");
+    }
+
+    [Fact]
+    public async Task LoadSeriesCollectionsAsync_ExcludesSeries_WhenNumVotesBelowMinVotes()
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        const string seriesTconst  = "tt9001001";
+        const string episodeTconst = "tt9001002";
+
+        var db = await SeedSeriesAsync(scope,
+            imports:
+            [
+                new() { Tconst = seriesTconst,  TitleType = "tvSeries",  PrimaryTitle = "Low Vote Series", OriginalTitle = "Low Vote Series", StartYear = 2020, RawLine = "s" },
+                new() { Tconst = episodeTconst, TitleType = "tvEpisode", PrimaryTitle = "Ep1",             OriginalTitle = "Ep1",             StartYear = 2020, RawLine = "e" },
+            ],
+            episodes: [new() { Tconst = episodeTconst, ParentTconst = seriesTconst, SeasonNumber = 1, EpisodeNumber = 1, RawLine = "e" }],
+            ratings:  [new() { Tconst = seriesTconst, AverageRating = 7.0m, NumVotes = 49 }]);
+
+        var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
+        await loadService.LoadAsync();
+
+        var seriesRow = await db.MediaCollections.FirstOrDefaultAsync(mc => mc.ExternalId == seriesTconst);
+        seriesRow.Should().BeNull("series with num_votes=49 is below MinVotes=50 and must be excluded");
+
+        var episodeRow = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == episodeTconst);
+        episodeRow.Should().BeNull("episode must also be absent because its parent series was excluded");
+    }
+
+    [Fact]
+    public async Task LoadSeriesCollectionsAsync_IncludesSeries_WhenNumVotesAtMinVotes()
+    {
+        using var scope = Factory.Services.CreateScope();
+
+        const string seriesTconst  = "tt9002001";
+        const string episodeTconst = "tt9002002";
+
+        var db = await SeedSeriesAsync(scope,
+            imports:
+            [
+                new() { Tconst = seriesTconst,  TitleType = "tvSeries",  PrimaryTitle = "Exactly 50 Series", OriginalTitle = "Exactly 50 Series", StartYear = 2020, RawLine = "s" },
+                new() { Tconst = episodeTconst, TitleType = "tvEpisode", PrimaryTitle = "Ep1",               OriginalTitle = "Ep1",               StartYear = 2020, RawLine = "e" },
+            ],
+            episodes: [new() { Tconst = episodeTconst, ParentTconst = seriesTconst, SeasonNumber = 1, EpisodeNumber = 1, RawLine = "e" }],
+            ratings:  [new() { Tconst = seriesTconst, AverageRating = 7.0m, NumVotes = 50 }]);
+
+        var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
+        await loadService.LoadAsync();
+
+        var seriesRow = await db.MediaCollections.FirstOrDefaultAsync(mc => mc.ExternalId == seriesTconst);
+        seriesRow.Should().NotBeNull("series with num_votes=50 meets MinVotes threshold and must be included");
+    }
+
 }
