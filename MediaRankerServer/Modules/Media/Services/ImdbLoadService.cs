@@ -1,9 +1,16 @@
 using MediaRankerServer.Modules.Media.Data;
+using MediaRankerServer.Modules.Media.Jobs;
+using Microsoft.Extensions.Options;
 
 namespace MediaRankerServer.Modules.Media.Services;
 
-public class ImdbLoadService(IImdbLoadProvider loadProvider, ILogger<ImdbLoadService> logger)
+public class ImdbLoadService(
+    IImdbLoadProvider loadProvider,
+    IOptions<ImdbImportOptions> options,
+    ILogger<ImdbLoadService> logger)
 {
+    private readonly ImdbImportOptions config = options.Value;
+
     public async Task<ImdbLoadResult> LoadAsync(CancellationToken ct = default)
     {
         var nonSeries = await LoadNonSeriesMediaAsync(ct);
@@ -17,7 +24,7 @@ public class ImdbLoadService(IImdbLoadProvider loadProvider, ILogger<ImdbLoadSer
     {
         logger.LogInformation("Starting IMDB load: non-series media.");
 
-        var result = await loadProvider.LoadNonSeriesMediaAsync(ct);
+        var result = await loadProvider.LoadNonSeriesMediaAsync(config.MinVotes, ct);
 
         logger.LogInformation("IMDB load: non-series media completed. Affected rows: {Affected}", result.Affected);
         return result;
@@ -27,7 +34,7 @@ public class ImdbLoadService(IImdbLoadProvider loadProvider, ILogger<ImdbLoadSer
     {
         logger.LogInformation("Starting IMDB load: series collections.");
 
-        var result = await loadProvider.LoadSeriesCollectionsAsync(ct);
+        var result = await loadProvider.LoadSeriesCollectionsAsync(config.MinVotes, ct);
 
         logger.LogInformation("IMDB load: series collections completed. Affected rows: {Affected}", result.Affected);
         return result;
