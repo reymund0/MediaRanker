@@ -424,7 +424,8 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
             episodes:
             [
                 new() { Tconst = "tt2600001", ParentTconst = TconstSeries1, SeasonNumber = 99, EpisodeNumber = 1, RawLine = "e" },
-            ]);
+            ],
+            ratings: []);
 
         var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
         await loadService.LoadAsync();

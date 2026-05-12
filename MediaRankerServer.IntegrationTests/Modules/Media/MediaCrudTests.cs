@@ -42,7 +42,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
     [Fact]
     public async Task GetMedia_ReturnsExistingRows()
     {
-        var response = await Client.GetAsync("/api/media");
+        var response = await Client.GetAsync("/api/media?includeTotalCount=true");
 
         TestUtils.AssertSuccessResponse(response);
         var result = await response.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
@@ -63,7 +63,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
         );
         await db.SaveChangesAsync();
 
-        var response = await Client.GetAsync("/api/media?searchField=title&searchTerm=PagingTest&sortField=releaseDate&sortDirection=desc&page=0&pageSize=1");
+        var response = await Client.GetAsync("/api/media?searchField=title&searchTerm=PagingTest&sortField=releaseDate&sortDirection=desc&page=0&pageSize=1&includeTotalCount=true");
         TestUtils.AssertSuccessResponse(response);
         var result = await response.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
 
