@@ -6,7 +6,7 @@ namespace MediaRankerServer.Modules.Media.Data;
 
 public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSqlProvider> logger) : IImdbLoadProvider
 {
-    public async Task<ImdbLoadResult> LoadNonSeriesMediaAsync(int minVotes, CancellationToken ct)
+    public async Task<ImdbLoadResult> LoadNonSeriesMediaAsync(int minVotesMovies, int minVotesVideoGames, CancellationToken ct)
     {
         // NOTE: With ON CONFLICT DO UPDATE, Postgres reports both inserted and updated rows in the
         // affected-row count. We cannot cheaply distinguish inserted vs updated without RETURNING xmax = 0.
@@ -29,7 +29,11 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 now(),
                 now()
             FROM imdb_imports i
-            INNER JOIN imdb_import_ratings r ON r.tconst = i.tconst AND r.num_votes >= {minVotes}
+            INNER JOIN imdb_import_ratings r ON r.tconst = i.tconst
+                AND r.num_votes >= CASE i.title_type
+                    WHEN 'videoGame' THEN {minVotesVideoGames}
+                    ELSE {minVotesMovies}
+                END
             WHERE i.title_type IN ('videoGame', 'movie', 'tvMovie', 'short', 'tvShort', 'video')
             ON CONFLICT (external_id, external_source) WHERE external_id IS NOT NULL
             DO UPDATE SET
@@ -41,7 +45,7 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
         return new ImdbLoadResult(await ExecuteBulkSqlAsync(sql, "Error loading non-series media from imdb_imports.", ct));
     }
 
-    public async Task<ImdbLoadResult> LoadSeriesCollectionsAsync(int minVotes, CancellationToken ct)
+    public async Task<ImdbLoadResult> LoadSeriesCollectionsAsync(int minVotesTv, CancellationToken ct)
     {
         var sql = $"""
             INSERT INTO media_collections
@@ -58,7 +62,7 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 now(),
                 now()
             FROM imdb_imports i
-            INNER JOIN imdb_import_ratings r ON r.tconst = i.tconst AND r.num_votes >= {minVotes}
+            INNER JOIN imdb_import_ratings r ON r.tconst = i.tconst AND r.num_votes >= {minVotesTv}
             WHERE i.title_type IN ('tvSeries', 'tvMiniSeries')
             ON CONFLICT (external_id, external_source) WHERE external_id IS NOT NULL AND collection_type = 'Series'
             DO UPDATE SET
