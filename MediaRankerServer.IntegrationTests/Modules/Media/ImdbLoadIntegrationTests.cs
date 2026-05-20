@@ -127,7 +127,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
     }
 
     [Fact]
-    public async Task LoadAsync_VideoGame_HasVideoGameMediaTypeId()
+    public async Task LoadAsync_VideoGame_HasVideoGameMediaType()
     {
         await SeedImdbImportsAsync();
 
@@ -139,7 +139,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         var row = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == TconstVideoGame);
 
         row.Should().NotBeNull();
-        row!.MediaTypeId.Should().Be(-1L);
+        row!.MediaType.Should().Be("VideoGame");
     }
 
     [Fact]
@@ -350,13 +350,13 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         var tvMiniSeriesEp = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == "tt2100002");
 
         tvSeriesEp.Should().NotBeNull();
-        tvSeriesEp!.MediaTypeId.Should().Be(-4L);
+        tvSeriesEp!.MediaType.Should().Be("TvShow");
         tvSeriesEp.ExternalSource.Should().Be(MediaExternalSource.Imdb);
         tvSeriesEp.ReleaseDate.Should().Be(new DateOnly(2001, 7, 1));
         tvSeriesEp.MediaCollectionId.Should().Be(tvSeriesSeason.Id);
 
         tvMiniSeriesEp.Should().NotBeNull();
-        tvMiniSeriesEp!.MediaTypeId.Should().Be(-4L);
+        tvMiniSeriesEp!.MediaType.Should().Be("TvShow");
         tvMiniSeriesEp.MediaCollectionId.Should().Be(tvMiniSeriesSeason.Id);
     }
 

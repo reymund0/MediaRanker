@@ -12,19 +12,19 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
         // affected-row count. We cannot cheaply distinguish inserted vs updated without RETURNING xmax = 0.
         // Logging a single "affected" count is acceptable for now.
         var sql = $"""
-            INSERT INTO media (title, release_date, external_id, external_source, media_type_id, created_at, updated_at)
+            INSERT INTO media (title, release_date, external_id, external_source, media_type, created_at, updated_at)
             SELECT
                 i.primary_title,
                 CASE WHEN i.start_year IS NULL THEN NULL ELSE make_date(i.start_year, 7, 1) END,
                 i.tconst,
                 '{nameof(MediaExternalSource.Imdb)}',
                 CASE i.title_type
-                    WHEN 'videoGame' THEN -1
-                    WHEN 'movie'     THEN -3
-                    WHEN 'tvMovie'   THEN -3
-                    WHEN 'short'     THEN -3
-                    WHEN 'tvShort'   THEN -3
-                    WHEN 'video'     THEN -3
+                    WHEN 'videoGame' THEN 'VideoGame'
+                    WHEN 'movie'     THEN 'Movie'
+                    WHEN 'tvMovie'   THEN 'Movie'
+                    WHEN 'short'     THEN 'Movie'
+                    WHEN 'tvShort'   THEN 'Movie'
+                    WHEN 'video'     THEN 'Movie'
                 END,
                 now(),
                 now()
@@ -39,7 +39,7 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
             DO UPDATE SET
                 title          = EXCLUDED.title,
                 release_date   = EXCLUDED.release_date,
-                media_type_id  = EXCLUDED.media_type_id,
+                media_type     = EXCLUDED.media_type,
                 updated_at     = now();
             """;
         return new ImdbLoadResult(await ExecuteBulkSqlAsync(sql, "Error loading non-series media from imdb_imports.", ct));
@@ -50,25 +50,25 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
         var sql = $"""
             INSERT INTO media_collections
                 (title, release_date, external_id, external_source, collection_type,
-                 media_type_id, parent_media_collection_id, created_at, updated_at)
+                 media_type, parent_media_collection_id, created_at, updated_at)
             SELECT
                 i.primary_title,
                 CASE WHEN i.start_year IS NULL THEN NULL ELSE make_date(i.start_year, 7, 1) END,
                 i.tconst,
                 '{nameof(MediaExternalSource.Imdb)}',
-                'Series',
-                -4,
+                '{nameof(MediaCollectionType.Series)}',
+                '{nameof(MediaType.TvShow)}',
                 NULL,
                 now(),
                 now()
             FROM imdb_imports i
             INNER JOIN imdb_import_ratings r ON r.tconst = i.tconst AND r.num_votes >= {minVotesTv}
             WHERE i.title_type IN ('tvSeries', 'tvMiniSeries')
-            ON CONFLICT (external_id, external_source) WHERE external_id IS NOT NULL AND collection_type = 'Series'
+            ON CONFLICT (external_id, external_source) WHERE external_id IS NOT NULL AND collection_type = '{nameof(MediaCollectionType.Series)}'
             DO UPDATE SET
                 title         = EXCLUDED.title,
                 release_date  = EXCLUDED.release_date,
-                media_type_id = EXCLUDED.media_type_id,
+                media_type    = EXCLUDED.media_type,
                 updated_at    = now();
             """;
         return new ImdbLoadResult(await ExecuteBulkSqlAsync(sql, "Error loading series collections from imdb_imports.", ct));
@@ -77,18 +77,18 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
     public async Task<ImdbLoadResult> LoadSeasonCollectionsAsync(CancellationToken ct)
     {
         // Conflict target matches uq_media_collections_title_type_mediatype_parent:
-        // (title, collection_type, media_type_id, parent_media_collection_id) WHERE parent IS NOT NULL.
+        // (title, collection_type, media_type, parent_media_collection_id) WHERE parent IS NOT NULL.
         var sql = $"""
             INSERT INTO media_collections
                 (title, release_date, external_id, external_source, collection_type,
-                 media_type_id, parent_media_collection_id, created_at, updated_at)
+                 media_type, parent_media_collection_id, created_at, updated_at)
             SELECT
                 CASE WHEN agg.season_number = -1 THEN 'Unknown' ELSE agg.season_number::text END,
                 CASE WHEN agg.season_start_year IS NULL THEN NULL ELSE make_date(agg.season_start_year, 7, 1) END,
                 agg.parent_tconst,
                 '{nameof(MediaExternalSource.Imdb)}',
-                'Season',
-                -4,
+                '{nameof(MediaCollectionType.Season)}',
+                '{nameof(MediaType.TvShow)}',
                 agg.parent_id,
                 now(),
                 now()
@@ -101,10 +101,10 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 INNER JOIN imdb_imports i       ON i.tconst = e.tconst
                 INNER JOIN media_collections mc ON mc.external_id = e.parent_tconst
                                                 AND mc.external_source = '{nameof(MediaExternalSource.Imdb)}'
-                                                AND mc.collection_type = 'Series'
+                                                AND mc.collection_type = '{nameof(MediaCollectionType.Series)}'
                 GROUP BY mc.id, e.parent_tconst, e.season_number
             ) agg
-            ON CONFLICT (title, collection_type, media_type_id, parent_media_collection_id)
+            ON CONFLICT (title, collection_type, media_type, parent_media_collection_id)
                 WHERE parent_media_collection_id IS NOT NULL
             DO UPDATE SET
                 release_date    = EXCLUDED.release_date,
@@ -119,13 +119,13 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
     {
         var sql = $"""
             INSERT INTO media (title, release_date, external_id, external_source,
-                               media_type_id, media_collection_id, created_at, updated_at)
+                               media_type, media_collection_id, created_at, updated_at)
             SELECT
                 i.primary_title,
                 CASE WHEN i.start_year IS NULL THEN NULL ELSE make_date(i.start_year, 7, 1) END,
                 i.tconst,
                 '{nameof(MediaExternalSource.Imdb)}',
-                -4,
+                '{nameof(MediaType.TvShow)}',
                 season.id,
                 now(),
                 now()
@@ -134,10 +134,10 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
             INNER JOIN media_collections series
                 ON series.external_id = e.parent_tconst
                AND series.external_source = '{nameof(MediaExternalSource.Imdb)}'
-               AND series.collection_type = 'Series'
+               AND series.collection_type = '{nameof(MediaCollectionType.Series)}'
             INNER JOIN media_collections season
                 ON season.parent_media_collection_id = series.id
-               AND season.collection_type = 'Season'
+               AND season.collection_type = '{nameof(MediaCollectionType.Season)}'
                AND season.title = CASE WHEN e.season_number = -1 THEN 'Unknown'
                                        ELSE e.season_number::text END
             WHERE i.title_type = 'tvEpisode'
@@ -145,7 +145,7 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
             DO UPDATE SET
                 title               = EXCLUDED.title,
                 release_date        = EXCLUDED.release_date,
-                media_type_id       = EXCLUDED.media_type_id,
+                media_type          = EXCLUDED.media_type,
                 media_collection_id = EXCLUDED.media_collection_id,
                 updated_at          = now();
             """;

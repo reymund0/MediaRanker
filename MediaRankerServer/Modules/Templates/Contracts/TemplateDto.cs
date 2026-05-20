@@ -1,4 +1,3 @@
-using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Templates.Data.Entities;
 
 namespace MediaRankerServer.Modules.Templates.Contracts;
@@ -13,9 +12,7 @@ public class TemplateDto
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public List<TemplateFieldDto> Fields { get; set; } = [];
-    // Related data
-    public long MediaTypeId { get; set; }
-    public string MediaTypeName { get; set; } = string.Empty;
+    public string MediaType { get; set; } = string.Empty;
 }
 
 public class TemplateFieldDto
@@ -28,7 +25,7 @@ public class TemplateFieldDto
 
 public static class TemplateDtoMapper
 {
-    public static TemplateDto Map(Template template, string mediaTypeName)
+    public static TemplateDto Map(Template template)
     {
         return new TemplateDto
         {
@@ -43,8 +40,7 @@ public static class TemplateDtoMapper
             [
                 .. template.Fields.Select(MapField)
             ],
-            MediaTypeId = template.MediaTypeId,
-            MediaTypeName = mediaTypeName
+            MediaType = template.MediaType
         };
     }
 

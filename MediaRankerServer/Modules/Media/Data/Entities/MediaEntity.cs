@@ -22,13 +22,13 @@ public class MediaEntity : ITimestampedEntity
     public string? ExternalId { get; set; }
     public MediaExternalSource? ExternalSource { get; set; }
     
+    public string MediaType { get; set; } = null!;
+
     // Foreign keys
-    public long MediaTypeId { get; set; }
     public long? MediaCollectionId { get; set; }
     public long? CoverId { get; set; }
 
     // Navigation properties
-    public MediaType MediaType { get; set; } = null!;
     public MediaCollection? MediaCollection { get; set; }
     public MediaCover? Cover { get; set; }
 
@@ -46,7 +46,7 @@ public class MediaEntity : ITimestampedEntity
             builder.Property(m => m.Title)
                 .IsRequired();
 
-            builder.Property(m => m.MediaTypeId)
+            builder.Property(m => m.MediaType)
                 .IsRequired();
 
             builder.Property(m => m.ReleaseDate)
@@ -59,10 +59,6 @@ public class MediaEntity : ITimestampedEntity
             builder.Property(m => m.MediaCollectionId);
 
             // Relationships
-            builder.HasOne(m => m.MediaType)
-                .WithMany()
-                .HasForeignKey(m => m.MediaTypeId);
-
             builder.HasOne(m => m.MediaCollection)
                 .WithMany(mc => mc.MediaItems)
                 .HasForeignKey(m => m.MediaCollectionId)
@@ -73,8 +69,8 @@ public class MediaEntity : ITimestampedEntity
                 .HasForeignKey(m => m.CoverId);
 
             // Indexes
-            builder.HasIndex(m => m.MediaTypeId)
-                .HasDatabaseName("ix_media_media_type_id");
+            builder.HasIndex(m => m.MediaType)
+                .HasDatabaseName("ix_media_media_type");
 
             builder.HasIndex(m => m.ReleaseDate)
                 .HasDatabaseName("ix_media_release_date");

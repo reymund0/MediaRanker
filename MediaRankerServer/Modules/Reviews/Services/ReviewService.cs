@@ -21,11 +21,13 @@ public class ReviewService(
   IFileService fileService
   ) : IReviewService
 {
-    public async Task<List<ReviewDto>> GetReviewsByMediaTypeAsync(string userId, long mediaTypeId, CancellationToken cancellationToken = default)
+    public async Task<List<ReviewDto>> GetReviewsByMediaTypeAsync(string userId, string mediaType, CancellationToken cancellationToken = default)
     {
+        MediaTypes.Parse(mediaType);
+
         var reviewDetails = await dbContext.ReviewDetails
             .AsNoTracking()
-            .Where(r => r.UserId == userId && r.MediaTypeId == mediaTypeId)
+            .Where(r => r.MediaType == mediaType && r.UserId == userId)
             .OrderBy(r => r.OverallScore)
             .ToListAsync(cancellationToken);
 
@@ -44,19 +46,20 @@ public class ReviewService(
         return [.. reviewDetails.Select(r => ReviewDtoMapper.Map(fileService, r, fields.Where(f => f.Field.ReviewId == r.Id)))];
     }
     
-    public async Task<PageResult<UnreviewedMediaDto>> GetUnreviewedMediaByTypeAsync(string userId, long mediaTypeId, PageRequest request, CancellationToken cancellationToken = default)
+    public async Task<PageResult<UnreviewedMediaDto>> GetUnreviewedMediaByTypeAsync(string userId, string mediaType, PageRequest request, CancellationToken cancellationToken = default)
     {
-        var v = PagingValidator.Validate(request, UnreviewedMediaQueryBuilder.SortFields, UnreviewedMediaQueryBuilder.SearchFields, "title");
-
-        // Get IDs of media the user HAS reviewed
+        MediaTypes.Parse(mediaType);
+        
         var reviewedMediaIds = await dbContext.Reviews
             .AsNoTracking()
             .Where(r => r.UserId == userId)
             .Select(r => r.MediaId)
             .ToListAsync(cancellationToken);
 
+        var v = PagingValidator.Validate(request, UnreviewedMediaQueryBuilder.SortFields, UnreviewedMediaQueryBuilder.SearchFields, "title");
+
         var query = UnreviewedMediaQueryBuilder.ApplySearch(
-            UnreviewedMediaQueryBuilder.BaseQuery(dbContext, mediaTypeId, reviewedMediaIds), v);
+            UnreviewedMediaQueryBuilder.BaseQuery(dbContext, mediaType, reviewedMediaIds), v);
         int? totalCount = null;
         if (request.IncludeTotalCount == true)
             totalCount = await query.CountAsync(cancellationToken);
@@ -212,10 +215,10 @@ public class ReviewService(
             throw new DomainException($"Template field {invalidField.TemplateFieldId} not found in template {request.TemplateId}", errorType);
         }
 
-        // Validate Media Type is compatible with Template Media Type
-        if (media.MediaTypeId != template.MediaTypeId)
+        // Validate media type
+        if (media.MediaType != template.MediaType)
         {
-            throw new DomainException($"Media type {media.MediaTypeName} is not compatible with template media type {template.MediaTypeId}", errorType);
+            throw new DomainException("Media type does not match template media type.", "review_media_type_mismatch");
         }
     }
 

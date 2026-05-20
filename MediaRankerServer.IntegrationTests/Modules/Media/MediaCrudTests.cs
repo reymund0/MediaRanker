@@ -15,7 +15,8 @@ namespace MediaRankerServer.IntegrationTests.Modules.Media;
 public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStackContainerFixture localStackFixture) 
     : IntegrationTestBase(postgresFixture, localStackFixture)
 {
-    private const long MovieMediaTypeId = -3;
+    private const string MovieMediaType = "Movie";
+    private const string BookMediaType = "Book";
 
     private MediaEntity _testMedia = null!;
     
@@ -30,7 +31,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
             var media = new MediaEntity
             {
                 Title = "Test Media",
-                MediaTypeId = MovieMediaTypeId,
+                MediaType = MovieMediaType,
                 ReleaseDate = new DateOnly(2024, 1, 1),
             };
             dbContext.Media.Add(media);
@@ -42,7 +43,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
     [Fact]
     public async Task GetMedia_ReturnsExistingRows()
     {
-        var response = await Client.GetAsync("/api/media?mediaTypeId=-3&includeTotalCount=true");
+        var response = await Client.GetAsync("/api/media?mediaType=Movie&includeTotalCount=true");
 
         TestUtils.AssertSuccessResponse(response);
         var result = await response.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
@@ -58,12 +59,12 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
         db.Media.AddRange(
-            new MediaEntity { Title = "PagingTestAlpha", MediaTypeId = MovieMediaTypeId, ReleaseDate = new DateOnly(2020, 1, 1) },
-            new MediaEntity { Title = "PagingTestBeta",  MediaTypeId = MovieMediaTypeId, ReleaseDate = new DateOnly(2021, 1, 1) }
+            new MediaEntity { Title = "PagingTestAlpha", MediaType = MovieMediaType, ReleaseDate = new DateOnly(2020, 1, 1) },
+            new MediaEntity { Title = "PagingTestBeta",  MediaType = MovieMediaType, ReleaseDate = new DateOnly(2021, 1, 1) }
         );
         await db.SaveChangesAsync();
 
-        var response = await Client.GetAsync("/api/media?mediaTypeId=-3&searchField=title&searchTerm=PagingTest&sortField=releaseDate&sortDirection=desc&page=0&pageSize=1&includeTotalCount=true");
+        var response = await Client.GetAsync("/api/media?mediaType=Movie&searchField=title&searchTerm=PagingTest&sortField=releaseDate&sortDirection=desc&page=0&pageSize=1&includeTotalCount=true");
         TestUtils.AssertSuccessResponse(response);
         var result = await response.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
 
@@ -74,7 +75,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
 
 
     [Fact]
-    public async Task GetMedia_MissingMediaTypeId_Returns400WithMediaValidationError()
+    public async Task GetMedia_MissingMediaType_Returns400WithMediaValidationError()
     {
         var response = await Client.GetAsync("/api/media");
 
@@ -85,9 +86,9 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
     }
 
     [Fact]
-    public async Task GetMedia_UnknownMediaTypeId_Returns400WithMediaTypeNotFound()
+    public async Task GetMedia_InvalidMediaType_Returns400WithMediaValidationError()
     {
-        var response = await Client.GetAsync("/api/media?mediaTypeId=999999");
+        var response = await Client.GetAsync("/api/media?mediaType=InvalidType");
 
         response.IsSuccessStatusCode.Should().BeFalse();
         var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
@@ -98,27 +99,25 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
     [Fact]
     public async Task GetMedia_ScopedToMediaType_ReturnsOnlyMatchingRows()
     {
-        const long bookMediaTypeId = -2;
-
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
         db.Media.AddRange(
-            new MediaEntity { Title = "ScopedMovie", MediaTypeId = MovieMediaTypeId, ReleaseDate = new DateOnly(2024, 1, 1) },
-            new MediaEntity { Title = "ScopedBook", MediaTypeId = bookMediaTypeId, ReleaseDate = new DateOnly(2024, 1, 1) }
+            new MediaEntity { Title = "ScopedMovie", MediaType = MovieMediaType, ReleaseDate = new DateOnly(2024, 1, 1) },
+            new MediaEntity { Title = "ScopedBook", MediaType = BookMediaType, ReleaseDate = new DateOnly(2024, 1, 1) }
         );
         await db.SaveChangesAsync();
 
-        var movieResponse = await Client.GetAsync($"/api/media?mediaTypeId={MovieMediaTypeId}&includeTotalCount=true");
+        var movieResponse = await Client.GetAsync($"/api/media?mediaType={MovieMediaType}&includeTotalCount=true");
         TestUtils.AssertSuccessResponse(movieResponse);
         var movieResult = await movieResponse.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
-        movieResult!.Items.Should().AllSatisfy(m => m.MediaTypeId.Should().Be(MovieMediaTypeId));
+        movieResult!.Items.Should().AllSatisfy(m => m.MediaType.Should().Be(MovieMediaType));
         movieResult.Items.Should().Contain(m => m.Title == "ScopedMovie");
         movieResult.Items.Should().NotContain(m => m.Title == "ScopedBook");
 
-        var bookResponse = await Client.GetAsync($"/api/media?mediaTypeId={bookMediaTypeId}&includeTotalCount=true");
+        var bookResponse = await Client.GetAsync($"/api/media?mediaType={BookMediaType}&includeTotalCount=true");
         TestUtils.AssertSuccessResponse(bookResponse);
         var bookResult = await bookResponse.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
-        bookResult!.Items.Should().AllSatisfy(m => m.MediaTypeId.Should().Be(bookMediaTypeId));
+        bookResult!.Items.Should().AllSatisfy(m => m.MediaType.Should().Be(BookMediaType));
         bookResult.Items.Should().Contain(m => m.Title == "ScopedBook");
         bookResult.Items.Should().NotContain(m => m.Title == "ScopedMovie");
     }
@@ -129,7 +128,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
         var request = new MediaUpsertRequest
         {
             Title = "Arrival",
-            MediaTypeId = MovieMediaTypeId,
+            MediaType = MovieMediaType,
             ReleaseDate = new DateOnly(2016, 11, 11),
         };
 
@@ -156,7 +155,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
         {
             Id = _testMedia.Id,
             Title = "Blade Runner: Final Cut",
-            MediaTypeId = MovieMediaTypeId,
+            MediaType = MovieMediaType,
             ReleaseDate = new DateOnly(1982, 6, 25),
         };
 
@@ -230,7 +229,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
         var request = new MediaUpsertRequest
         {
             Title = "Media With Cover",
-            MediaTypeId = MovieMediaTypeId,
+            MediaType = MovieMediaType,
             ReleaseDate = new DateOnly(2024, 1, 1),
             CoverUploadId = fileUploadId
         };

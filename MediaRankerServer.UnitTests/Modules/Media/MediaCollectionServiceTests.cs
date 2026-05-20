@@ -23,9 +23,8 @@ public class MediaCollectionServiceTests : IDisposable
     private readonly MediaCollectionService _service;
     private const string DefaultUserId = "test-user-1";
 
-    // Seeded system IDs matching production seeds
-    private const long TvShowTypeId = -4;
-    private const long MovieTypeId = -3;
+    private const string TvShowMediaType = "TvShow";
+    private const string MovieMediaType = "Movie";
 
     public MediaCollectionServiceTests()
     {
@@ -67,7 +66,7 @@ public class MediaCollectionServiceTests : IDisposable
         {
             Title = "",
             CollectionType = MediaCollectionType.Series,
-            MediaTypeId = MovieTypeId,
+            MediaType = MovieMediaType,
             ReleaseDate = new DateOnly(2020, 1, 1),
         });
 
@@ -84,7 +83,7 @@ public class MediaCollectionServiceTests : IDisposable
         {
             Title = "Season 1",
             CollectionType = MediaCollectionType.Season,
-            MediaTypeId = TvShowTypeId,
+            MediaType = TvShowMediaType,
             ParentMediaCollectionId = 999,
             ReleaseDate = new DateOnly(2020, 1, 1),
         });
@@ -102,7 +101,7 @@ public class MediaCollectionServiceTests : IDisposable
             Id = 1,
             Title = "Existing Series",
             CollectionType = MediaCollectionType.Series,
-            MediaTypeId = TvShowTypeId,
+            MediaType = TvShowMediaType,
             ReleaseDate = new DateOnly(2019, 1, 1),
         };
         _context.MediaCollections.Add(existing);
@@ -115,7 +114,7 @@ public class MediaCollectionServiceTests : IDisposable
             Id = 1,  // Same as ParentMediaCollectionId
             Title = "Season 1",
             CollectionType = MediaCollectionType.Season,
-            MediaTypeId = TvShowTypeId,
+            MediaType = TvShowMediaType,
             ParentMediaCollectionId = 1,
             ReleaseDate = new DateOnly(2020, 1, 1),
         });
@@ -131,7 +130,7 @@ public class MediaCollectionServiceTests : IDisposable
         {
             Title = "Movie Series",
             CollectionType = MediaCollectionType.Series,
-            MediaTypeId = MovieTypeId,
+            MediaType = MovieMediaType,
             ReleaseDate = new DateOnly(2020, 1, 1),
         };
         _context.MediaCollections.Add(series);
@@ -141,7 +140,7 @@ public class MediaCollectionServiceTests : IDisposable
         {
             Title = "Season 1",
             CollectionType = MediaCollectionType.Season,
-            MediaTypeId = TvShowTypeId,
+            MediaType = TvShowMediaType,
             ParentMediaCollectionId = series.Id,
             ReleaseDate = new DateOnly(2021, 1, 1),
         });
@@ -159,7 +158,7 @@ public class MediaCollectionServiceTests : IDisposable
         {
             Title = "Orphan Season",
             CollectionType = MediaCollectionType.Season,
-            MediaTypeId = TvShowTypeId,
+            MediaType = TvShowMediaType,
             ReleaseDate = new DateOnly(2020, 1, 1),
         });
 
@@ -174,7 +173,7 @@ public class MediaCollectionServiceTests : IDisposable
         {
             Title = "Parent Series",
             CollectionType = MediaCollectionType.Series,
-            MediaTypeId = TvShowTypeId,
+            MediaType = TvShowMediaType,
             ReleaseDate = new DateOnly(2019, 1, 1),
         };
         _context.MediaCollections.Add(parentSeries);
@@ -184,7 +183,7 @@ public class MediaCollectionServiceTests : IDisposable
         {
             Title = "Nested Series",
             CollectionType = MediaCollectionType.Series,
-            MediaTypeId = TvShowTypeId,
+            MediaType = TvShowMediaType,
             ParentMediaCollectionId = parentSeries.Id,
             ReleaseDate = new DateOnly(2020, 1, 1),
         });
@@ -201,7 +200,7 @@ public class MediaCollectionServiceTests : IDisposable
         {
             Title = "Some Season",
             CollectionType = MediaCollectionType.Season,
-            MediaTypeId = TvShowTypeId,
+            MediaType = TvShowMediaType,
             ReleaseDate = new DateOnly(2019, 1, 1),
         };
         _context.MediaCollections.Add(seasonParent);
@@ -211,7 +210,7 @@ public class MediaCollectionServiceTests : IDisposable
         {
             Title = "Season 1",
             CollectionType = MediaCollectionType.Season,
-            MediaTypeId = TvShowTypeId,
+            MediaType = TvShowMediaType,
             ParentMediaCollectionId = seasonParent.Id,
             ReleaseDate = new DateOnly(2020, 1, 1),
         });
@@ -227,7 +226,7 @@ public class MediaCollectionServiceTests : IDisposable
         {
             Title = "Movie Season",
             CollectionType = MediaCollectionType.Season,
-            MediaTypeId = MovieTypeId,
+            MediaType = MovieMediaType,
             ReleaseDate = new DateOnly(2020, 1, 1),
         });
 
@@ -244,7 +243,7 @@ public class MediaCollectionServiceTests : IDisposable
         {
             Title = "Updated",
             CollectionType = MediaCollectionType.Series,
-            MediaTypeId = MovieTypeId,
+            MediaType = MovieMediaType,
             ReleaseDate = new DateOnly(2020, 1, 1),
         });
 
@@ -276,7 +275,7 @@ public class MediaCollectionServiceTests : IDisposable
         {
             Title = "My Movie Series",
             CollectionType = MediaCollectionType.Series,
-            MediaTypeId = MovieTypeId,
+            MediaType = MovieMediaType,
             ReleaseDate = new DateOnly(2020, 1, 1),
             CoverUploadId = 42,
         });
@@ -294,7 +293,7 @@ public class MediaCollectionServiceTests : IDisposable
         {
             Title = "Series",
             CollectionType = MediaCollectionType.Series,
-            MediaTypeId = MovieTypeId,
+            MediaType = MovieMediaType,
             ReleaseDate = new DateOnly(2019, 1, 1),
             CoverId = null
         };
@@ -307,7 +306,7 @@ public class MediaCollectionServiceTests : IDisposable
             Id = existing.Id,
             Title = "Series Updated",
             CollectionType = MediaCollectionType.Series,
-            MediaTypeId = MovieTypeId,
+            MediaType = MovieMediaType,
             ReleaseDate = new DateOnly(2019, 1, 1),
             CoverUploadId = 99999,  // Non-existent
         });

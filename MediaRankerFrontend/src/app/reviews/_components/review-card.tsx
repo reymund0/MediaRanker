@@ -18,7 +18,8 @@ import { ReviewFormValues } from "./review-card-utils";
 
 export interface ReviewCardProps {
   review?: ReviewDto;
-  mediaTypeId: number;
+  mediaType: string;
+  onRefresh: () => void;
   onInsertReview: (review: ReviewDto) => void;
   onCancelInsertReview: () => void;
   onUpdateReview: (updated: ReviewDto) => void;
@@ -29,7 +30,8 @@ type CardState = "view" | "detailed-view" | "new" | "edit";
 
 export function ReviewCard({
   review,
-  mediaTypeId,
+  mediaType,
+  onRefresh,
   onInsertReview,
   onCancelInsertReview,
   onUpdateReview,
@@ -134,7 +136,7 @@ export function ReviewCard({
       )}
       {cardState === "new" && (
         <ReviewCardNewSteps
-          mediaTypeId={mediaTypeId}
+          mediaType={mediaType}
           onNewReview={(review, mediaTitle, templateFields) => {
             setCurrentReview(review);
             setMediaTitle(mediaTitle);

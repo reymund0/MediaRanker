@@ -12,7 +12,7 @@ import {
   TemplateRow,
 } from "./grid-utils";
 import { TemplateDto, TemplateUpsertRequest } from "./contracts";
-import { MediaTypeDto } from "@/lib/contracts/shared";
+import { ALL_MEDIA_TYPES, MediaType } from "@/lib/contracts/shared";
 import { useQuery } from "@/lib/api/use-query";
 import { useUser } from "@/lib/auth/user-provider";
 import { useMutation } from "@/lib/api/use-mutation";
@@ -24,16 +24,6 @@ import { PageCard } from "@/lib/components/layout/page-card";
 export default function TemplatesPage() {
   const { showSuccess, showError } = useAlert();
   const { userId } = useUser();
-
-  const {
-    data: mediaTypes,
-    isError: isMediaTypesError,
-    isLoading: isMediaTypesLoading,
-  } = useQuery<MediaTypeDto[]>({
-    route: "/api/mediaTypes",
-    queryKey: ["mediaTypes"],
-    enabled: !!userId,
-  });
 
   const [rows, setRows] = useState<TemplateRow[]>([]);
   const [deleteRowId, setDeleteRowId] = useState<number | undefined>(undefined);
@@ -114,12 +104,9 @@ export default function TemplatesPage() {
   };
 
   const addTemplate = () => {
-    const defaultMediaType = mediaTypes?.[0] ?? { id: 0, name: "" };
-
     const newRow: TemplateRow = {
       id: 0,
-      mediaTypeId: defaultMediaType.id,
-      mediaTypeName: defaultMediaType.name,
+      mediaType: ALL_MEDIA_TYPES[0] as MediaType,
       isSystem: false,
       userId: userId!,
       name: "",
@@ -191,8 +178,8 @@ export default function TemplatesPage() {
         }}
       >
         <BaseDataGrid
-          loading={isTemplatesLoading || isMediaTypesLoading}
-          error={isTemplatesError || isMediaTypesError}
+          loading={isTemplatesLoading}
+          error={isTemplatesError}
           rows={rows}
           columns={columns}
         />
@@ -203,7 +190,6 @@ export default function TemplatesPage() {
           row={editingRow}
           onSubmit={submitEditing}
           onCancel={cancelEditing}
-          mediaTypes={mediaTypes || []}
         />
       )}
       {deleteRowId && (

@@ -15,8 +15,7 @@ namespace MediaRankerServer.IntegrationTests.Modules.Media;
 public class MediaCollectionCrudTests(PostgresContainerFixture postgresFixture, LocalStackContainerFixture localStackFixture)
     : IntegrationTestBase(postgresFixture, localStackFixture)
 {
-    // Seeded system IDs
-    private const long MovieTypeId = -3;
+    private const string MovieMediaType = "Movie";
 
     private MediaCollection _testSeries = null!;
 
@@ -31,7 +30,7 @@ public class MediaCollectionCrudTests(PostgresContainerFixture postgresFixture, 
         {
             Title = "Test Series",
             CollectionType = MediaCollectionType.Series,
-            MediaTypeId = MovieTypeId,
+            MediaType = MovieMediaType,
             ReleaseDate = new DateOnly(2020, 1, 1),
         };
         db.MediaCollections.Add(_testSeries);
@@ -57,8 +56,8 @@ public class MediaCollectionCrudTests(PostgresContainerFixture postgresFixture, 
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
         db.MediaCollections.AddRange(
-            new MediaCollection { Title = "PagingTestAlpha", CollectionType = MediaCollectionType.Series, MediaTypeId = MovieTypeId, ReleaseDate = new DateOnly(2020, 1, 1) },
-            new MediaCollection { Title = "PagingTestBeta",  CollectionType = MediaCollectionType.Series, MediaTypeId = MovieTypeId, ReleaseDate = new DateOnly(2021, 1, 1) }
+            new MediaCollection { Title = "PagingTestAlpha", CollectionType = MediaCollectionType.Series, MediaType = MovieMediaType, ReleaseDate = new DateOnly(2020, 1, 1) },
+            new MediaCollection { Title = "PagingTestBeta",  CollectionType = MediaCollectionType.Series, MediaType = MovieMediaType, ReleaseDate = new DateOnly(2021, 1, 1) }
         );
         await db.SaveChangesAsync();
 
@@ -78,7 +77,7 @@ public class MediaCollectionCrudTests(PostgresContainerFixture postgresFixture, 
         {
             Title = "New Movie Series",
             CollectionType = MediaCollectionType.Series,
-            MediaTypeId = MovieTypeId,
+            MediaType = MovieMediaType,
             ReleaseDate = new DateOnly(2021, 5, 1),
         };
 
@@ -90,7 +89,7 @@ public class MediaCollectionCrudTests(PostgresContainerFixture postgresFixture, 
         result.Should().NotBeNull();
         result!.Title.Should().Be("New Movie Series");
         result.CollectionType.Should().Be("Series");
-        result.MediaTypeId.Should().Be(MovieTypeId);
+        result.MediaType.Should().Be(MovieMediaType);
 
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
@@ -106,7 +105,7 @@ public class MediaCollectionCrudTests(PostgresContainerFixture postgresFixture, 
             Id = _testSeries.Id,
             Title = "Updated Series Title",
             CollectionType = MediaCollectionType.Series,
-            MediaTypeId = MovieTypeId,
+            MediaType = MovieMediaType,
             ReleaseDate = new DateOnly(2020, 6, 15),
         };
 

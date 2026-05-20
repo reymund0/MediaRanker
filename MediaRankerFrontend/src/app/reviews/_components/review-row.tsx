@@ -19,11 +19,12 @@ import { CARD_WIDTH, CARD_GAP } from "./review-card-utils";
 const SCROLL_AMOUNT = (CARD_WIDTH + CARD_GAP) * 3;
 
 export interface ReviewRowProps {
-  label: string;
-  mediaTypeId: number;
+  mediaType: string;
+  mediaTypeLabel: string;
+  userId: string;
 }
 
-export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
+export function ReviewRow({ mediaType, mediaTypeLabel, userId }: ReviewRowProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasOverflow, setHasOverflow] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -36,9 +37,11 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
     isLoading,
     isError,
     error,
+    refetch,
   } = useQuery<ReviewDto[]>({
-    route: `/api/reviews/byMediaType/${mediaTypeId}`,
-    queryKey: ["reviews", mediaTypeId],
+    route: `/api/reviews/byMediaType/${mediaType}`,
+    queryKey: ["reviews", mediaType],
+    enabled: !!userId,
   });
 
   useEffect(() => {
@@ -107,7 +110,9 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
   return (
     <Stack direction="column" gap={1.5}>
       <Stack direction="row" alignItems="center" gap={1}>
-        <Typography variant="h6">{label}</Typography>
+        <Typography variant="h6" gutterBottom>
+          {mediaTypeLabel}
+        </Typography>
         <IconButton
           size="small"
           onClick={handleAddReview}
@@ -161,7 +166,8 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
             <>
               {hasNewCard && (
                 <ReviewCard
-                  mediaTypeId={mediaTypeId}
+                  mediaType={mediaType}
+                  onRefresh={refetch}
                   onInsertReview={handleNewCardSave}
                   onCancelInsertReview={handleNewCardCancel}
                   onUpdateReview={() => {}}
@@ -172,7 +178,8 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
                 <ReviewCard
                   key={review.id}
                   review={review}
-                  mediaTypeId={mediaTypeId}
+                  mediaType={mediaType}
+                  onRefresh={refetch}
                   onInsertReview={() => {}}
                   onCancelInsertReview={() => {}}
                   onUpdateReview={handleReviewUpdate}
