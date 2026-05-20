@@ -23,6 +23,8 @@ public class ReviewService(
 {
     public async Task<List<ReviewDto>> GetReviewsByMediaTypeAsync(string userId, string mediaType, CancellationToken cancellationToken = default)
     {
+        MediaTypes.ThrowIfInvalid(mediaType);
+
         var reviewDetails = await dbContext.ReviewDetails
             .AsNoTracking()
             .Where(r => r.MediaType == mediaType && r.UserId == userId)
@@ -46,6 +48,8 @@ public class ReviewService(
     
     public async Task<PageResult<UnreviewedMediaDto>> GetUnreviewedMediaByTypeAsync(string userId, string mediaType, PageRequest request, CancellationToken cancellationToken = default)
     {
+        MediaTypes.ThrowIfInvalid(mediaType);
+        
         var reviewedMediaIds = await dbContext.Reviews
             .AsNoTracking()
             .Where(r => r.UserId == userId)
