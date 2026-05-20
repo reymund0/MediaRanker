@@ -167,7 +167,7 @@ public class MediaCollectionService(
         ValidateCollectionParent(request, parent!);
         
         // Validate collection type specific rules.
-        await ValidateCollectionTypeAsync(request, parent, cancellationToken);
+        ValidateCollectionType(request, parent);
     }
 
     private static void ValidateCollectionParent(MediaCollectionUpsertRequest request, MediaCollection parent)
@@ -185,7 +185,7 @@ public class MediaCollectionService(
         }
     }
 
-    private Task ValidateCollectionTypeAsync(MediaCollectionUpsertRequest request, MediaCollection? parent, CancellationToken cancellationToken)
+    private static void ValidateCollectionType(MediaCollectionUpsertRequest request, MediaCollection? parent)
     {
         var parsed = MediaTypes.Parse(request.MediaType);
 
@@ -227,7 +227,5 @@ public class MediaCollectionService(
                     "collection_type_unsupported");
             }
         }
-
-        return Task.CompletedTask;
     }
 }

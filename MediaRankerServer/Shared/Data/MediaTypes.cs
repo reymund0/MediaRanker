@@ -23,15 +23,7 @@ public static class MediaTypes
     public static bool IsValid(string? value) =>
         value is not null && AllSet.Contains(value);
 
-    public static void ThrowIfInvalid(string? value)
-    {
-        if (!IsValid(value))
-        {
-            throw new DomainException("Media type not found.", "media_type_not_found");
-        }
-    }
-
-    public static bool TryParse(string? value, out MediaType result)
+    private static bool TryParse(string? value, out MediaType result)
     {
         if (IsValid(value))
         {

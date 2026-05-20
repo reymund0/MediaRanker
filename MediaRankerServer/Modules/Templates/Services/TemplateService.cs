@@ -35,8 +35,8 @@ public class TemplateService(
 
     public async Task<List<TemplateDto>> GetTemplatesByMediaTypeAsync(string userId, string mediaType, CancellationToken cancellationToken)
     {
-        MediaTypes.ThrowIfInvalid(mediaType);
-        
+        MediaTypes.Parse(mediaType);
+
         var templates = await dbContext.Templates
             .Include(t => t.Fields)
             .Where(t => t.MediaType == mediaType && (t.Id < 0 || t.UserId == userId))

@@ -56,15 +56,15 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 CASE WHEN i.start_year IS NULL THEN NULL ELSE make_date(i.start_year, 7, 1) END,
                 i.tconst,
                 '{nameof(MediaExternalSource.Imdb)}',
-                'Series',
-                'TvShow',
+                '{nameof(MediaCollectionType.Series)}',
+                '{nameof(MediaType.TvShow)}',
                 NULL,
                 now(),
                 now()
             FROM imdb_imports i
             INNER JOIN imdb_import_ratings r ON r.tconst = i.tconst AND r.num_votes >= {minVotesTv}
             WHERE i.title_type IN ('tvSeries', 'tvMiniSeries')
-            ON CONFLICT (external_id, external_source) WHERE external_id IS NOT NULL AND collection_type = 'Series'
+            ON CONFLICT (external_id, external_source) WHERE external_id IS NOT NULL AND collection_type = '{nameof(MediaCollectionType.Series)}'
             DO UPDATE SET
                 title         = EXCLUDED.title,
                 release_date  = EXCLUDED.release_date,
@@ -87,8 +87,8 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 CASE WHEN agg.season_start_year IS NULL THEN NULL ELSE make_date(agg.season_start_year, 7, 1) END,
                 agg.parent_tconst,
                 '{nameof(MediaExternalSource.Imdb)}',
-                'Season',
-                'TvShow',
+                '{nameof(MediaCollectionType.Season)}',
+                '{nameof(MediaType.TvShow)}',
                 agg.parent_id,
                 now(),
                 now()
@@ -101,7 +101,7 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 INNER JOIN imdb_imports i       ON i.tconst = e.tconst
                 INNER JOIN media_collections mc ON mc.external_id = e.parent_tconst
                                                 AND mc.external_source = '{nameof(MediaExternalSource.Imdb)}'
-                                                AND mc.collection_type = 'Series'
+                                                AND mc.collection_type = '{nameof(MediaCollectionType.Series)}'
                 GROUP BY mc.id, e.parent_tconst, e.season_number
             ) agg
             ON CONFLICT (title, collection_type, media_type, parent_media_collection_id)
@@ -125,7 +125,7 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 CASE WHEN i.start_year IS NULL THEN NULL ELSE make_date(i.start_year, 7, 1) END,
                 i.tconst,
                 '{nameof(MediaExternalSource.Imdb)}',
-                'TvShow',
+                '{nameof(MediaType.TvShow)}',
                 season.id,
                 now(),
                 now()
@@ -134,10 +134,10 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
             INNER JOIN media_collections series
                 ON series.external_id = e.parent_tconst
                AND series.external_source = '{nameof(MediaExternalSource.Imdb)}'
-               AND series.collection_type = 'Series'
+               AND series.collection_type = '{nameof(MediaCollectionType.Series)}'
             INNER JOIN media_collections season
                 ON season.parent_media_collection_id = series.id
-               AND season.collection_type = 'Season'
+               AND season.collection_type = '{nameof(MediaCollectionType.Season)}'
                AND season.title = CASE WHEN e.season_number = -1 THEN 'Unknown'
                                        ELSE e.season_number::text END
             WHERE i.title_type = 'tvEpisode'
