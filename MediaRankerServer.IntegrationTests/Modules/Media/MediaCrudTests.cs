@@ -42,7 +42,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
     [Fact]
     public async Task GetMedia_ReturnsExistingRows()
     {
-        var response = await Client.GetAsync("/api/media?includeTotalCount=true");
+        var response = await Client.GetAsync("/api/media?mediaTypeId=-3&includeTotalCount=true");
 
         TestUtils.AssertSuccessResponse(response);
         var result = await response.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
@@ -63,7 +63,7 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
         );
         await db.SaveChangesAsync();
 
-        var response = await Client.GetAsync("/api/media?searchField=title&searchTerm=PagingTest&sortField=releaseDate&sortDirection=desc&page=0&pageSize=1&includeTotalCount=true");
+        var response = await Client.GetAsync("/api/media?mediaTypeId=-3&searchField=title&searchTerm=PagingTest&sortField=releaseDate&sortDirection=desc&page=0&pageSize=1&includeTotalCount=true");
         TestUtils.AssertSuccessResponse(response);
         var result = await response.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
 
@@ -72,6 +72,56 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
         result.Items[0].Title.Should().Be("PagingTestBeta");
     }
 
+
+    [Fact]
+    public async Task GetMedia_MissingMediaTypeId_Returns400WithMediaValidationError()
+    {
+        var response = await Client.GetAsync("/api/media");
+
+        response.IsSuccessStatusCode.Should().BeFalse();
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        problem.Should().NotBeNull();
+        problem!.Type.Should().Be("media_validation_error");
+    }
+
+    [Fact]
+    public async Task GetMedia_UnknownMediaTypeId_Returns400WithMediaTypeNotFound()
+    {
+        var response = await Client.GetAsync("/api/media?mediaTypeId=999999");
+
+        response.IsSuccessStatusCode.Should().BeFalse();
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        problem.Should().NotBeNull();
+        problem!.Type.Should().Be("media_type_not_found");
+    }
+
+    [Fact]
+    public async Task GetMedia_ScopedToMediaType_ReturnsOnlyMatchingRows()
+    {
+        const long bookMediaTypeId = -2;
+
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+        db.Media.AddRange(
+            new MediaEntity { Title = "ScopedMovie", MediaTypeId = MovieMediaTypeId, ReleaseDate = new DateOnly(2024, 1, 1) },
+            new MediaEntity { Title = "ScopedBook", MediaTypeId = bookMediaTypeId, ReleaseDate = new DateOnly(2024, 1, 1) }
+        );
+        await db.SaveChangesAsync();
+
+        var movieResponse = await Client.GetAsync($"/api/media?mediaTypeId={MovieMediaTypeId}&includeTotalCount=true");
+        TestUtils.AssertSuccessResponse(movieResponse);
+        var movieResult = await movieResponse.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
+        movieResult!.Items.Should().AllSatisfy(m => m.MediaTypeId.Should().Be(MovieMediaTypeId));
+        movieResult.Items.Should().Contain(m => m.Title == "ScopedMovie");
+        movieResult.Items.Should().NotContain(m => m.Title == "ScopedBook");
+
+        var bookResponse = await Client.GetAsync($"/api/media?mediaTypeId={bookMediaTypeId}&includeTotalCount=true");
+        TestUtils.AssertSuccessResponse(bookResponse);
+        var bookResult = await bookResponse.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
+        bookResult!.Items.Should().AllSatisfy(m => m.MediaTypeId.Should().Be(bookMediaTypeId));
+        bookResult.Items.Should().Contain(m => m.Title == "ScopedBook");
+        bookResult.Items.Should().NotContain(m => m.Title == "ScopedMovie");
+    }
 
     [Fact]
     public async Task UpsertMedia_Create_PersistsMedia()

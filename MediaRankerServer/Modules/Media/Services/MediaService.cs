@@ -22,6 +22,7 @@ public class MediaService(
     public async Task<List<MediaTypeDto>> GetMediaTypesAsync(CancellationToken cancellationToken = default)
     {
         return await dbContext.MediaTypes
+            .OrderByDescending(mt => mt.Id)
             .Select(mt => MediaTypeDtoMapper.Map(mt))
             .ToListAsync(cancellationToken);
     }
@@ -35,11 +36,19 @@ public class MediaService(
         return mediaType == null ? null : MediaTypeDtoMapper.Map(mediaType);
     }
 
-    public async Task<PageResult<MediaDto>> GetAllMediaAsync(PageRequest request, CancellationToken cancellationToken = default)
+    public async Task<PageResult<MediaDto>> GetAllMediaAsync(long mediaTypeId, PageRequest request, CancellationToken cancellationToken = default)
     {
+        if (mediaTypeId == 0)
+            throw new DomainException("Media type id is required.", "media_validation_error");
+
+        var mediaTypeExists = await dbContext.MediaTypes.AnyAsync(mt => mt.Id == mediaTypeId, cancellationToken);
+        if (!mediaTypeExists)
+            throw new DomainException("Media type not found.", "media_type_not_found");
+
         var v = PagingValidator.Validate(request, MediaQueryBuilder.SortFields, MediaQueryBuilder.SearchFields, "title");
 
-        var query = MediaQueryBuilder.ApplySearch(MediaQueryBuilder.BaseQuery(dbContext), v);
+        var query = MediaQueryBuilder.ApplySearch(
+            MediaQueryBuilder.BaseQuery(dbContext).Where(m => m.MediaTypeId == mediaTypeId), v);
         int? totalCount = null;
         if (request.IncludeTotalCount == true) 
             totalCount = await query.CountAsync(cancellationToken);
