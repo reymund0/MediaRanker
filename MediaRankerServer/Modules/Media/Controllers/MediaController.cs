@@ -11,9 +11,9 @@ namespace MediaRankerServer.Modules.Media.Controllers;
 public class MediaController(IMediaService mediaService, IMediaCoverService mediaCoverService) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetMedia([FromQuery] PageRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetMedia([FromQuery] long mediaTypeId, [FromQuery] PageRequest request, CancellationToken cancellationToken)
     {
-        var media = await mediaService.GetAllMediaAsync(request, cancellationToken);
+        var media = await mediaService.GetAllMediaAsync(mediaTypeId, request, cancellationToken);
         return Ok(media);
     }
 
