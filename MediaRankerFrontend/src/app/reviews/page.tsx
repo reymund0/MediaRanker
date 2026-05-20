@@ -1,24 +1,13 @@
 "use client";
 
 import { Box, CircularProgress, Stack, Typography } from "@mui/material";
-import { MediaTypeDto } from "@/lib/contracts/shared";
-import { useQuery } from "@/lib/api/use-query";
-import { ReviewRow } from "./_components/review-row";
+import { ALL_MEDIA_TYPES, MEDIA_TYPE_LABELS, MediaType } from "@/lib/contracts/shared";
 import { useUser } from "@/lib/auth/user-provider";
+import { ReviewRow } from "./_components/review-row";
 import { PageCard } from "@/lib/components/layout/page-card";
 
 export default function ReviewsPage() {
   const { userId } = useUser();
-
-  const {
-    data: mediaTypes,
-    isLoading,
-    isError,
-  } = useQuery<MediaTypeDto[]>({
-    route: "/api/mediaTypes",
-    queryKey: ["media-types"],
-    enabled: !!userId,
-  });
 
   return (
     <PageCard>
@@ -29,23 +18,16 @@ export default function ReviewsPage() {
         </Typography>
       </Box>
 
-      {isLoading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : isError ? (
-        <Typography color="error">Failed to load media types.</Typography>
-      ) : (
-        <Stack direction="column" gap={4}>
-          {(mediaTypes ?? []).map((mediaType) => (
-            <ReviewRow
-              key={mediaType.id}
-              label={mediaType.name}
-              mediaTypeId={mediaType.id}
-            />
-          ))}
-        </Stack>
-      )}
+      <Stack direction="column" gap={4}>
+        {ALL_MEDIA_TYPES.map((mt) => (
+          <ReviewRow
+            key={mt}
+            mediaType={mt}
+            mediaTypeLabel={MEDIA_TYPE_LABELS[mt as MediaType]}
+            userId={userId!}
+          />
+        ))}
+      </Stack>
     </PageCard>
   );
 }

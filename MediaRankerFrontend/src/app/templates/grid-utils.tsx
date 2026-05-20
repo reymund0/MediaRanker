@@ -52,7 +52,7 @@ export function buildTemplateColumns({
           >
             <Typography noWrap>{params.value}</Typography>
             <Chip
-              label={params.row.mediaTypeName}
+              label={params.row.mediaType}
               size="small"
               variant="outlined"
             />

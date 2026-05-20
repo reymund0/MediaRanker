@@ -13,7 +13,7 @@ namespace MediaRankerServer.IntegrationTests.Modules.Media;
 public class MediaCoverCleanupTests(PostgresContainerFixture postgresFixture, LocalStackContainerFixture localStackFixture)
     : IntegrationTestBase(postgresFixture, localStackFixture)
 {
-    private const long MovieMediaTypeId = -3;
+    private const string MovieMediaType = "Movie";
 
     [Fact]
     public async Task CleanupAsync_WhenCoverIsMarkedAndUnreferenced_RemovesCover()
@@ -55,7 +55,7 @@ public class MediaCoverCleanupTests(PostgresContainerFixture postgresFixture, Lo
             db.Media.Add(new MediaEntity
             {
                 Title = "Referenced Media",
-                MediaTypeId = MovieMediaTypeId,
+                MediaType = MovieMediaType,
                 CoverId = coverId,
                 ReleaseDate = new DateOnly(2024, 1, 1)
             });

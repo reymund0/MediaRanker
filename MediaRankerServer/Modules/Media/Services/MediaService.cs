@@ -19,36 +19,18 @@ public class MediaService(
     IPublisher publisher
 ) : IMediaService
 {
-    public async Task<List<MediaTypeDto>> GetMediaTypesAsync(CancellationToken cancellationToken = default)
+
+    public async Task<PageResult<MediaDto>> GetAllMediaAsync(string? mediaType, PageRequest request, CancellationToken cancellationToken = default)
     {
-        return await dbContext.MediaTypes
-            .OrderByDescending(mt => mt.Id)
-            .Select(mt => MediaTypeDtoMapper.Map(mt))
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task<MediaTypeDto?> GetMediaTypeByIdAsync(long id, CancellationToken cancellationToken = default)
-    {
-        var mediaType = await dbContext.MediaTypes
-            .AsNoTracking()
-            .FirstOrDefaultAsync(mt => mt.Id == id, cancellationToken);
-
-        return mediaType == null ? null : MediaTypeDtoMapper.Map(mediaType);
-    }
-
-    public async Task<PageResult<MediaDto>> GetAllMediaAsync(long mediaTypeId, PageRequest request, CancellationToken cancellationToken = default)
-    {
-        if (mediaTypeId == 0)
-            throw new DomainException("Media type id is required.", "media_validation_error");
-
-        var mediaTypeExists = await dbContext.MediaTypes.AnyAsync(mt => mt.Id == mediaTypeId, cancellationToken);
-        if (!mediaTypeExists)
+        if (string.IsNullOrEmpty(mediaType))
+            throw new DomainException("Media type is required.", "media_validation_error");
+        if (!MediaTypes.IsValid(mediaType))
             throw new DomainException("Media type not found.", "media_type_not_found");
 
         var v = PagingValidator.Validate(request, MediaQueryBuilder.SortFields, MediaQueryBuilder.SearchFields, "title");
 
         var query = MediaQueryBuilder.ApplySearch(
-            MediaQueryBuilder.BaseQuery(dbContext).Where(m => m.MediaTypeId == mediaTypeId), v);
+            MediaQueryBuilder.BaseQuery(dbContext).Where(m => m.MediaType == mediaType), v);
         int? totalCount = null;
         if (request.IncludeTotalCount == true) 
             totalCount = await query.CountAsync(cancellationToken);
@@ -77,7 +59,7 @@ public class MediaService(
         var normalizedTitle = request.Title.Trim();
         var duplicateExists = await dbContext.Media.AnyAsync(
             m => m.Title == normalizedTitle
-                && m.MediaTypeId == request.MediaTypeId
+                && m.MediaType == request.MediaType
                 && m.ReleaseDate == request.ReleaseDate,
             cancellationToken
         );
@@ -90,7 +72,7 @@ public class MediaService(
         var media = new MediaEntity
         {
             Title = normalizedTitle,
-            MediaTypeId = request.MediaTypeId,
+            MediaType = request.MediaType,
             ReleaseDate = request.ReleaseDate,
             CoverId = dbContext.MediaCovers.FirstOrDefault(c => c.FileUploadId == request.CoverUploadId)?.Id
         };
@@ -114,7 +96,7 @@ public class MediaService(
         var duplicateExists = await dbContext.Media.AnyAsync(
             m => m.Id != mediaId
                 && m.Title == normalizedTitle
-                && m.MediaTypeId == request.MediaTypeId
+                && m.MediaType == request.MediaType
                 && m.ReleaseDate == request.ReleaseDate,
             cancellationToken
         );
@@ -125,7 +107,7 @@ public class MediaService(
         }
 
         media.Title = normalizedTitle;
-        media.MediaTypeId = request.MediaTypeId;
+        media.MediaType = request.MediaType;
         media.ReleaseDate = request.ReleaseDate;
         media.CoverId = dbContext.MediaCovers.FirstOrDefault(c => c.FileUploadId == request.CoverUploadId)?.Id;
 
@@ -153,13 +135,6 @@ public class MediaService(
         if (!validationResult.IsValid)
         {
             throw new DomainException(validationResult.Errors[0].ErrorMessage, "media_validation_error");
-        }
-
-        // Validate Media Type exists
-        var mediaTypeExists = await dbContext.MediaTypes.AnyAsync(mt => mt.Id == request.MediaTypeId, cancellationToken);
-        if (!mediaTypeExists)
-        {
-            throw new DomainException("Media type not found.", "media_type_not_found");
         }
 
         // Validate Cover exists if provided

@@ -31,7 +31,7 @@ public class ReviewServiceTests : IDisposable
     private readonly ReviewService _service;
     private readonly ReviewInsertRequest _defaultInsertRequest;
     private readonly ReviewUpdateRequest _defaultUpdateRequest;
-    private const long MovieMediaTypeId = -3;
+    private const string MovieMediaType = "Movie";
 
     public ReviewServiceTests()
     {
@@ -82,12 +82,12 @@ public class ReviewServiceTests : IDisposable
 
     private void SeedData()
     {
-        var media = new MediaEntity { Id = 1, Title = "Test Movie", MediaTypeId = MovieMediaTypeId };
+        var media = new MediaEntity { Id = 1, Title = "Test Movie", MediaType = MovieMediaType };
         var template = new Template 
         { 
             Id = 1, 
             Name = "Test Template", 
-            MediaTypeId = MovieMediaTypeId, 
+            MediaType = MovieMediaType, 
             UserId = "user1",
             Fields = new List<TemplateField>
             {
@@ -110,14 +110,13 @@ public class ReviewServiceTests : IDisposable
             .Returns(new ValidationResult());
 
         _mockMediaService.Setup(m => m.GetMediaByIdAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new MediaDto { Id = 1, Title = "Test Movie", MediaTypeId = MovieMediaTypeId, MediaTypeName = "Movie", ReleaseDate = new DateOnly(2020, 1, 1) });
+            .ReturnsAsync(new MediaDto { Id = 1, Title = "Test Movie", MediaType = MovieMediaType, ReleaseDate = new DateOnly(2020, 1, 1) });
 
         _mockTemplatesService.Setup(t => t.GetTemplateByIdAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new TemplateDto { 
                 Id = 1, 
                 Name = "Test Template", 
-                MediaTypeId = MovieMediaTypeId,
-                MediaTypeName = "Movie",
+                MediaType = MovieMediaType,
                 Fields = [
                     new TemplateFieldDto { Id = 1, Name = "Story", Position = 1 },
                     new TemplateFieldDto { Id = 2, Name = "Acting", Position = 2 }
@@ -182,12 +181,12 @@ public class ReviewServiceTests : IDisposable
         var request = _defaultInsertRequest;
 
         _mockMediaService.Setup(m => m.GetMediaByIdAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new MediaDto { Id = 1, Title = "Test", MediaTypeId = 2, MediaTypeName = "Book" });
+            .ReturnsAsync(new MediaDto { Id = 1, Title = "Test", MediaType = "Book" });
 
         // Act & Assert
         var act = () => _service.CreateReviewAsync("test-user", request);
         await act.Should().ThrowAsync<DomainException>()
-            .Where(e => e.Type == "review_insert_validation_error")
+            .Where(e => e.Type == "review_media_type_mismatch")
             .Where(e => e.Message.Contains("Media type"));
     }
 

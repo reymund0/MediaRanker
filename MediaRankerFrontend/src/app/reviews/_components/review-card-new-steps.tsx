@@ -10,14 +10,13 @@ import { TemplateDto } from "@/lib/contracts/shared";
 import { UnreviewedMediaDto } from "../contracts";
 import { usePagedQuery } from "@/lib/api/use-paged-query";
 import { useQuery } from "@/lib/api/use-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useUser } from "@/lib/auth/user-provider";
-import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import { ReviewFormValues } from "./review-card-utils";
 import { TemplateFieldDisplay } from "./review-card-edit";
 
 type ReviewCardNewStepsProps = {
-  mediaTypeId: number;
+  mediaType: string;
   onNewReview: (
     review: ReviewFormValues,
     mediaTitle: string,
@@ -29,13 +28,11 @@ type ReviewCardNewStepsProps = {
 type NewReviewStep = "select-media" | "select-template";
 
 export function ReviewCardNewSteps({
-  mediaTypeId,
-  onCancel,
+  mediaType,
   onNewReview,
+  onCancel,
 }: ReviewCardNewStepsProps) {
   const { userId } = useUser();
-  const { showError } = useAlert();
-
   const [selectedMedia, setSelectedMedia] =
     useState<BaseSelectOption<UnreviewedMediaDto> | null>(null);
   const [searchInput, setSearchInput] = useState("");
@@ -43,28 +40,26 @@ export function ReviewCardNewSteps({
 
   const {
     items: unreviewedMedia,
-    isLoading: unreviewedLoading,
-    error: unreviewedError,
+    isLoading: isUnreviewedMediaLoading,
   } = usePagedQuery<UnreviewedMediaDto>({
     route: "/api/reviews/unreviewedByType",
-    routeParams: { mediaTypeId },
-    pageRequest: { searchTerm: searchInput, searchField: "title" },
-    queryKey: ["unreviewed", mediaTypeId],
-    enabled: !!userId,
+    routeParams: { mediaType },
+    queryKey: ["unreviewedMedia", mediaType],
+    enabled: currentStep === "select-media",
+    pageSize: 10,
+    pageRequest: {
+      searchField: "title",
+      searchTerm: searchInput,
+    },
   });
 
-  useEffect(() => {
-    if (unreviewedError) {
-      showError(unreviewedError.message);
-    }
-  }, [unreviewedError, showError]);
-
-  const { data: templates, isLoading: templatesLoading } = useQuery<
-    TemplateDto[]
-  >({
-    route: `/api/templates/${mediaTypeId ?? 0}`,
-    queryKey: ["templates-by-type", mediaTypeId],
-    enabled: !!userId && !!selectedMedia,
+  const {
+    data: templates,
+    isLoading: isTemplatesLoading,
+  } = useQuery<TemplateDto[]>({
+    route: `/api/templates/${mediaType}`,
+    queryKey: ["templates", mediaType],
+    enabled: currentStep === "select-template",
   });
 
   if (currentStep === "select-media") {
@@ -83,7 +78,7 @@ export function ReviewCardNewSteps({
             label: m.title,
             metadata: m,
           }))}
-          isLoading={unreviewedLoading}
+          isLoading={isUnreviewedMediaLoading}
           searchInput={searchInput}
           onSearchChange={setSearchInput}
           onSelectOption={(option) => {
@@ -114,7 +109,7 @@ export function ReviewCardNewSteps({
             label: t.name,
             metadata: t,
           }))}
-          isLoading={templatesLoading}
+          isLoading={isTemplatesLoading}
           onChange={(e) => {
             const id = Number(e.target.value);
             const tmpl = templates?.find((t) => t.id === id) ?? null;

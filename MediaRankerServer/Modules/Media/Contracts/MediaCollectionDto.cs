@@ -9,8 +9,7 @@ public class MediaCollectionDto
     public long Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public string CollectionType { get; set; } = string.Empty;
-    public long MediaTypeId { get; set; }
-    public string MediaTypeName { get; set; } = string.Empty;
+    public string MediaType { get; set; } = string.Empty;
     public long? ParentMediaCollectionId { get; set; }
     public string? ParentMediaCollectionTitle { get; set; }
     public DateOnly? ReleaseDate { get; set; }
@@ -34,8 +33,7 @@ public static class MediaCollectionDtoMapper
             Id = collection.Id,
             Title = collection.Title,
             CollectionType = collection.CollectionType.ToString(),
-            MediaTypeId = collection.MediaTypeId,
-            MediaTypeName = collection.MediaType.Name,
+            MediaType = collection.MediaType,
             ParentMediaCollectionId = collection.ParentMediaCollectionId,
             ParentMediaCollectionTitle = collection.ParentMediaCollection?.Title,
             ReleaseDate = collection.ReleaseDate,

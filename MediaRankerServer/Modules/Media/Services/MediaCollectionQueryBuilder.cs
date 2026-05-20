@@ -16,7 +16,6 @@ internal static class MediaCollectionQueryBuilder
     internal static IQueryable<MediaCollection> BaseQuery(PostgreSQLContext db)
         => db.MediaCollections
             .AsNoTracking()
-            .Include(mc => mc.MediaType)
             .Include(mc => mc.ParentMediaCollection)
             .Include(mc => mc.Cover);
 

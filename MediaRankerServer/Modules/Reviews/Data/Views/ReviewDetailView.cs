@@ -17,8 +17,7 @@ public class ReviewDetailView
     public long MediaId { get; set; }
     public string MediaTitle { get; set; } = null!;
     public string? MediaCoverFileKey { get; set; }
-    public long MediaTypeId { get; set; }
-    public string MediaTypeName { get; set; } = null!;
+    public string MediaType { get; set; } = null!;
     
     public long TemplateId { get; set; }
     public string TemplateName { get; set; } = null!;

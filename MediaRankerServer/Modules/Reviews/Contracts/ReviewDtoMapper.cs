@@ -30,8 +30,7 @@ public static class ReviewDtoMapper
       TemplateName = review.TemplateName,
       MediaId = review.MediaId,
       MediaTitle = review.MediaTitle,
-      MediaTypeId = review.MediaTypeId,
-      MediaTypeName = review.MediaTypeName,
+      MediaType = review.MediaType,
       MediaCoverImageUrl = mediaCoverImageUrl
     };
   }

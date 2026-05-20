@@ -7,24 +7,23 @@ import { FormDialog } from "@/lib/components/feedback/dialog/form-dialog";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
 import { FormDnDList } from "@/lib/components/data-display/form-dnd-list";
 import { TemplateUpsertRequest } from "./contracts";
-import { MediaTypeDto } from "@/lib/contracts/shared";
 import { TemplateRow } from "./grid-utils";
+import { ALL_MEDIA_TYPES, MEDIA_TYPE_LABELS, MediaType } from "@/lib/contracts/shared";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { FormSelect } from "@/lib/components/inputs/select/form-select";
 
 const templateEditSchema = z.object({
   id: z.number().optional(),
-  mediaTypeId: z.number(),
+  mediaType: z.nativeEnum(MediaType, { message: "Media type is required" }),
   name: z.string().trim().min(1, "Template name is required"),
-  description: z.string().optional(),
-  fields: z
-    .array(
-      z.object({
-        id: z.number().optional(),
-        name: z.string().trim().min(1, "Field name is required"),
-      }),
-    )
-    .min(1, "At least one field is required"),
+  description: z.string().nullable().optional(),
+  fields: z.array(
+    z.object({
+      id: z.number().optional(),
+      name: z.string().trim().min(1, "Field name is required"),
+      position: z.number(),
+    }),
+  ).min(1, "Template must include at least one field"),
 });
 
 type TemplateEditFormValues = z.infer<typeof templateEditSchema>;
@@ -32,7 +31,6 @@ type TemplateEditFormValues = z.infer<typeof templateEditSchema>;
 type TemplateEditModalProps = {
   open: boolean;
   row: TemplateRow;
-  mediaTypes: MediaTypeDto[];
   onSubmit: (data: TemplateUpsertRequest) => void;
   onCancel: () => void;
 };
@@ -40,47 +38,42 @@ type TemplateEditModalProps = {
 export function TemplateEditModal({
   open,
   row,
-  mediaTypes,
   onSubmit,
   onCancel,
 }: TemplateEditModalProps) {
   const methods = useForm<TemplateEditFormValues>({
     resolver: zodResolver(templateEditSchema),
     defaultValues: {
-      id: row.id,
-      mediaTypeId: row.mediaTypeId,
+      id: row.id || undefined,
+      mediaType: row.mediaType as MediaType,
       name: row.name,
-      description: row.description || undefined,
-      fields:
-        row.fields.length == 0
-          ? [{ id: undefined, name: "" }]
-          : row.fields.map((templateField) => ({
-              id: templateField.id,
-              name: templateField.name,
-            })),
+      description: row.description,
+      fields: row.fields.length > 0
+        ? [...row.fields]
+        : [{ id: undefined, name: "", position: 0 }],
     },
     mode: "onChange",
   });
 
   const { handleSubmit, setValue, getValues } = methods;
 
-  const onSubmitClick = (data: TemplateEditFormValues) => {
+  const onSubmitClick = (formData: TemplateEditFormValues) => {
     onSubmit({
-      id: data.id || null,
-      mediaTypeId: data.mediaTypeId,
-      name: data.name.trim(),
-      description: data.description?.trim() || null,
-      fields: data.fields.map((templateField, index) => ({
-        id: templateField.id || null,
-        name: templateField.name.trim(),
-        position: index,
+      id: formData.id || null,
+      mediaType: formData.mediaType,
+      name: formData.name.trim(),
+      description: formData.description ?? null,
+      fields: formData.fields.map((f, i) => ({
+        id: f.id || null,
+        name: f.name.trim(),
+        position: i,
       })),
     });
   };
 
   const handleAddField = () => {
     const currentFields = getValues("fields");
-    const newFields = [...currentFields, { id: undefined, name: "" }];
+    const newFields = [...currentFields, { id: undefined, name: "", position: 0 }];
     setValue("fields", newFields, { shouldValidate: true, shouldDirty: true });
   };
 
@@ -105,12 +98,9 @@ export function TemplateEditModal({
             label="Template name"
           />
           <FormSelect<TemplateEditFormValues>
-            name="mediaTypeId"
+            name="mediaType"
             label="Media type"
-            options={mediaTypes.map((mediaType) => ({
-              id: mediaType.id,
-              label: mediaType.name,
-            }))}
+            options={ALL_MEDIA_TYPES.map((mt) => ({ id: mt, label: MEDIA_TYPE_LABELS[mt] }))}
           />
         </Stack>
         <FormTextField<TemplateEditFormValues>

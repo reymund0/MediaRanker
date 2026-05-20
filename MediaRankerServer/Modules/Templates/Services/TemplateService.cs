@@ -1,5 +1,4 @@
 using FluentValidation;
-using MediaRankerServer.Modules.Media.Services.Interfaces;
 using MediatR;
 using MediaRankerServer.Modules.Templates.Data.Entities;
 using MediaRankerServer.Shared.Data;
@@ -12,41 +11,41 @@ namespace MediaRankerServer.Modules.Templates.Services;
 public class TemplateService(
     PostgreSQLContext dbContext,
     IValidator<TemplateUpsertRequest> templateUpsertRequestValidator,
-    IPublisher publisher,
-    IMediaService mediaService
+    IPublisher publisher
 ) : ITemplateService
 {
     public async Task<List<TemplateDto>> GetAllVisibleTemplatesAsync(string userId, CancellationToken cancellationToken = default)
     {
-        var templates = await TemplateReadRows()
-            .Where(t => t.Template.Id < 0 || t.Template.UserId == userId)
+        var templates = await dbContext.Templates
+            .Include(t => t.Fields)
+            .Where(t => t.Id < 0 || t.UserId == userId)
             .ToListAsync(cancellationToken);
 
-        return [..templates.Select(t => TemplateDtoMapper.Map(t.Template, t.MediaTypeName))];
+        return [..templates.Select(TemplateDtoMapper.Map)];
     }
     
     public async Task<TemplateDto?> GetTemplateByIdAsync(long templateId, CancellationToken cancellationToken)
     {
         var template = await dbContext.Templates
             .Include(t => t.Fields)
-            .Join(dbContext.MediaTypes, t => t.MediaTypeId, mt => mt.Id, (t, mt) => new { t, mt.Name })
-            .FirstOrDefaultAsync(t => t.t.Id == templateId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.Id == templateId, cancellationToken);
 
-        return template is null ? null : TemplateDtoMapper.Map(template.t, template.Name);
+        return template is null ? null : TemplateDtoMapper.Map(template);
     }
 
-    public async Task<List<TemplateDto>> GetTemplatesByMediaTypeAsync(string userId, long mediaTypeId, CancellationToken cancellationToken)
+    public async Task<List<TemplateDto>> GetTemplatesByMediaTypeAsync(string userId, string mediaType, CancellationToken cancellationToken)
     {
-        var templates = await TemplateReadRows()
-            .Where(t => t.Template.MediaTypeId == mediaTypeId && (t.Template.Id < 0 || t.Template.UserId == userId))
+        var templates = await dbContext.Templates
+            .Include(t => t.Fields)
+            .Where(t => t.MediaType == mediaType && (t.Id < 0 || t.UserId == userId))
             .ToListAsync(cancellationToken);
 
-        return [..templates.Select(t => TemplateDtoMapper.Map(t.Template, t.MediaTypeName))];
+        return [..templates.Select(TemplateDtoMapper.Map)];
     }
 
     public async Task<TemplateDto> CreateTemplateAsync(string userId, TemplateUpsertRequest request, CancellationToken cancellationToken = default)
     {
-        await ValidateTemplateRequestOrThrow(request, cancellationToken);
+        ValidateTemplateRequestOrThrow(request);
 
         var normalizedName = request.Name.Trim();
         var nameTaken = await dbContext.Templates.AnyAsync(
@@ -63,7 +62,7 @@ public class TemplateService(
         {
             UserId = userId,
             Name = normalizedName,
-            MediaTypeId = request.MediaTypeId,
+            MediaType = request.MediaType,
             Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
             Fields = [..request.Fields.Select(fieldRequest => new TemplateField
             {
@@ -81,7 +80,7 @@ public class TemplateService(
 
     public async Task<TemplateDto> UpdateTemplateAsync(string userId, long templateId, TemplateUpsertRequest request, CancellationToken cancellationToken = default)
     {
-        await ValidateTemplateRequestOrThrow(request, cancellationToken);
+        ValidateTemplateRequestOrThrow(request);
 
         var template = await dbContext.Templates
             .Include(t => t.Fields)
@@ -110,7 +109,7 @@ public class TemplateService(
         }
 
         template.Name = normalizedName;
-        template.MediaTypeId = request.MediaTypeId;
+        template.MediaType = request.MediaType;
         template.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
         template.UpdatedAt = DateTimeOffset.UtcNow;
 
@@ -188,33 +187,12 @@ public class TemplateService(
         await publisher.Publish(new Events.TemplateDeletedEvent(templateId), cancellationToken);
     }
 
-    private IQueryable<TemplateReadRow> TemplateReadRows()
-    {
-        return from t in dbContext.Templates.Include(t => t.Fields)
-               join mt in dbContext.MediaTypes on t.MediaTypeId equals mt.Id
-               select new TemplateReadRow
-               {
-                   Template = t,
-                   MediaTypeName = mt.Name
-               };
-    }
-
-    private sealed class TemplateReadRow
-    {
-        public Template Template { get; init; } = null!;
-        public string MediaTypeName { get; init; } = string.Empty;
-    }
-
-    private async Task ValidateTemplateRequestOrThrow(TemplateUpsertRequest request, CancellationToken cancellationToken)
+    private void ValidateTemplateRequestOrThrow(TemplateUpsertRequest request)
     {
         var validationResult = templateUpsertRequestValidator.Validate(request);
         if (!validationResult.IsValid)
         {
             throw new DomainException(validationResult.Errors[0].ErrorMessage, "template_validation_error");
         }
-
-        // Verify media type exists
-        _ = await mediaService.GetMediaTypeByIdAsync(request.MediaTypeId, cancellationToken)
-            ?? throw new DomainException("Selected media type does not exist.", "template_validation_error");
     }
 }

@@ -94,7 +94,7 @@ public class MediaCoverServiceTests : IDisposable
     public async Task GenerateUploadCoverUrlAsync_WithValidMediaId_ReturnsUrlAndUploadId()
     {
         // Arrange
-        var media = new MediaEntity { Id = 123, Title = "Test Movie", MediaTypeId = 1 };
+        var media = new MediaEntity { Id = 123, Title = "Test Movie", MediaType = "Movie" };
         _dbContext.Media.Add(media);
         await _dbContext.SaveChangesAsync();
 
