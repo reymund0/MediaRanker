@@ -1,10 +1,14 @@
 using FluentAssertions;
 using MediaRankerServer.IntegrationTests.Infrastructure;
+using MediaRankerServer.Modules.Media.Data;
 using MediaRankerServer.Modules.Media.Data.Entities;
+using MediaRankerServer.Modules.Media.Jobs;
 using MediaRankerServer.Modules.Media.Services;
 using MediaRankerServer.Shared.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace MediaRankerServer.IntegrationTests.Modules.Media;
 
@@ -53,13 +57,13 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
 
         await db.SaveChangesAsync();
 
-        // Seed matching ratings rows so the load phase INNER JOIN passes (num_votes >= MinVotes default 50).
+        // Seed matching ratings rows so the load phase INNER JOIN passes (num_votes >= default MinVotesMovies/Tv=1000, MinVotesVideoGames=50).
         await SeedRatingsAsync(db,
         [
-            new() { Tconst = TconstMovieWithYear, AverageRating = 7.5m, NumVotes = 500 },
-            new() { Tconst = TconstMovieNullYear, AverageRating = 6.0m, NumVotes = 100 },
-            new() { Tconst = TconstVideoGame,     AverageRating = 8.0m, NumVotes = 200 },
-            new() { Tconst = TconstTvSeries,      AverageRating = 7.0m, NumVotes = 300 },
+            new() { Tconst = TconstMovieWithYear, AverageRating = 7.5m, NumVotes = 5000 },
+            new() { Tconst = TconstMovieNullYear, AverageRating = 6.0m, NumVotes = 5000 },
+            new() { Tconst = TconstVideoGame,     AverageRating = 8.0m, NumVotes = 200  },
+            new() { Tconst = TconstTvSeries,      AverageRating = 7.0m, NumVotes = 5000 },
         ]);
     }
 
@@ -212,7 +216,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         // Callers may override via the ratings parameter to test filter behaviour.
         var effectiveRatings = ratings ?? importList
             .Where(i => i.TitleType is "tvSeries" or "tvMiniSeries")
-            .Select(i => new ImdbImportRating { Tconst = i.Tconst, AverageRating = 7.0m, NumVotes = 100 });
+            .Select(i => new ImdbImportRating { Tconst = i.Tconst, AverageRating = 7.0m, NumVotes = 5000 });
 
         await SeedRatingsAsync(db, effectiveRatings);
 
@@ -487,6 +491,12 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
     // Ratings filter tests
     // -------------------------------------------------------------------------
 
+    private ImdbLoadService LoadServiceWithMinVotes(IServiceScope scope, int movies, int tv, int videoGames) =>
+        new(scope.ServiceProvider.GetRequiredService<IImdbLoadProvider>(),
+            Options.Create(new ImdbImportOptions { MinVotesMovies = movies, MinVotesTv = tv, MinVotesVideoGames = videoGames }),
+            scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger<ImdbLoadService>());
+
+
     [Fact]
     public async Task LoadNonSeriesMediaAsync_ExcludesMedia_WhenNumVotesBelowMinVotes()
     {
@@ -498,11 +508,11 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         await db.SaveChangesAsync();
         await SeedRatingsAsync(db, [new() { Tconst = tconst, AverageRating = 9.0m, NumVotes = 49 }]);
 
-        var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
+        var loadService = LoadServiceWithMinVotes(scope, movies: 50, tv: 50, videoGames: 50);
         await loadService.LoadAsync();
 
         var row = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == tconst);
-        row.Should().BeNull("num_votes=49 is below the default MinVotes=50 threshold");
+        row.Should().BeNull("num_votes=49 is below the MinVotes=50 threshold");
     }
 
     [Fact]
@@ -516,7 +526,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         await db.SaveChangesAsync();
         await SeedRatingsAsync(db, [new() { Tconst = tconst, AverageRating = 7.0m, NumVotes = 50 }]);
 
-        var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
+        var loadService = LoadServiceWithMinVotes(scope, movies: 50, tv: 50, videoGames: 50);
         await loadService.LoadAsync();
 
         var row = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == tconst);
@@ -534,7 +544,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         await db.SaveChangesAsync();
         // No matching ratings row seeded.
 
-        var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
+        var loadService = LoadServiceWithMinVotes(scope, movies: 50, tv: 50, videoGames: 50);
         await loadService.LoadAsync();
 
         var row = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == tconst);
@@ -558,7 +568,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
             episodes: [new() { Tconst = episodeTconst, ParentTconst = seriesTconst, SeasonNumber = 1, EpisodeNumber = 1, RawLine = "e" }],
             ratings:  [new() { Tconst = seriesTconst, AverageRating = 7.0m, NumVotes = 49 }]);
 
-        var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
+        var loadService = LoadServiceWithMinVotes(scope, movies: 50, tv: 50, videoGames: 50);
         await loadService.LoadAsync();
 
         var seriesRow = await db.MediaCollections.FirstOrDefaultAsync(mc => mc.ExternalId == seriesTconst);
@@ -585,7 +595,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
             episodes: [new() { Tconst = episodeTconst, ParentTconst = seriesTconst, SeasonNumber = 1, EpisodeNumber = 1, RawLine = "e" }],
             ratings:  [new() { Tconst = seriesTconst, AverageRating = 7.0m, NumVotes = 50 }]);
 
-        var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
+        var loadService = LoadServiceWithMinVotes(scope, movies: 50, tv: 50, videoGames: 50);
         await loadService.LoadAsync();
 
         var seriesRow = await db.MediaCollections.FirstOrDefaultAsync(mc => mc.ExternalId == seriesTconst);

@@ -13,7 +13,9 @@ public class ImdbImportOptions : BaseJobOptions
     public string EpisodesDatasetUrl { get; set; } = "https://datasets.imdbws.com/title.episode.tsv.gz";
     public string RatingsDatasetUrl { get; set; } = "https://datasets.imdbws.com/title.ratings.tsv.gz";
     public int BatchSize { get; set; } = 5000;
-    public int MinVotes { get; set; } = 50;
+    public int MinVotesMovies { get; set; } = 1000;
+    public int MinVotesTv { get; set; } = 1000;
+    public int MinVotesVideoGames { get; set; } = 50;
 }
 
 public class ImdbImportJob(

@@ -24,7 +24,7 @@ public class ImdbLoadService(
     {
         logger.LogInformation("Starting IMDB load: non-series media.");
 
-        var result = await loadProvider.LoadNonSeriesMediaAsync(config.MinVotes, ct);
+        var result = await loadProvider.LoadNonSeriesMediaAsync(config.MinVotesMovies, config.MinVotesVideoGames, ct);
 
         logger.LogInformation("IMDB load: non-series media completed. Affected rows: {Affected}", result.Affected);
         return result;
@@ -34,7 +34,7 @@ public class ImdbLoadService(
     {
         logger.LogInformation("Starting IMDB load: series collections.");
 
-        var result = await loadProvider.LoadSeriesCollectionsAsync(config.MinVotes, ct);
+        var result = await loadProvider.LoadSeriesCollectionsAsync(config.MinVotesTv, ct);
 
         logger.LogInformation("IMDB load: series collections completed. Affected rows: {Affected}", result.Affected);
         return result;
