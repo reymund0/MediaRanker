@@ -93,7 +93,7 @@ public class ImdbImportService(
     private static ImdbTsvRow? ParseBasicsRow(string[] columns, int lineNumber, string line)
     {
         // Skip adult content
-        if (columns[4] == "1")
+        if (columns[4] == "1" || columns[1] == "videoGame")
         {
             return null;
         }

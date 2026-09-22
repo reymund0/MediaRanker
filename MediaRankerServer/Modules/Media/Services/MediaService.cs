@@ -4,7 +4,6 @@ using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Modules.Media.Events;
 using MediaRankerServer.Modules.Media.Services.Interfaces;
-using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
 using MediaRankerServer.Shared.Paging;
@@ -14,7 +13,7 @@ namespace MediaRankerServer.Modules.Media.Services;
 
 public class MediaService(
     PostgreSQLContext dbContext,
-    IFileService fileService,
+    IArtworkService artworkService,
     IValidator<MediaUpsertRequest> mediaUpsertRequestValidator,
     IPublisher publisher
 ) : IMediaService
@@ -56,18 +55,22 @@ public class MediaService(
         query = MediaQueryBuilder.ApplySort(query, v);
 
         var page = await query.Skip(v.Skip).Take(v.Take).ToListAsync(cancellationToken);
+        var covers = await artworkService.GetMediaArtworkAsync(page.Select(m => m.Id), cancellationToken);
 
         return new PageResult<MediaDto>(
-            [.. page.Select(m => MediaDtoMapper.Map(m, fileService))],
+            [.. page.Select(m => MediaDtoMapper.Map(m, covers?.GetValueOrDefault(m.Id)))],
             totalCount, v.Page, v.PageSize);
     }
 
-    public async Task<MediaDto?> GetMediaByIdAsync(long mediaId, CancellationToken cancellationToken)
+    public async Task<MediaDto?> GetMediaByIdAsync(long mediaId, CancellationToken cancellationToken, bool requestArtwork = true)
     {
         var media = await MediaQueryBuilder.BaseQuery(dbContext)
             .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
 
-        return media is null ? null : MediaDtoMapper.Map(media, fileService);
+        if (media is null) return null;
+        if (!requestArtwork) return MediaDtoMapper.Map(media);
+        var covers = await artworkService.GetMediaArtworkAsync([media.Id], cancellationToken);
+        return MediaDtoMapper.Map(media, covers?.GetValueOrDefault(media.Id));
     }
 
     public async Task<MediaDto> CreateMediaAsync(string userId, MediaUpsertRequest request, CancellationToken cancellationToken = default)
@@ -91,8 +94,7 @@ public class MediaService(
         {
             Title = normalizedTitle,
             MediaTypeId = request.MediaTypeId,
-            ReleaseDate = request.ReleaseDate,
-            CoverId = dbContext.MediaCovers.FirstOrDefault(c => c.FileUploadId == request.CoverUploadId)?.Id
+            ReleaseDate = request.ReleaseDate
         };
 
         dbContext.Media.Add(media);
@@ -127,7 +129,6 @@ public class MediaService(
         media.Title = normalizedTitle;
         media.MediaTypeId = request.MediaTypeId;
         media.ReleaseDate = request.ReleaseDate;
-        media.CoverId = dbContext.MediaCovers.FirstOrDefault(c => c.FileUploadId == request.CoverUploadId)?.Id;
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -162,14 +163,5 @@ public class MediaService(
             throw new DomainException("Media type not found.", "media_type_not_found");
         }
 
-        // Validate Cover exists if provided
-        if (request.CoverUploadId.HasValue)
-        {
-            var coverExists = await dbContext.MediaCovers.AnyAsync(c => c.FileUploadId == request.CoverUploadId, cancellationToken);
-            if (!coverExists)
-            {
-                throw new DomainException("Cover not found.", "cover_not_found");
-            }
-        }
     }
 }

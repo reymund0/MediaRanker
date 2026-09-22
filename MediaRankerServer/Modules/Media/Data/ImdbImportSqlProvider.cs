@@ -9,10 +9,12 @@ public class ImdbImportSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbImpo
 {   
     public async Task<ImdbImportResult> ImportBasicsAsync(List<ImdbTsvRow> rows, CancellationToken ct)
     {
+        var acceptedRows = rows.Where(row => row.TitleType != "videoGame").ToList();
+        if (acceptedRows.Count == 0) return new ImdbImportResult(0, rows.Count);
         string sql = string.Empty;
         try
         {
-            sql = BuildBasicsInsertSql(rows);
+            sql = BuildBasicsInsertSql(acceptedRows);
             var result = await dbContext.Database.ExecuteSqlRawAsync(sql, ct);
             var skipped = rows.Count - result;
             return new ImdbImportResult(result, skipped);

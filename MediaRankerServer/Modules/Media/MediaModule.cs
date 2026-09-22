@@ -1,10 +1,10 @@
 using FluentValidation;
-using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Jobs;
 using MediaRankerServer.Modules.Media.Services;
 using MediaRankerServer.Modules.Media.Services.Interfaces;
 using MediaRankerServer.Modules.Media.Data;
+using MediaRankerServer.Modules.Media.Providers;
 
 namespace MediaRankerServer.Modules.Media;
 
@@ -16,11 +16,15 @@ public static class MediaModule
         IHostEnvironment environment)
     {
         services.Configure<ImdbImportOptions>(configuration.GetSection(ImdbImportOptions.SectionPath));
-        services.Configure<MediaCoverCleanupOptions>(configuration.GetSection(MediaCoverCleanupOptions.SectionPath));
+        services.AddOptions<ArtworkOptions>().Bind(configuration.GetSection(ArtworkOptions.SectionPath))
+            .Validate(x => x.IsValid(), "Invalid artwork timing or cache policy.").ValidateOnStart();
+        services.AddSingleton(TimeProvider.System);
+        services.AddMediaProviders(configuration);
 
-        services.AddScoped<IFileService, S3FileService>();
-        services.AddScoped<IMediaCoverService, MediaCoverService>();
-        services.AddScoped<IMediaCoverCleanupService, MediaCoverService>();
+        services.AddScoped<IArtworkService, ArtworkService>();
+        services.AddScoped<ArtworkProcessor>();
+        services.AddScoped<IIgdbImportProvider, IgdbImportSqlProvider>();
+        services.AddScoped<IgdbImportService>();
         services.AddScoped<IImdbImportProvider, ImdbImportSqlProvider>();
         services.AddScoped<IImdbLoadProvider, ImdbLoadSqlProvider>();
         services.AddScoped<ImdbLoadService>();
@@ -28,15 +32,15 @@ public static class MediaModule
         services.AddScoped<IMediaCollectionService, MediaCollectionService>();
         services.AddScoped<ImdbImportService>();
         services.AddScoped<IValidator<MediaUpsertRequest>, MediaUpsertRequestValidator>();
-        services.AddScoped<IValidator<GenerateUploadCoverUrlRequest>, GenerateUploadCoverUrlRequestValidator>();
         services.AddScoped<IValidator<MediaCollectionUpsertRequest>, MediaCollectionUpsertRequestValidator>();
 
         services.AddHttpClient<ImdbTsvProvider>();
 
-        if (!environment.IsEnvironment("Testing"))
+        if (!environment.IsEnvironment("Testing") && !environment.IsEnvironment("Integration"))
         {
             services.AddHostedService<ImdbImportJob>();
-            services.AddHostedService<MediaCoverCleanupJob>();
+            services.AddHostedService<ArtworkJob>();
+            services.AddHostedService<IgdbImportJob>();
         }
 
         return services;

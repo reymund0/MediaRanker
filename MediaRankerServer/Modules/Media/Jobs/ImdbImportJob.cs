@@ -15,7 +15,6 @@ public class ImdbImportOptions : BaseJobOptions
     public int BatchSize { get; set; } = 5000;
     public int MinVotesMovies { get; set; } = 1000;
     public int MinVotesTv { get; set; } = 1000;
-    public int MinVotesVideoGames { get; set; } = 50;
 }
 
 public class ImdbImportJob(

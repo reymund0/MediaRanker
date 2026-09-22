@@ -82,7 +82,7 @@ builder.Services.AddDefaultAWSOptions(awsOptions);
 builder.Services.AddAWSService<IAmazonS3>();
 
 // Register Cognito authentication extension.
-builder.Services.AddCognitoAuthentication(builder.Configuration);
+builder.Services.AddCognitoAuthentication(builder.Configuration, builder.Environment);
 
 // Register Module Services.
 builder.Services.AddTemplatesModule();

@@ -12,6 +12,11 @@ import {
   ConfirmSignUpOutput,
   ResendSignUpCodeOutput,
 } from "aws-amplify/auth";
+import {
+  clearLocalTestAuth,
+  isLocalTestAuthActive,
+  LOCAL_TEST_AUTH_TOKEN,
+} from "@/lib/auth/local-test-auth";
 
 export type AuthResult<T> = {
   success: boolean;
@@ -75,6 +80,10 @@ export async function isAuthenticated(): Promise<boolean> {
 }
 
 export async function getAccessToken(): Promise<string | undefined> {
+  if (isLocalTestAuthActive()) {
+    return LOCAL_TEST_AUTH_TOKEN;
+  }
+
   const session = await fetchAuthSession();
   return session.tokens?.accessToken?.toString();
 }
@@ -117,6 +126,11 @@ export async function handleResendCode(
 }
 
 export async function handleSignOut(): Promise<AuthResult<void>> {
+  if (isLocalTestAuthActive()) {
+    clearLocalTestAuth();
+    return { success: true, data: undefined };
+  }
+
   try {
     await signOut();
     return { success: true, data: undefined };

@@ -4,7 +4,6 @@ using MediaRankerServer.Modules.Media.Services.Interfaces;
 using MediaRankerServer.Modules.Reviews.Data.Entities;
 using MediaRankerServer.Modules.Templates.Services;
 using MediaRankerServer.Modules.Reviews.Contracts;
-using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
 using MediaRankerServer.Shared.Paging;
@@ -18,7 +17,7 @@ public class ReviewService(
   IValidator<ReviewUpdateRequest> reviewUpdateRequestValidator,
   IMediaService mediaService,
   ITemplateService templatesService,
-  IFileService fileService
+  IArtworkService artworkService
   ) : IReviewService
 {
     public async Task<List<ReviewDto>> GetReviewsByMediaTypeAsync(string userId, long mediaTypeId, CancellationToken cancellationToken = default)
@@ -41,7 +40,8 @@ public class ReviewService(
             select new ReviewDtoMapper.ReviewFieldDetails(rf, tf.Name, tf.Position)
         ).ToListAsync(cancellationToken);
 
-        return [.. reviewDetails.Select(r => ReviewDtoMapper.Map(fileService, r, fields.Where(f => f.Field.ReviewId == r.Id)))];
+        var covers = await artworkService.GetMediaArtworkAsync(reviewDetails.Select(r => r.MediaId), cancellationToken);
+        return [.. reviewDetails.Select(r => ReviewDtoMapper.Map(covers?.GetValueOrDefault(r.MediaId), r, fields.Where(f => f.Field.ReviewId == r.Id)))];
     }
     
     public async Task<PageResult<UnreviewedMediaDto>> GetUnreviewedMediaByTypeAsync(string userId, long mediaTypeId, PageRequest request, CancellationToken cancellationToken = default)
@@ -63,9 +63,10 @@ public class ReviewService(
         query = UnreviewedMediaQueryBuilder.ApplySort(query, v);
 
         var page = await query.Skip(v.Skip).Take(v.Take).ToListAsync(cancellationToken);
+        var covers = await artworkService.GetMediaArtworkAsync(page.Select(m => m.Id), cancellationToken);
 
         return new PageResult<UnreviewedMediaDto>(
-            [.. page.Select(m => UnreviewedMediaDtoMapper.Map(m, fileService))],
+            [.. page.Select(m => UnreviewedMediaDtoMapper.Map(m, covers?.GetValueOrDefault(m.Id)))],
             totalCount, v.Page, v.PageSize);
     }
 
@@ -200,7 +201,7 @@ public class ReviewService(
         }
 
         // Validate Media exists
-        var media = await mediaService.GetMediaByIdAsync(request.MediaId, cancellationToken) ?? throw new DomainException($"MediaId {request.MediaId} not found", errorType);
+        var media = await mediaService.GetMediaByIdAsync(request.MediaId, cancellationToken, requestArtwork: false) ?? throw new DomainException($"MediaId {request.MediaId} not found", errorType);
 
         // Validate Template exists
         var template = await templatesService.GetTemplateByIdAsync(request.TemplateId, cancellationToken) ?? throw new DomainException($"TemplateId {request.TemplateId} not found", errorType);
@@ -239,6 +240,7 @@ public class ReviewService(
             select new ReviewDtoMapper.ReviewFieldDetails(rf, tf.Name, tf.Position)
         ).ToListAsync(cancellationToken);
 
-        return ReviewDtoMapper.Map(fileService, review, fields);
+        var covers = await artworkService.GetMediaArtworkAsync([review.MediaId], cancellationToken);
+        return ReviewDtoMapper.Map(covers?.GetValueOrDefault(review.MediaId), review, fields);
     }
 }

@@ -7,8 +7,8 @@ This document contains non-always-on frontend details for MediaRanker.
 - Theme is centralized in `MediaRankerFrontend/src/app/theme.ts`.
 - Current mode is dark.
 - Prefer theme tokens over one-off hardcoded values.
-- **Desktop Only**: The application is **not** mobile-friendly and is not intended for multiple screen sizes.
-- **Grid/Layout Props**: Do not use multiple breakpoints (e.g., `xs`, `md`, `lg`) in MUI `Grid` or Box components. Always default to `xs` if a breakpoint property is required by the component, as the layout does not need to respond to screen size changes.
+- **Desktop scope**: The application is designed primarily for desktop. The approved automatic-cover-art change includes narrow-screen checks for media cover controls, review cards, and Credits; keep those adjustments local to the affected flows.
+- **Grid/Layout Props**: Avoid broad responsive redesigns. Use breakpoints only where an approved flow requires them; media controls stack on narrow screens and the grid scrolls horizontally instead of compressing its columns.
 
 ## Custom Component Library Pattern
 
@@ -24,7 +24,8 @@ This document contains non-always-on frontend details for MediaRanker.
 ## Layout and Navigation
 
 - App composition in `src/app/layout.tsx`:
-  - `ThemeProvider` -> `CssBaseline` -> `QueryClientProvider` -> `AlertProvider` -> `UserProvider` -> `BaseLayout`
+  - `AppRouterCacheProvider` -> `ThemeProvider` -> `CssBaseline` -> `QueryClientProvider` -> `AlertProvider` -> `UserProvider` -> `BaseLayout`
+  - Keep the installed MUI Next.js cache provider around the theme to collect streamed server styles consistently during hydration.
 - Navbar visibility:
   - Hide on `/auth/*`
   - Show on non-auth routes
@@ -32,6 +33,7 @@ This document contains non-always-on frontend details for MediaRanker.
   - `/media`
   - `/templates`
   - `/reviews`
+  - `/credits` (TMDB branding/disclaimer and IGDB attribution)
 - User menu includes:
   - logout action
 
@@ -60,6 +62,14 @@ This document contains non-always-on frontend details for MediaRanker.
 - When a hook constructs a request URL internally, keep the React Query key aligned with the generated route/query params so cached data cannot drift from the actual request.
 - When `usePagedQuery` disables fetching because search input is below `minSearchChars`, callers should expect empty items rather than stale cached results.
 - Keep request/response contracts explicit at hook callsites to preserve strong typing for mutation data and callbacks.
+- `usePendingCoverRefresh` polls pending displayed artwork every two seconds for at most 30 seconds per active view; hidden, terminal, and unmounted views stop polling.
+- Review mutations cancel the exact in-flight review query before reconciling both the query cache and local card state, so an older artwork refresh cannot overwrite a successful save/delete.
+
+## Automatic cover display
+
+- Use the shared `CoverImage` for provider images: lazy loading, descriptive alt text, and an accessible placeholder after failure. A changed URL resets the failed-image state.
+- Treat nullable cover URLs and terminal cover statuses as placeholders. Manual media creation/editing does not request file uploads.
+- The local development test login requires explicit frontend/backend opt-in and loopback access; startup and security boundaries are documented in `dev-commands.md`.
 
 ## Dialog and form pattern
 

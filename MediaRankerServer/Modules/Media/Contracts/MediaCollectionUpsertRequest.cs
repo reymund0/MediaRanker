@@ -12,7 +12,6 @@ public class MediaCollectionUpsertRequest
     public long MediaTypeId { get; set; }
     public long? ParentMediaCollectionId { get; set; }
     public DateOnly ReleaseDate { get; set; }
-    public long? CoverUploadId { get; set; }
 }
 
 public class MediaCollectionUpsertRequestValidator : AbstractValidator<MediaCollectionUpsertRequest>

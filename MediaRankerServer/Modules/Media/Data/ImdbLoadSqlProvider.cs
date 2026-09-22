@@ -6,7 +6,7 @@ namespace MediaRankerServer.Modules.Media.Data;
 
 public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSqlProvider> logger) : IImdbLoadProvider
 {
-    public async Task<ImdbLoadResult> LoadNonSeriesMediaAsync(int minVotesMovies, int minVotesVideoGames, CancellationToken ct)
+    public async Task<ImdbLoadResult> LoadNonSeriesMediaAsync(int minVotesMovies, CancellationToken ct)
     {
         // NOTE: With ON CONFLICT DO UPDATE, Postgres reports both inserted and updated rows in the
         // affected-row count. We cannot cheaply distinguish inserted vs updated without RETURNING xmax = 0.
@@ -19,7 +19,6 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 i.tconst,
                 '{nameof(MediaExternalSource.Imdb)}',
                 CASE i.title_type
-                    WHEN 'videoGame' THEN -1
                     WHEN 'movie'     THEN -3
                     WHEN 'tvMovie'   THEN -3
                     WHEN 'short'     THEN -3
@@ -30,11 +29,8 @@ public class ImdbLoadSqlProvider(PostgreSQLContext dbContext, ILogger<ImdbLoadSq
                 now()
             FROM imdb_imports i
             INNER JOIN imdb_import_ratings r ON r.tconst = i.tconst
-                AND r.num_votes >= CASE i.title_type
-                    WHEN 'videoGame' THEN {minVotesVideoGames}
-                    ELSE {minVotesMovies}
-                END
-            WHERE i.title_type IN ('videoGame', 'movie', 'tvMovie', 'short', 'tvShort', 'video')
+                AND r.num_votes >= {minVotesMovies}
+            WHERE i.title_type IN ('movie', 'tvMovie', 'short', 'tvShort', 'video')
             ON CONFLICT (external_id, external_source) WHERE external_id IS NOT NULL
             DO UPDATE SET
                 title          = EXCLUDED.title,

@@ -1,6 +1,5 @@
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import ImageIcon from "@mui/icons-material/Image";
 import { Chip, IconButton, Stack, Typography, Box } from "@mui/material";
 import {
   getGridStringOperators,
@@ -10,6 +9,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { MediaDto } from "./contracts";
 import { DateTimeCell } from "@/lib/components/data-grid/datetime-cell";
+import { CoverImage } from "@/lib/components/data-display/cover-image";
 
 export type MediaRow = Omit<
   MediaDto,
@@ -53,30 +53,18 @@ export function buildMediaColumns({
         params: GridRenderCellParams<MediaRow, string | undefined>,
       ) => (
         <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
-          {params.value ? (
-            <Box
-              component="img"
-              src={params.value}
-              sx={{
-                width: 44,
-                height: 64,
-                borderRadius: 1,
-                objectFit: "cover",
-                display: "block",
-              }}
-            />
-          ) : (
-            <ImageIcon
-              sx={{
-                width: 44,
-                height: 64,
-                borderRadius: 1,
-                objectFit: "cover",
-                display: "block",
-                color: "text.disabled",
-              }}
-            />
-          )}
+          <CoverImage
+            src={params.value}
+            alt={`${params.row.title} cover`}
+            sx={{
+              width: 44,
+              height: 64,
+              borderRadius: 1,
+              objectFit: "cover",
+              display: "block",
+            }}
+            placeholderSx={{ width: 44, height: 64, borderRadius: 1 }}
+          />
         </Box>
       ),
     },
@@ -84,6 +72,7 @@ export function buildMediaColumns({
       field: "title",
       headerName: "Title",
       flex: 2,
+      minWidth: 200,
       sortable: true,
       filterable: true,
       filterOperators: containsOnly,
@@ -108,6 +97,7 @@ export function buildMediaColumns({
       headerName: "Release Date",
       type: "date",
       flex: 1,
+      minWidth: 150,
       sortable: true,
       filterable: false,
       renderCell: (params: GridRenderCellParams<MediaRow, Date | null>) => (
@@ -121,6 +111,7 @@ export function buildMediaColumns({
       headerName: "Updated At",
       type: "dateTime",
       flex: 1,
+      minWidth: 150,
       sortable: true,
       filterable: false,
       renderCell: (params: GridRenderCellParams<MediaRow, Date | null>) => (
@@ -140,6 +131,7 @@ export function buildMediaColumns({
             <IconButton
               size="small"
               color="primary"
+              aria-label={`Edit ${params.row.title}`}
               onClick={() => onEditClick(params.row)}
             >
               <EditOutlinedIcon fontSize="small" />
@@ -147,6 +139,7 @@ export function buildMediaColumns({
             <IconButton
               size="small"
               color="error"
+              aria-label={`Delete ${params.row.title}`}
               onClick={() => onDeleteClick(params.row)}
             >
               <DeleteOutlineIcon fontSize="small" />

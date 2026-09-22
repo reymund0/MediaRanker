@@ -51,7 +51,7 @@ export function ReviewCard({
 
   useEffect(() => {
     const loadReview = async () => {
-      if (review) {
+      if (review && cardState !== "edit") {
         setCurrentReview({
           id: review.id,
           mediaId: review.mediaId,
@@ -79,7 +79,7 @@ export function ReviewCard({
       }
     };
     loadReview();
-  }, [review]);
+  }, [cardState, review]);
 
   useEffect(() => {
     if (cardState !== "new" && cardState !== "detailed-view") {

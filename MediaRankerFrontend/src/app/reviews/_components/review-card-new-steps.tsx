@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Stack, Typography } from "@mui/material";
+import { Box, Button, Stack, Typography } from "@mui/material";
 import { BaseAutocomplete } from "@/lib/components/inputs/autocomplete/base-autocomplete";
 import {
   BaseSelect,
@@ -15,6 +15,8 @@ import { useUser } from "@/lib/auth/user-provider";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import { ReviewFormValues } from "./review-card-utils";
 import { TemplateFieldDisplay } from "./review-card-edit";
+import { CoverImage } from "@/lib/components/data-display/cover-image";
+import { usePendingCoverRefresh } from "@/lib/api/use-pending-cover-refresh";
 
 type ReviewCardNewStepsProps = {
   mediaTypeId: number;
@@ -45,6 +47,7 @@ export function ReviewCardNewSteps({
     items: unreviewedMedia,
     isLoading: unreviewedLoading,
     error: unreviewedError,
+    refetch: refetchUnreviewed,
   } = usePagedQuery<UnreviewedMediaDto>({
     route: "/api/reviews/unreviewedByType",
     routeParams: { mediaTypeId },
@@ -58,6 +61,15 @@ export function ReviewCardNewSteps({
       showError(unreviewedError.message);
     }
   }, [unreviewedError, showError]);
+
+  usePendingCoverRefresh({
+    viewKey: `${mediaTypeId}:${unreviewedMedia.map((media) => media.id).join(",")}`,
+    hasPendingCovers: unreviewedMedia.some(
+      (media) => media.coverStatus === "pending",
+    ),
+    refetch: refetchUnreviewed,
+    enabled: !!userId && currentStep === "select-media",
+  });
 
   const { data: templates, isLoading: templatesLoading } = useQuery<
     TemplateDto[]
@@ -92,6 +104,42 @@ export function ReviewCardNewSteps({
               setCurrentStep("select-template");
             }
           }}
+          renderOptionContent={(option) => (
+            <Stack
+              direction="row"
+              alignItems="center"
+              gap={1}
+              sx={{ minWidth: 0, width: "100%" }}
+            >
+              <CoverImage
+                src={option.metadata?.coverImageUrl}
+                alt={`${option.label} cover`}
+                sx={{
+                  width: 28,
+                  height: 40,
+                  objectFit: "cover",
+                  borderRadius: 0.5,
+                  flexShrink: 0,
+                }}
+                placeholderSx={{
+                  width: 28,
+                  height: 40,
+                  borderRadius: 0.5,
+                  flexShrink: 0,
+                }}
+              />
+              <Box
+                component="span"
+                sx={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {option.label}
+              </Box>
+            </Stack>
+          )}
         />
       </Stack>
     );

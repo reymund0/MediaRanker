@@ -7,6 +7,7 @@ import { CssBaseline } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import theme from "./theme";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 
 const queryClient = new QueryClient();
 
@@ -18,16 +19,18 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body style={{ margin: 0 }}>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <QueryClientProvider client={queryClient}>
-            <AlertProvider>
-              <UserProvider>
-                <BaseLayout>{children}</BaseLayout>
-              </UserProvider>
-            </AlertProvider>
-          </QueryClientProvider>
-        </ThemeProvider>
+        <AppRouterCacheProvider>
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <QueryClientProvider client={queryClient}>
+              <AlertProvider>
+                <UserProvider>
+                  <BaseLayout>{children}</BaseLayout>
+                </UserProvider>
+              </AlertProvider>
+            </QueryClientProvider>
+          </ThemeProvider>
+        </AppRouterCacheProvider>
       </body>
     </html>
   );

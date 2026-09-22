@@ -1,9 +1,9 @@
 "use client";
 
 import AddIcon from "@mui/icons-material/Add";
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, NoSsr, Stack, Typography } from "@mui/material";
 import { GridColDef } from "@mui/x-data-grid";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePaginatedDatagrid } from "@/lib/components/data-grid/use-paginated-datagrid";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMutation } from "@/lib/api/use-mutation";
@@ -20,33 +20,22 @@ import { MediaTypeDto } from "@/lib/contracts/shared";
 import { buildMediaColumns, MediaRow, mapMediaToRow } from "./grid-utils";
 import { MediaEditModal } from "./media-edit-modal";
 import { PageCard } from "@/lib/components/layout/page-card";
+import { usePendingCoverRefresh } from "@/lib/api/use-pending-cover-refresh";
 
 export default function MediaPage() {
   const { showSuccess, showError } = useAlert();
   const { userId } = useUser();
   const queryClient = useQueryClient();
 
-  const [selectedMediaTypeId, setSelectedMediaTypeId] = useState<number | undefined>(undefined);
+  const [selectedMediaTypeId, setSelectedMediaTypeId] = useState<
+    number | undefined
+  >(undefined);
   const [draftRow, setDraftRow] = useState<MediaRow | undefined>(undefined);
   const [deleteRowId, setDeleteRowId] = useState<number | undefined>(undefined);
 
   const { dataGridProps, pageRequest } = usePaginatedDatagrid({
     defaultPageSize: 25,
     pageSizeOptions: [10, 25, 50, 100],
-  });
-
-  const {
-    items,
-    totalCount,
-    isLoading: isMediaLoading,
-    error: mediaError,
-  } = usePagedQuery<MediaDto>({
-    route: "/api/media",
-    routeParams: { mediaTypeId: selectedMediaTypeId },
-    queryKey: ["media", selectedMediaTypeId],
-    enabled: !!userId && selectedMediaTypeId != null,
-    pageSize: dataGridProps.paginationModel.pageSize,
-    pageRequest,
   });
 
   const {
@@ -59,13 +48,31 @@ export default function MediaPage() {
     enabled: !!userId,
   });
 
-  useEffect(() => {
-    if (selectedMediaTypeId === undefined && mediaTypes && mediaTypes.length > 0) {
-      setSelectedMediaTypeId(mediaTypes[0].id);
-    }
-  }, [mediaTypes, selectedMediaTypeId]);
+  const activeMediaTypeId = selectedMediaTypeId ?? mediaTypes?.[0]?.id;
+
+  const {
+    items,
+    totalCount,
+    isLoading: isMediaLoading,
+    error: mediaError,
+    refetch: refetchMedia,
+  } = usePagedQuery<MediaDto>({
+    route: "/api/media",
+    routeParams: { mediaTypeId: activeMediaTypeId },
+    queryKey: ["media", activeMediaTypeId],
+    enabled: !!userId && activeMediaTypeId != null,
+    pageSize: dataGridProps.paginationModel.pageSize,
+    pageRequest,
+  });
 
   const rows = items.map(mapMediaToRow);
+
+  usePendingCoverRefresh({
+    viewKey: `${activeMediaTypeId}:${items.map((media) => media.id).join(",")}`,
+    hasPendingCovers: items.some((media) => media.coverStatus === "pending"),
+    refetch: refetchMedia,
+    enabled: !!userId && activeMediaTypeId != null,
+  });
 
   const { mutate: upsertMedia } = useMutation<MediaUpsertRequest, MediaDto>({
     route: "/api/media",
@@ -99,8 +106,9 @@ export default function MediaPage() {
   };
 
   const addMedia = () => {
-    const activeTypeId = selectedMediaTypeId ?? mediaTypes?.[0]?.id ?? 0;
-    const activeTypeName = mediaTypes?.find((mt) => mt.id === activeTypeId)?.name ?? "";
+    const activeTypeId = activeMediaTypeId ?? 0;
+    const activeTypeName =
+      mediaTypes?.find((mt) => mt.id === activeTypeId)?.name ?? "";
 
     setDraftRow({
       id: undefined,
@@ -110,6 +118,7 @@ export default function MediaPage() {
       releaseDate: null,
       createdAt: null,
       updatedAt: null,
+      coverStatus: "unsupported",
     });
   };
 
@@ -138,12 +147,17 @@ export default function MediaPage() {
   return (
     <PageCard sx={{ maxWidth: "1100px" }}>
       <Stack
-        direction="row"
-        alignItems="center"
+        direction={{ xs: "column", sm: "row" }}
+        alignItems={{ xs: "stretch", sm: "center" }}
         justifyContent="space-between"
+        gap={2}
         sx={{ mb: 2 }}
       >
-        <Stack direction="row" alignItems="center" gap={4}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          alignItems={{ xs: "stretch", sm: "center" }}
+          gap={{ xs: 2, sm: 4 }}
+        >
           <Box>
             <Typography variant="h4" component="h1">
               Media
@@ -155,13 +169,19 @@ export default function MediaPage() {
           <Box sx={{ minWidth: 180 }}>
             <BaseSelect
               label="Media Type"
-              value={selectedMediaTypeId ?? ""}
-              options={(mediaTypes ?? []).map((mt) => ({ id: mt.id, label: mt.name }))}
+              value={activeMediaTypeId ?? ""}
+              options={(mediaTypes ?? []).map((mt) => ({
+                id: mt.id,
+                label: mt.name,
+              }))}
               isLoading={isMediaTypesLoading}
               onChange={(e) => {
                 const next = Number(e.target.value);
                 setSelectedMediaTypeId(next);
-                dataGridProps.onPaginationModelChange({ ...dataGridProps.paginationModel, page: 0 });
+                dataGridProps.onPaginationModelChange({
+                  ...dataGridProps.paginationModel,
+                  page: 0,
+                });
               }}
             />
           </Box>
@@ -179,14 +199,16 @@ export default function MediaPage() {
           borderRadius: 2,
         }}
       >
-        <BaseDataGrid
-          loading={isMediaLoading || isMediaTypesLoading}
-          error={!!mediaError || isMediaTypesError}
-          rows={rows}
-          columns={columns}
-          rowCount={totalCount}
-          {...dataGridProps}
-        />
+        <NoSsr>
+          <BaseDataGrid
+            loading={isMediaLoading || isMediaTypesLoading}
+            error={!!mediaError || isMediaTypesError}
+            rows={rows}
+            columns={columns}
+            rowCount={totalCount}
+            {...dataGridProps}
+          />
+        </NoSsr>
       </Box>
 
       {draftRow ? (

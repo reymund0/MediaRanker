@@ -1,9 +1,11 @@
 using System.Net.Http.Json;
+using System.Net;
 using FluentAssertions;
 using MediaRankerServer.IntegrationTests.Infrastructure;
 using MediaRankerServer.IntegrationTests.Utils;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Data.Entities;
+using MediaRankerServer.Modules.Files.Data.Entities;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Paging;
 using Microsoft.AspNetCore.Mvc;
@@ -202,54 +204,69 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
     }
 
     [Fact]
-    public async Task UpsertMedia_CreateWithCover_PersistsMediaAndCopiesMetadata()
+    public async Task UpsertMedia_UpdateWithoutUpload_PreservesAutomaticCoverAssociation()
     {
-        // 1. Seed a MediaCover for the test user
-        long mediaCoverId;
-        long fileUploadId = 10;
-        var fileKey = "covers/test-cover.png";
+        long coverId;
         using (var scope = Factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
-            var upload = new MediaCover
+            var cover = new MediaCover
             {
-                FileKey = fileKey,
-                FileUploadId = fileUploadId,
-                FileName = "test-cover.png",
-                FileContentType = "image/png",
-                FileSizeBytes = 1024,
-                CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow
+                Provider = ArtworkProvider.Tmdb,
+                LookupKind = CoverLookupKind.MovieImdb,
+                LookupId = "tt0133093",
+                Outcome = CoverOutcome.Ready,
+                ProviderItemId = "603",
+                ImagePath = "/matrix.jpg",
+                CheckedAt = DateTimeOffset.UtcNow,
+                ExpiresAt = DateTimeOffset.UtcNow.AddDays(30)
             };
-            db.MediaCovers.Add(upload);
+            db.MediaCovers.Add(cover);
             await db.SaveChangesAsync();
-            mediaCoverId = upload.Id;
+            var media = await db.Media.SingleAsync(item => item.Id == _testMedia.Id);
+            media.CoverId = cover.Id;
+            await db.SaveChangesAsync();
+            coverId = cover.Id;
         }
 
-        // 2. Perform the Create Upsert with the CoverUploadId
         var request = new MediaUpsertRequest
         {
-            Title = "Media With Cover",
+            Id = _testMedia.Id,
+            Title = "Metadata Edited Without Upload",
             MediaTypeId = MovieMediaTypeId,
-            ReleaseDate = new DateOnly(2024, 1, 1),
-            CoverUploadId = fileUploadId
+            ReleaseDate = new DateOnly(2024, 1, 1)
         };
 
         var response = await Client.PostAsJsonAsync("/api/media", request);
         TestUtils.AssertSuccessResponse(response);
-        
-        var result = await response.Content.ReadFromJsonAsync<MediaDto>();
-        result.Should().NotBeNull();
-        result!.Title.Should().Be("Media With Cover");
-        result.CoverImageUrl.Should().NotBeNullOrEmpty();
 
-        // 3. Verify Media entity has the metadata and FileUpload is now "Copied"
-        using (var scope = Factory.Services.CreateScope())
+        using var verifyScope = Factory.Services.CreateScope();
         {
-            var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
-            var dbMedia = await db.Media.FirstOrDefaultAsync(m => m.Id == result.Id);
+            var db = verifyScope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+            var dbMedia = await db.Media.FirstOrDefaultAsync(m => m.Id == _testMedia.Id);
             dbMedia.Should().NotBeNull();
-            dbMedia.CoverId.Should().Be(mediaCoverId);
+            dbMedia!.Title.Should().Be("Metadata Edited Without Upload");
+            dbMedia.CoverId.Should().Be(coverId);
         }
+    }
+
+    [Fact]
+    public async Task RetiredCoverUploadRoutes_ReturnNotFoundWithoutCreatingFileUploads()
+    {
+        var response = await Client.PostAsJsonAsync("/api/media/UploadCover", new
+        {
+            fileName = "retired-cover.png",
+            contentType = "image/png",
+            fileSizeBytes = 1024
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        var completionResponse = await Client.PostAsync("/api/media/CompleteUploadCover/123", content: null);
+        completionResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+        (await db.FileUploads.CountAsync(upload => upload.EntityType == FileEntityType.MediaCover)).Should().Be(0);
     }
 }

@@ -11,12 +11,15 @@ SELECT
     r.media_id,
     r.template_id,
     m.title AS media_title,
-    mc.file_key AS media_cover_file_key,
+    CASE WHEN m.external_source = 'Imdb' AND mt.name = 'TV Show'
+        THEN CASE WHEN collection.collection_type = 'Series' THEN collection.cover_id ELSE series.cover_id END
+        ELSE m.cover_id END AS media_cover_id,
     m.media_type_id,
     mt.name AS media_type_name,
     t.name AS template_name
 FROM reviews r
 INNER JOIN media m ON r.media_id = m.id
-LEFT JOIN media_covers mc ON m.cover_id = mc.id
+LEFT JOIN media_collections collection ON m.media_collection_id = collection.id
+LEFT JOIN media_collections series ON collection.parent_media_collection_id = series.id AND series.collection_type = 'Series'
 INNER JOIN media_types mt ON m.media_type_id = mt.id
 INNER JOIN templates t ON r.template_id = t.id;

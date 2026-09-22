@@ -1,10 +1,10 @@
 "use client";
 
-import ImageNotSupportedIcon from "@mui/icons-material/ImageNotSupported";
 import { Box, Stack, Typography } from "@mui/material";
 import { BaseStarRating } from "@/lib/components/inputs/rating/base-star-rating";
 import { ReviewDto } from "../contracts";
 import { COVER_HEIGHT, INFO_HEIGHT } from "./review-card-utils";
+import { CoverImage } from "@/lib/components/data-display/cover-image";
 
 type ReviewCardPreviewProps = {
   review: ReviewDto;
@@ -34,18 +34,16 @@ export function ReviewCardPreview({ review, onClick }: ReviewCardPreviewProps) {
           justifyContent: "center",
         }}
       >
-        {review.mediaCoverImageUrl ? (
-          <Box
-            component="img"
-            src={review.mediaCoverImageUrl}
-            alt={review.mediaTitle}
-            sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-        ) : (
-          <ImageNotSupportedIcon
-            sx={{ fontSize: 56, color: "text.disabled" }}
-          />
-        )}
+        <CoverImage
+          src={review.mediaCoverImageUrl}
+          alt={`${review.mediaTitle} cover`}
+          sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+          placeholderSx={{
+            width: "100%",
+            height: "100%",
+            "& svg": { fontSize: 56 },
+          }}
+        />
       </Box>
       <Stack
         direction="column"

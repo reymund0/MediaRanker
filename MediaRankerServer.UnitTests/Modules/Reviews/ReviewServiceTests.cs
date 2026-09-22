@@ -14,8 +14,6 @@ using MediaRankerServer.Modules.Reviews.Data.Entities;
 using MediaRankerServer.Modules.Reviews.Services;
 using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Modules.Templates.Data.Entities;
-using MediaRankerServer.Modules.Files.Services;
-using MediaRankerServer.Modules.Files.Data.Entities;
 
 
 namespace MediaRankerServer.UnitTests.Modules.Reviews;
@@ -26,7 +24,7 @@ public class ReviewServiceTests : IDisposable
     private readonly Mock<IValidator<ReviewUpdateRequest>> _mockUpdateValidator;
     private readonly Mock<IMediaService> _mockMediaService;
     private readonly Mock<ITemplateService> _mockTemplatesService;
-    private readonly Mock<IFileService> _mockFileService;
+    private readonly Mock<IArtworkService> _mockArtworkService;
     private readonly PostgreSQLContext _dbContext;
     private readonly ReviewService _service;
     private readonly ReviewInsertRequest _defaultInsertRequest;
@@ -39,7 +37,10 @@ public class ReviewServiceTests : IDisposable
         _mockUpdateValidator = new Mock<IValidator<ReviewUpdateRequest>>();
         _mockMediaService = new Mock<IMediaService>();
         _mockTemplatesService = new Mock<ITemplateService>();
-        _mockFileService = new Mock<IFileService>();
+        _mockArtworkService = new Mock<IArtworkService>();
+        _mockArtworkService
+            .Setup(service => service.GetMediaArtworkAsync(It.IsAny<IEnumerable<long>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<long, CoverPresentation>());
         
         var options = new DbContextOptionsBuilder<PostgreSQLContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
@@ -52,7 +53,7 @@ public class ReviewServiceTests : IDisposable
             _mockUpdateValidator.Object,
             _mockMediaService.Object,
             _mockTemplatesService.Object,
-            _mockFileService.Object
+            _mockArtworkService.Object
         );
 
         _defaultInsertRequest = new ReviewInsertRequest
@@ -109,7 +110,7 @@ public class ReviewServiceTests : IDisposable
         _mockUpdateValidator.Setup(v => v.Validate(It.IsAny<ReviewUpdateRequest>()))
             .Returns(new ValidationResult());
 
-        _mockMediaService.Setup(m => m.GetMediaByIdAsync(1, It.IsAny<CancellationToken>()))
+        _mockMediaService.Setup(m => m.GetMediaByIdAsync(1, It.IsAny<CancellationToken>(), false))
             .ReturnsAsync(new MediaDto { Id = 1, Title = "Test Movie", MediaTypeId = MovieMediaTypeId, MediaTypeName = "Movie", ReleaseDate = new DateOnly(2020, 1, 1) });
 
         _mockTemplatesService.Setup(t => t.GetTemplateByIdAsync(1, It.IsAny<CancellationToken>()))
@@ -123,8 +124,6 @@ public class ReviewServiceTests : IDisposable
                     new TemplateFieldDto { Id = 2, Name = "Acting", Position = 2 }
                 ]
             });
-        _mockFileService.Setup(f => f.GetFileUrl(It.IsAny<string>(), It.IsAny<FileEntityType>()))
-            .Returns("https://example.com/cover.jpg");
     }
 
     [Fact]
@@ -134,7 +133,7 @@ public class ReviewServiceTests : IDisposable
         var request = _defaultInsertRequest;
         request.MediaId = -10;
 
-        _mockMediaService.Setup(m => m.GetMediaByIdAsync(-10, It.IsAny<CancellationToken>()))
+        _mockMediaService.Setup(m => m.GetMediaByIdAsync(-10, It.IsAny<CancellationToken>(), false))
             .ReturnsAsync((MediaDto?)null);
 
         // Act & Assert
@@ -181,7 +180,7 @@ public class ReviewServiceTests : IDisposable
         // Arrange
         var request = _defaultInsertRequest;
 
-        _mockMediaService.Setup(m => m.GetMediaByIdAsync(1, It.IsAny<CancellationToken>()))
+        _mockMediaService.Setup(m => m.GetMediaByIdAsync(1, It.IsAny<CancellationToken>(), false))
             .ReturnsAsync(new MediaDto { Id = 1, Title = "Test", MediaTypeId = 2, MediaTypeName = "Book" });
 
         // Act & Assert

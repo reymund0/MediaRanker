@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Card, CardContent, Typography, Link } from "@mui/material";
+import { Box, Card, CardContent, Typography, Link, NoSsr } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,6 +9,10 @@ import { handleLogin } from "../helpers";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
+import {
+  activateLocalTestAuth,
+  isLocalTestAuthAvailable,
+} from "@/lib/auth/local-test-auth";
 
 const loginSchema = z.object({
   usernameOrEmail: z.string().min(1, "Username or email is required"),
@@ -21,6 +25,7 @@ export default function Login() {
   const router = useRouter();
   const { showError, showSuccess, closeAlert } = useAlert();
   const [loading, setLoading] = useState(false);
+  const localTestAuthAvailable = isLocalTestAuthAvailable();
 
   const methods = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -45,6 +50,12 @@ export default function Login() {
       showError(result.error || "Login failed");
       setLoading(false);
     }
+  };
+
+  const useLocalTestUser = () => {
+    closeAlert();
+    activateLocalTestAuth();
+    router.push("/reviews");
   };
 
   return (
@@ -88,6 +99,14 @@ export default function Login() {
             >
               {loading ? "Logging in..." : "Login"}
             </PrimaryButton>
+
+            <NoSsr>
+              {localTestAuthAvailable && (
+                <PrimaryButton type="button" fullWidth onClick={useLocalTestUser}>
+                  Use local test user
+                </PrimaryButton>
+              )}
+            </NoSsr>
 
             <Typography variant="body2" align="center">
               {`Don't have an account? `}

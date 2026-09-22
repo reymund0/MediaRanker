@@ -6,25 +6,21 @@ export interface MediaDto {
   updatedAt: string;
   mediaTypeId: number;
   mediaTypeName: string;
-  coverImageUrl?: string;
+  coverImageUrl?: string | null;
+  coverStatus: CoverStatus;
 }
+
+export type CoverStatus =
+  | "ready"
+  | "pending"
+  | "missing"
+  | "failed"
+  | "disabled"
+  | "unsupported";
 
 export interface MediaUpsertRequest {
   id: number | null;
   title: string;
   mediaTypeId: number;
   releaseDate: string;
-  coverUploadId?: number;
-}
-
-export interface GenerateUploadCoverUrlRequest {
-  mediaId: number | null;
-  fileName: string;
-  contentType: string;
-  fileSizeBytes: number;
-}
-
-export interface GenerateUploadCoverUrlResponse {
-  url: string;
-  uploadId: number;
 }

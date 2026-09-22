@@ -61,6 +61,8 @@ For importing large external datasets (e.g., IMDB TSV files), use a callback-dri
 - For long-running bulk SQL, set command timeout around the operation and reset it in `finally` so incidental queries on the same context are not affected.
 
 ## File Upload Lifecycle (Module + Files Module)
+
+Media artwork is automatic and does not use file uploads. The following lifecycle remains available to independent Files consumers.
 - The upload flow is two-phase and module-driven:
   1. Frontend asks a module endpoint to start an upload.
   2. Module validates request and calls `IFileService.StartUploadAsync(...)` to get `UploadId` + pre-signed upload URL.
@@ -73,3 +75,15 @@ For importing large external datasets (e.g., IMDB TSV files), use a callback-dri
 - Each module must copy file metadata it needs by calling `IFileService.MarkUploadCopiedAsync(uploadId, userId, ...)` during its own save flow, then persist the returned `FileDto` data in module-owned entities.
 - If a module does not copy upload data out of the Files module, it risks losing the file reference during cleanup.
 - The Files module owns upload state tracking (`Uploading`, `Uploaded`, `Copied`, `Deleted`); feature modules own business validation and when upload IDs become part of domain models.
+
+## Automatic Artwork and IGDB Catalog
+
+- IMDb stages and loads movies/TV only. IGDB stages game metadata and cover references, then admits released main games/remakes/remasters with no edition parent. Votes and artwork are not admission requirements. Future games remain staged and are reconsidered on successful scheduled runs.
+- IGDB run bounds and the ascending-ID cursor live in `igdb_import_state`. Page staging and cursor advancement commit together. Preserve lease fencing, overlap replay, and source-version checks when changing import logic; a failed page must not advance the cursor.
+- `MediaCover` stores a unique provider/lookup-kind/lookup-ID, optional asset reference, freshness, and durable request/lease state. Never store arbitrary URLs or provider image binaries in S3. Never accept provider lookup parameters from a client.
+- Authorized Media/Reviews reads register work only for returned titles. The request path performs no provider HTTP calls. Artwork failure must not undo a saved review. Movies resolve by IMDb ID; IGDB games reuse fresh imported references. Seasons/episodes resolve through their series, with the association on the series rather than copied to every child.
+- `ArtworkJob` waits two seconds after each processing batch by default. `ArtworkProcessor` atomically claims due requested rows and conditionally completes using claim/version guards. Expired dormant results do not activate HTTP work. Restart recovery uses expiring leases; retries are bounded and delayed.
+- References expire after 30 days by default; no-image results after seven. Reads withhold expired URLs. Database-only maintenance removes expired TMDB IDs/paths at the start of each processing batch, even with upstream flags disabled. Cache options cap at 150 days. Slow provider calls or database work extend the interval between maintenance passes beyond the configured poll delay; it is not a fixed 60-second guarantee. After downtime, startup maintenance removes expired fields; run the application regularly when retaining provider metadata.
+- Status is `ready`, `pending`, `missing`, `failed`, `disabled`, or `unsupported`; only `ready` includes a trusted HTTPS CDN URL. Fresh references can render with the network provider disabled. Missing credentials never leave new demand permanently pending.
+- IGDB import and artwork share one in-process request limiter and token cache. The initial deployment assumes one application process per provider credential budget; coordinate an aggregate budget before scaling out.
+- Keep HTTP credentials and response bodies out of logs. Authentication/429 cooldown applies across titles. Artwork processing skips a cooling provider while continuing the other provider; a local cooldown discovered after claiming does not spend a lookup attempt. Actual provider failures still count toward the retry limit. Provider clients and fake-handler tests live under Media; no provider SDK is required.

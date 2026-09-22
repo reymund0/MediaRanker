@@ -1,5 +1,4 @@
 using FluentValidation;
-using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Modules.Media.Services.Interfaces;
@@ -12,7 +11,7 @@ namespace MediaRankerServer.Modules.Media.Services;
 
 public class MediaCollectionService(
     PostgreSQLContext dbContext,
-    IFileService fileService,
+    IArtworkService artworkService,
     IValidator<MediaCollectionUpsertRequest> validator
 ) : IMediaCollectionService
 {
@@ -27,9 +26,10 @@ public class MediaCollectionService(
         query = MediaCollectionQueryBuilder.ApplySort(query, v);
 
         var page = await query.Skip(v.Skip).Take(v.Take).ToListAsync(cancellationToken);
+        var covers = await artworkService.GetCollectionArtworkAsync(page.Select(c => c.Id), cancellationToken);
 
         return new PageResult<MediaCollectionDto>(
-            [.. page.Select(mc => MediaCollectionDtoMapper.Map(mc, fileService))],
+            [.. page.Select(mc => MediaCollectionDtoMapper.Map(mc, covers?.GetValueOrDefault(mc.Id)))],
             totalCount, v.Page, v.PageSize);
     }
 
@@ -38,7 +38,9 @@ public class MediaCollectionService(
         var collection = await MediaCollectionQueryBuilder.BaseQuery(dbContext)
             .FirstOrDefaultAsync(mc => mc.Id == id, cancellationToken);
 
-        return collection is null ? null : MediaCollectionDtoMapper.Map(collection, fileService);
+        if (collection is null) return null;
+        var covers = await artworkService.GetCollectionArtworkAsync([collection.Id], cancellationToken);
+        return MediaCollectionDtoMapper.Map(collection, covers?.GetValueOrDefault(collection.Id));
     }
 
     public async Task<MediaCollectionDto> CreateCollectionAsync(string userId, MediaCollectionUpsertRequest request, CancellationToken cancellationToken = default)
@@ -46,15 +48,13 @@ public class MediaCollectionService(
         await ValidateOrThrowAsync(request, cancellationToken);
 
         var normalizedTitle = request.Title.Trim();
-        var requestCoverId = dbContext.MediaCovers.FirstOrDefault(c => c.FileUploadId == request.CoverUploadId)?.Id;
         var collection = new MediaCollection
         {
             Title = normalizedTitle,
             CollectionType = request.CollectionType,
             MediaTypeId = request.MediaTypeId,
             ParentMediaCollectionId = request.ParentMediaCollectionId,
-            ReleaseDate = request.ReleaseDate,
-            CoverId = requestCoverId
+            ReleaseDate = request.ReleaseDate
         };
 
         dbContext.MediaCollections.Add(collection);
@@ -82,18 +82,6 @@ public class MediaCollectionService(
         collection.ParentMediaCollectionId = request.ParentMediaCollectionId;
         collection.ReleaseDate = request.ReleaseDate;
         
-        // If the cover ID was updated, then we need to update all referenced entities.
-        if (collection.Cover?.FileUploadId != request.CoverUploadId)
-        {
-            // We know newMediaCover is not null at this point because we validated it in our upsert validator.
-            var newMediaCoverId = (await dbContext.MediaCovers
-                .FirstOrDefaultAsync(mc => mc.FileUploadId == request.CoverUploadId, cancellationToken))!.Id;
-            await CascadeUpdateMediaCoverAsync(collection, newMediaCoverId, cancellationToken);
-
-            // Update the coverID to the new value.
-            collection.CoverId = newMediaCoverId;
-        }
-
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return await GetCollectionByIdAsync(collection.Id, cancellationToken)
@@ -110,48 +98,12 @@ public class MediaCollectionService(
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task CascadeUpdateMediaCoverAsync(MediaCollection collection, long newCoverId, CancellationToken cancellationToken)
-    {
-        // Find all the child collections and media that reference the old cover ID and update them to use the new cover ID.
-        // The only exception is if the child entity has a unique coverId, then we won't change it because it has a unique cover.
-        
-        // Track which collections we've updated so we can update all Media at the same time.
-        List<long> updatedCollectionIds = [collection.Id];
-        var oldCoverId = collection.CoverId;
-
-        // Update child collections that reference the old cover ID.
-        if (collection.ChildCollections.Count > 0)
-        {
-            foreach (var childCollection in collection.ChildCollections)
-            {
-                if (childCollection.CoverId == oldCoverId)
-                {
-                    childCollection.CoverId = newCoverId;
-                    updatedCollectionIds.Add(childCollection.Id);
-                }
-            }
-        }
-        // Update all media items referencing the old cover ID for the collections we've updated.
-        await dbContext.Media
-            .Where(m => m.MediaCollectionId != null)
-            .Where(m => updatedCollectionIds.Contains(m.MediaCollectionId!.Value))
-            .Where(m => m.CoverId == oldCoverId)
-            .ExecuteUpdateAsync(s => s.SetProperty(m => m.CoverId, newCoverId), cancellationToken);
-    }
-
     private async Task ValidateOrThrowAsync(MediaCollectionUpsertRequest request, CancellationToken cancellationToken)
     {
         var result = validator.Validate(request);
         if (!result.IsValid)
         {
             throw new DomainException(result.Errors[0].ErrorMessage, "collection_validation_error");
-        }
-
-        // Validate cover exists if provided.
-        if (request.CoverUploadId.HasValue)
-        {
-            var cover = await dbContext.MediaCovers.FirstOrDefaultAsync(mc => mc.FileUploadId == request.CoverUploadId.Value, cancellationToken)
-                ?? throw new DomainException("Cover not found.", "cover_not_found");
         }
 
         // Validate parent exists if provided.
