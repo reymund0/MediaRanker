@@ -82,9 +82,47 @@ Environment variables use double underscores (for example `Media__Tmdb__ReadAcce
 
 For the first supervised live check, use one backend process and verify that staging and the due-artwork queue are small. A conservative temporary configuration is IGDB `PageSize=5`, `PageBudget=1`, `RequestsPerSecond=1`, `MaxConcurrentRequests=1`, `TimeoutSeconds=10`, `LeaseSeconds=120`; TMDB `RequestsPerSecond=1`, `MaxConcurrentRequests=1`, `TimeoutSeconds=10`; artwork `BatchSize=1`, `PollSeconds=5`, `MaxAttempts=1`. Keep normal cache lifetimes. These settings are recommendations, not enabled defaults. Wait for the owner to confirm credential readiness before live calls.
 
-`PageBudget` counts game pages, not token/game-type/max-ID requests, and does not cap loading an existing staging backlog into domain tables. A small ascending-ID sample may contain no eligible games. Keep the sample bounded and inspect sanitized request counts, cursor progress, queue size, and elapsed time before expanding it. Before bulk ingestion, complete data/performance review and measure per-title database work, maintenance and staging query plans, and lease headroom at representative local scale. Small smoke checks do not establish bulk throughput; request limits are shared only within one process.
+`PageBudget` counts game pages. Separate HTTP limits count every actual import send, including Twitch, game types, discovery, retries and empty terminal pages. Admission has separate row/batch limits. A small ascending-ID sample may contain no eligible games. Inspect sanitized stop reasons, request counts, committed cursor, admission backlog and elapsed time before expanding allowances. Small smoke checks do not establish bulk throughput; request pacing and token state are shared only within one process.
 
-With the default daily schedule and 100 rows/page × 10 pages/run, bootstrap scans at most 1,000 games per scheduled run. A catalog of N rows needs roughly ceiling(N/1,000) daily runs, possibly one more to detect the end; incremental refresh starts after bootstrap completes. These are conservative defaults, not a fast initial catalog load. Choose larger budgets only after the measurements above, accounting for provider limits and database work.
+The daily IGDB schedule remains finite and resumable. Each invocation shares cumulative HTTP, admission-row and time allowances across bounded work units, with a fresh service scope and a one-second yield between units. `PageBudget` caps total game-page requests across those units. It may stop below that cap because HTTP, admission, elapsed-time or provider limits are reached. Completing the current scan ends the invocation; a later invocation starts incremental refresh, whose fixed upper watermark and overlap remain unchanged across resumed units.
+
+### Finite Catalog Bootstrap
+
+IMDb retains at most 8 Mi raw TSV characters per callback batch (`MaxBatchCharacters`, maximum 32 Mi), as well as the configured row limit (`BatchSize`, default 5,000, maximum 50,000). List preallocation is capped at 5,000 entries. `MaxLineCharacters` must fit within the aggregate character limit. Wide rows cause an earlier batch flush. These caps bound batch input and row overhead; total process memory still requires full-feed calibration.
+
+The legacy `POST /api/Test/triggerImdbImport` and `POST /api/Test/triggerImdbLoad` routes return 410 ProblemDetails. Use the catalog job below; manual triggers cannot bypass its calibrated profile or complete-feed gate.
+
+Bootstrap defaults to `Media:Bootstrap:Provider=none`. Select exactly one provider on the current application's command line. A selector or session allowance supplied only through appsettings, user secrets or environment variables is rejected. Normal configuration precedence still applies; the effective values must match explicit launch arguments. Effective raw `Media:Igdb:Enabled` and `Media:Igdb:ImportEnabled` must agree when both exist, including a legacy false value in appsettings.
+
+Use a single supervised foreground process with automatic restart disabled. Verify its database connection points to the intended isolated target before launch. Do not reuse the running original application's port or database. Configure credentials outside source control. A deliberate new process grants a new allowance; the application cannot distinguish a human relaunch from a supervisor replaying the same arguments.
+
+Example finite IGDB launch from the repository root, after the target and credentials have been authorized:
+
+```powershell
+dotnet run --project MediaRankerServer/MediaRankerServer.csproj --no-launch-profile -- `
+  --urls=http://localhost:5257 `
+  --Media:Igdb:Enabled=true --Media:Igdb:ImportEnabled=true `
+  --Media:Bootstrap:Provider=igdb `
+  --Media:Bootstrap:MaxHttpAttempts=100 `
+  --Media:Bootstrap:MaxAdmissionRows=5000 `
+  --Media:Bootstrap:MaxSeconds=900
+```
+
+This command shape is covered by configuration tests; it was not launched against live providers. The numbers are a finite example, not a certified catalog-wide throughput profile. Bootstrap work units default to 5 game pages, 20 HTTP attempts, 500 admission rows, one admission batch and 60 seconds; `Media:Bootstrap:IgdbYieldMilliseconds` defaults to 1000. Every unit retains the same cumulative session allowances. Shared request pacing includes artwork and Twitch; the import HTTP counter excludes independently initiated artwork traffic.
+
+These are independent ceilings: with one admission batch per unit, a page of eligible rows can end the unit before its page or row ceiling. Game types are currently rediscovered in every unit that fetches pages, consuming at least one additional HTTP attempt per unit. Include that overhead, token/discovery calls and the between-unit yield in any proposed live profile; the configured page limit alone is not a throughput forecast.
+
+Watch the session ID, stop reason, HTTP operation counts, committed staging/admission counts, durable cursor, pending incremental window, retry count and lease-busy expiry. Reserved admission rows can exceed committed rows after a failed batch. Provider cooldown stops bootstrap immediately without charging an unsent request. A busy lease sends no upstream HTTP; wait until the reported expiry before deliberately relaunching. Do not force-clear the lease. IGDB database statements default to a separate 15-second limit (`Media:Igdb:MaxStatementSeconds`, allowed 1–120); any tighter existing context limit is preserved. Admission query failures stop as admission-blocked and require diagnosis.
+
+Use Ctrl+C to stop. IGDB resumes from its last atomically committed staging cursor; failed pages do not advance it. Existing eligible staging can drain while upstream service is unavailable. Once the durable bootstrap scan is complete, explicit bootstrap only drains admission and preserves any pending incremental window. Replay preserves a newer cover and its expiry. A blocked admission batch requires diagnosis before restart; do not repeatedly relaunch an unchanged failing prefix.
+
+Both catalog schedules wait during bootstrap. Success resumes each enabled schedule at its next daily time, without catch-up. Any cap, failure or stop leaves both paused for that process, including release-day admission. Artwork processing remains independent. During ordinary scheduled operation, IGDB admission-blocked stops only IGDB; provider faults/caps defer its next attempt until the next day.
+
+IMDb activation additionally requires `Media:ImdbImport:Enabled=true` and `CalibratedProfileConfirmed=true`. Keep the latter false until a separately authorized full-feed calibration has succeeded. An explicit IMDb bootstrap must supply all six session allowances on its command line: `MaxHttpAttempts`, `MaxCompressedBytesPerFeed`, `MaxTemporaryDiskBytes`, `MaxDecompressedBytesPerFeed`, `MaxWholeSessionSeconds` and `MaxRowsPerFeed`, under `Media:ImdbImport`, plus `--Media:Bootstrap:Provider=imdb`. Defaults are isolated test limits: 3 requests, 64 MiB compressed/feed, 128 MiB temporary disk, 512 MiB decompressed/feed, 900 seconds and 5 million rows/feed. They are not a viable live-feed profile merely because they are finite.
+
+IMDb always replays ratings, basics and episodes from the beginning. Cleanup/domain loading occurs only after all three feeds validate and commit successfully. Cleanup and load statements default to 1000 output rows/groups and 15 seconds per statement; feed batches default to 5000 rows. Season groups include their complete episode input. Episode staging conflicts remain unchanged, so feed replay cannot correct an existing staged hierarchy; domain loads retain their existing upsert/relink behavior. A strict feed rejection stops the process's IMDb daily schedule; a transient fault or cap defers a scheduled invocation until the next day. A new process must replay all feeds after interruption.
+
+The required remaining live-readiness gate is one separately approved, bounded download of each IMDb feed followed by full-size isolated parsing/staging/cleanup/load measurements. The bootstrap change's measurement report records the proposed limits and limitations. No original database reset, live download or activation is implied by this runbook.
 
 IGDB admits released main games/remakes/remasters and supplies cover references; IMDb no longer admits video games. Images are requested by the browser only when displayed. Browsed/reviewed titles register missing or expired lookups; there is no full-catalog artwork backfill. The frontend polls pending results every two seconds for up to 30 seconds per displayed set and stops when hidden or terminal.
 

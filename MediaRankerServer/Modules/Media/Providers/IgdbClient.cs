@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using MediaRankerServer.Modules.Media.Services;
 using Microsoft.Extensions.Options;
 
 namespace MediaRankerServer.Modules.Media.Providers;
@@ -19,25 +20,31 @@ public sealed class IgdbClient(
     private string? accessToken;
     private DateTimeOffset accessTokenExpiresAt;
 
-    public async Task<ArtworkResult> GetCoverAsync(string gameId, CancellationToken ct)
+    public Task<ArtworkResult> GetCoverAsync(string gameId, CancellationToken ct) => GetCoverAsync(gameId, null, ct);
+
+    public async Task<ArtworkResult> GetCoverAsync(string gameId, ImportWorkUnitBudget? budget, CancellationToken ct)
     {
         if (!long.TryParse(gameId, NumberStyles.None, CultureInfo.InvariantCulture, out var id) || id < 1)
             throw new ProviderRequestException("invalid_lookup_id");
 
-        var games = await SendGamesRequestAsync($"fields id,cover.image_id; where id = {id}; limit 1;", ct);
+        var games = await SendGamesRequestAsync($"fields id,cover.image_id; where id = {id}; limit 1;", budget, "artwork", ct);
         var game = games.FirstOrDefault();
         return game is null || string.IsNullOrWhiteSpace(game.CoverImageId)
             ? new ArtworkResult(null, null)
             : new ArtworkResult(game.Id.ToString(CultureInfo.InvariantCulture), game.CoverImageId);
     }
 
-    public async Task<long> GetMaximumGameIdAsync(CancellationToken ct)
+    public Task<long> GetMaximumGameIdAsync(CancellationToken ct) => GetMaximumGameIdAsync(null, ct);
+
+    public async Task<long> GetMaximumGameIdAsync(ImportWorkUnitBudget? budget, CancellationToken ct)
     {
-        var games = await SendGamesRequestAsync("fields id; sort id desc; limit 1;", ct);
+        var games = await SendGamesRequestAsync("fields id; sort id desc; limit 1;", budget, "maximum_id", ct);
         return games.FirstOrDefault()?.Id ?? 0;
     }
 
-    public async Task<IReadOnlyList<IgdbGameType>> GetGameTypesAsync(CancellationToken ct)
+    public Task<IReadOnlyList<IgdbGameType>> GetGameTypesAsync(CancellationToken ct) => GetGameTypesAsync(null, ct);
+
+    public async Task<IReadOnlyList<IgdbGameType>> GetGameTypesAsync(ImportWorkUnitBudget? budget, CancellationToken ct)
     {
         const int pageSize = 500;
         var gameTypes = new List<IgdbGameType>();
@@ -45,19 +52,26 @@ public sealed class IgdbClient(
         long lastId = -1;
         while (true)
         {
-            using var response = await SendApiAsync(() => CreatePostRequest("game_types", $"fields id,type; where id > {lastId}; sort id asc; limit {pageSize};"), ct);
+            using var response = await SendApiAsync(() => CreatePostRequest("game_types", $"fields id,type; where id > {lastId}; sort id asc; limit {pageSize};"), budget, "game_types", ct);
             using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
             var page = document.RootElement.EnumerateArray()
                 .Where(x => x.TryGetProperty("id", out _) && x.TryGetProperty("type", out _))
                 .Select(x => new IgdbGameType(x.GetProperty("id").GetInt64(), x.GetProperty("type").GetString() ?? string.Empty))
                 .ToArray();
+            foreach (var gameType in page)
+            {
+                if (gameType.Id <= lastId)
+                    throw new ProviderRequestException("non_increasing_game_type_page");
+                lastId = gameType.Id;
+            }
             gameTypes.AddRange(page);
             if (page.Length < pageSize) return gameTypes;
-            lastId = page[^1].Id;
         }
     }
 
-    public async Task<IReadOnlyList<IgdbGame>> GetGamesAsync(IgdbGameQuery query, CancellationToken ct)
+    public Task<IReadOnlyList<IgdbGame>> GetGamesAsync(IgdbGameQuery query, CancellationToken ct) => GetGamesAsync(query, null, ct);
+
+    public async Task<IReadOnlyList<IgdbGame>> GetGamesAsync(IgdbGameQuery query, ImportWorkUnitBudget? budget, CancellationToken ct)
     {
         if (query.AfterId < 0 || query.Limit is < 1 or > 500)
             throw new ArgumentOutOfRangeException(nameof(query));
@@ -68,28 +82,30 @@ public sealed class IgdbClient(
         if (query.UpdatedBefore is { } updatedBefore) filters.Add($"updated_at <= {updatedBefore.ToUnixTimeSeconds()}");
 
         var body = $"fields id,name,first_release_date,game_type,version_parent,cover.image_id,updated_at; where {string.Join(" & ", filters)}; sort id asc; limit {query.Limit};";
-        return await SendGamesRequestAsync(body, ct);
+        return await SendGamesRequestAsync(body, budget, "games", ct);
     }
 
-    private async Task<IReadOnlyList<IgdbGame>> SendGamesRequestAsync(string body, CancellationToken ct)
+    private async Task<IReadOnlyList<IgdbGame>> SendGamesRequestAsync(string body, ImportWorkUnitBudget? budget,
+        string operation, CancellationToken ct)
     {
-        using var response = await SendApiAsync(() => CreatePostRequest("games", body), ct);
+        using var response = await SendApiAsync(() => CreatePostRequest("games", body), budget, operation, ct);
         using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
         return document.RootElement.EnumerateArray().Select(ParseGame).ToArray();
     }
 
-    private async Task<HttpResponseMessage> SendApiAsync(Func<HttpRequestMessage> requestFactory, CancellationToken ct)
+    private async Task<HttpResponseMessage> SendApiAsync(Func<HttpRequestMessage> requestFactory,
+        ImportWorkUnitBudget? budget, string operation, CancellationToken ct)
     {
         EnsureUsable();
         limiter.ThrowIfBlocked();
-        var token = await GetAccessTokenAsync(forceRefresh: false, rejectedToken: null, ct);
-        var response = await SendAuthorizedAsync(requestFactory, token, ct);
+        var token = await GetAccessTokenAsync(forceRefresh: false, rejectedToken: null, budget, ct);
+        var response = await SendAuthorizedAsync(requestFactory, token, budget, operation, ct);
         if (response.StatusCode != HttpStatusCode.Unauthorized)
             return response;
 
         response.Dispose();
-        token = await GetAccessTokenAsync(forceRefresh: true, rejectedToken: token, ct);
-        response = await SendAuthorizedAsync(requestFactory, token, ct);
+        token = await GetAccessTokenAsync(forceRefresh: true, rejectedToken: token, budget, ct);
+        response = await SendAuthorizedAsync(requestFactory, token, budget, operation + ".unauthorized_retry", ct);
         if (response.StatusCode != HttpStatusCode.Unauthorized)
             return response;
 
@@ -99,7 +115,8 @@ public sealed class IgdbClient(
         throw error;
     }
 
-    private async Task<HttpResponseMessage> SendAuthorizedAsync(Func<HttpRequestMessage> requestFactory, string token, CancellationToken ct)
+    private async Task<HttpResponseMessage> SendAuthorizedAsync(Func<HttpRequestMessage> requestFactory, string token,
+        ImportWorkUnitBudget? budget, string operation, CancellationToken ct)
     {
         using var lease = await limiter.AcquireAsync(ct);
         using var request = requestFactory();
@@ -108,14 +125,25 @@ public sealed class IgdbClient(
 
         try
         {
+            if (budget is not null)
+            {
+                var isGamePage = operation == "games";
+                if (isGamePage && !budget.TryReservePage(out var pageReason))
+                    throw new ImportBudgetExceededException(pageReason);
+                if (!budget.TryReserveHttp(operation, out var httpReason))
+                {
+                    if (isGamePage) budget.RollbackPage();
+                    throw new ImportBudgetExceededException(httpReason);
+                }
+            }
+
             var response = await apiClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, ct);
             if (response.IsSuccessStatusCode || response.StatusCode == HttpStatusCode.Unauthorized)
                 return response;
 
             var error = ToProviderException(response);
             response.Dispose();
-            if (error.Code is "rate_limited" or "authentication_failed")
-                await limiter.DeferAsync(error.RetryAfter, error.Code, ct);
+            await limiter.DeferAsync(error.RetryAfter, error.Code, CancellationToken.None);
             throw error;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -126,13 +154,20 @@ public sealed class IgdbClient(
         {
             throw;
         }
+        catch (ImportBudgetExceededException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            throw new ProviderRequestException("network_error", innerException: ex);
+            var error = new ProviderRequestException("network_error", innerException: ex);
+            await limiter.DeferAsync(error.RetryAfter, error.Code, CancellationToken.None);
+            throw error;
         }
     }
 
-    private async Task<string> GetAccessTokenAsync(bool forceRefresh, string? rejectedToken, CancellationToken ct)
+    private async Task<string> GetAccessTokenAsync(bool forceRefresh, string? rejectedToken,
+        ImportWorkUnitBudget? budget, CancellationToken ct)
     {
         limiter.ThrowIfBlocked();
         if (!forceRefresh && accessToken is not null && accessTokenExpiresAt > DateTimeOffset.UtcNow.AddMinutes(1))
@@ -149,6 +184,7 @@ public sealed class IgdbClient(
             if (forceRefresh && accessToken is not null && accessToken != rejectedToken && accessTokenExpiresAt > DateTimeOffset.UtcNow.AddMinutes(1))
                 return accessToken;
 
+            using var lease = await limiter.AcquireAsync(ct);
             using var request = new HttpRequestMessage(HttpMethod.Post, "oauth2/token")
             {
                 Content = new FormUrlEncodedContent([
@@ -158,13 +194,15 @@ public sealed class IgdbClient(
                 ])
             };
 
+            if (budget is not null)
+                budget.ThrowIfHttpUnavailable("token");
+
             using var response = await httpClientFactory.CreateClient(MediaProviderServiceCollectionExtensions.IgdbTwitchClientName)
                 .SendAsync(request, HttpCompletionOption.ResponseContentRead, ct);
             if (!response.IsSuccessStatusCode)
             {
                 var error = ToProviderException(response);
-                if (error.Code is "rate_limited" or "authentication_failed")
-                    await limiter.DeferAsync(error.RetryAfter, error.Code, ct);
+                await limiter.DeferAsync(error.RetryAfter, error.Code, CancellationToken.None);
                 throw error;
             }
 
@@ -172,7 +210,11 @@ public sealed class IgdbClient(
             var token = document.RootElement.TryGetProperty("access_token", out var tokenElement) ? tokenElement.GetString() : null;
             var seconds = document.RootElement.TryGetProperty("expires_in", out var expiryElement) && expiryElement.TryGetInt32(out var parsed) ? parsed : 0;
             if (string.IsNullOrWhiteSpace(token) || seconds <= 0)
-                throw new ProviderRequestException("invalid_auth_response");
+            {
+                var error = new ProviderRequestException("invalid_auth_response");
+                await limiter.DeferAsync(error.RetryAfter, error.Code, CancellationToken.None);
+                throw error;
+            }
 
             accessToken = token;
             accessTokenExpiresAt = DateTimeOffset.UtcNow.AddSeconds(seconds);
@@ -186,9 +228,15 @@ public sealed class IgdbClient(
         {
             throw;
         }
+        catch (ImportBudgetExceededException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            throw new ProviderRequestException("authentication_error", innerException: ex);
+            var error = new ProviderRequestException("authentication_error", innerException: ex);
+            await limiter.DeferAsync(error.RetryAfter, error.Code, CancellationToken.None);
+            throw error;
         }
         finally
         {

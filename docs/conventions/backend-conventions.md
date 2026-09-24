@@ -48,16 +48,19 @@ For importing large external datasets (e.g., IMDB TSV files), use a callback-dri
 - **Provider class** (e.g., `ImdbTsvProvider` in `Modules/<Module>/Data/`) owns I/O with external data set. Supplies batches of data to the caller via a callback. See: `RunBatchImportAsync(Func<List<TRow>, CancellationToken, Task> batchHandler, CancellationToken ct)`.
 - **Service class** (e.g., `ImdbImportService`) owns:
   - Wiring the provider to actual persistence
-  - Raw SQL `INSERT ... ON CONFLICT (<dedup_key>) DO NOTHING` for large batches (avoids EF change-tracker overhead)
-  - Tracking inserted/skipped counts across batches and logging totals on completion
-  - Per-batch exception handling (log error and continue; don't abort the whole import on a single batch failure)
-- **Staging table** (e.g., `imdb_imports`) is append-only for record keeping purposes. Duplicates are prevent by unique identifiers from external source.
+  - Calling module-owned SQL providers for bounded staging and cleanup units
+  - Tracking invocation totals across callbacks; retain the stream owner while creating fresh database scopes per unit
+  - Aborting on any failed batch or invalid required feed data; log safe stage/count/error categories without SQL, raw rows or exception payloads
+- **Staging tables** deduplicate by external identity. IMDb ratings refresh their timestamps; cleanup uses one database-clock cutoff captured before the ratings feed. No cleanup or domain loading may begin until ratings, basics and episodes have all reached validated gzip EOF and committed every batch.
 - **`BackgroundService` job** for regular syncs of datasets (if dataset is small enough)
 - Keep import and load responsibilities separate:
   - Import providers/services move external rows into staging tables.
   - Load providers/services transform staged rows into domain tables.
 - For staged-to-domain loads, prefer module-owned raw SQL providers for large set-based operations. Keep sequencing in the service when one load depends on another, such as Series before Seasons before Episodes.
 - Make load operations idempotent where practical with `INSERT ... ON CONFLICT DO UPDATE`, and log affected counts as affected rows rather than inserted-only counts.
+- IMDb episode staging conflicts retain `DO NOTHING`: feed replay does not correct an existing staged episode's hierarchy. Domain loads retain their existing upsert behavior, including relinking from the staged hierarchy. Season batches select final parent/season groups and aggregate every episode belonging to each selected group.
+- IMDb replay has finite HTTP, compressed/decompressed byte, temporary-disk, row, line, statement and whole-invocation limits. A failure requires full feed replay, not a byte/row resume. Live activation requires explicit operator confirmation of a calibrated finite profile; test defaults cannot establish full-feed readiness.
+- Callback batches also have an aggregate raw-character limit, so wide rows flush before reaching the row cap. IMDb providers resolve a separate scoped context through the `imdb` key with EF logging disabled: raw SQL contains provider values. Their own stage/count/category logs remain enabled, and ordinary contexts retain their existing diagnostics. Do not replace this registration with the ordinary context or log caught exception payloads.
 - For long-running bulk SQL, set command timeout around the operation and reset it in `finally` so incidental queries on the same context are not affected.
 
 ## File Upload Lifecycle (Module + Files Module)
@@ -80,6 +83,8 @@ Media artwork is automatic and does not use file uploads. The following lifecycl
 
 - IMDb stages and loads movies/TV only. IGDB stages game metadata and cover references, then admits released main games/remakes/remasters with no edition parent. Votes and artwork are not admission requirements. Future games remain staged and are reconsidered on successful scheduled runs.
 - IGDB run bounds and the ascending-ID cursor live in `igdb_import_state`. Page staging and cursor advancement commit together. Preserve lease fencing, overlap replay, and source-version checks when changing import logic; a failed page must not advance the cursor.
+- Catalog bootstrap is an explicit, finite process launch. `CatalogScheduleGate` holds both catalog schedules until the selected bootstrap succeeds; cap/fault/stop leaves both paused for that process. Artwork remains independent. Session counters are process-local; automatic restart is not a permitted bootstrap operating mode. See the bootstrap procedure in `dev-commands.md`.
+- IGDB admission has independent row/batch/time limits and runs before upstream requests. Completed-scan bootstrap is admission-only, including when an incremental window is pending. Fresh-context conflict recovery is bounded; an admission-blocked result ends bootstrap and stops the scheduled IGDB job until remediation/restart.
 - `MediaCover` stores a unique provider/lookup-kind/lookup-ID, optional asset reference, freshness, and durable request/lease state. Never store arbitrary URLs or provider image binaries in S3. Never accept provider lookup parameters from a client.
 - Authorized Media/Reviews reads register work only for returned titles. The request path performs no provider HTTP calls. Artwork failure must not undo a saved review. Movies resolve by IMDb ID; IGDB games reuse fresh imported references. Seasons/episodes resolve through their series, with the association on the series rather than copied to every child.
 - `ArtworkJob` waits two seconds after each processing batch by default. `ArtworkProcessor` atomically claims due requested rows and conditionally completes using claim/version guards. Expired dormant results do not activate HTTP work. Restart recovery uses expiring leases; retries are bounded and delayed.

@@ -1,14 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using MediaRankerServer.Shared.Exceptions;
-using MediaRankerServer.Modules.Media.Jobs;
-using MediaRankerServer.Modules.Media.Services;
-using Microsoft.Extensions.Options;
 
 namespace MediaRankerServer.Modules.Test.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class TestController(ImdbImportService importService, ImdbLoadService loadService) : ControllerBase
+    public class TestController : ControllerBase
     {
         [HttpPost("helloWorld")]
         public IActionResult HelloWorld()
@@ -32,18 +29,16 @@ namespace MediaRankerServer.Modules.Test.Controllers
         }
 
         [HttpPost("triggerImdbImport")]
-        public async Task<IActionResult> TriggerImdbImport(CancellationToken cancellationToken)
+        public IActionResult TriggerImdbImport()
         {
-            var result = await importService.ImportAsync(cancellationToken);
-            
-            return Ok(new { message = "IMDB import completed.", result });
+            return Problem(statusCode: StatusCodes.Status410Gone, title: "Manual IMDb import disabled",
+                detail: "Use the finite catalog bootstrap job with a calibrated profile.");
         }
         [HttpPost("triggerImdbLoad")]
-        public async Task<IActionResult> TriggerImdbLoad(CancellationToken cancellationToken)
+        public IActionResult TriggerImdbLoad()
         {
-            var result = await loadService.LoadAsync(cancellationToken);
-            
-            return Ok(new { message = "IMDB load completed.", result });
+            return Problem(statusCode: StatusCodes.Status410Gone, title: "Manual IMDb loading disabled",
+                detail: "The catalog job loads only after all required feeds complete.");
         }
     }
 }
