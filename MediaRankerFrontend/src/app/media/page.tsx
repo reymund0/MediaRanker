@@ -1,7 +1,7 @@
 "use client";
 
 import AddIcon from "@mui/icons-material/Add";
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, NoSsr, Stack, Typography } from "@mui/material";
 import { GridColDef } from "@mui/x-data-grid";
 import { useState } from "react";
 import { usePaginatedDatagrid } from "@/lib/components/data-grid/use-paginated-datagrid";
@@ -19,6 +19,7 @@ import { ALL_MEDIA_TYPES, MEDIA_TYPE_LABELS, MediaType } from "@/lib/contracts/s
 import { buildMediaColumns, MediaRow, mapMediaToRow } from "./grid-utils";
 import { MediaEditModal } from "./media-edit-modal";
 import { PageCard } from "@/lib/components/layout/page-card";
+import { usePendingCoverRefresh } from "@/lib/api/use-pending-cover-refresh";
 
 export default function MediaPage() {
   const { showSuccess, showError } = useAlert();
@@ -39,6 +40,7 @@ export default function MediaPage() {
     totalCount,
     isLoading: isMediaLoading,
     error: mediaError,
+    refetch: refetchMedia,
   } = usePagedQuery<MediaDto>({
     route: "/api/media",
     routeParams: { mediaType: selectedMediaType },
@@ -49,6 +51,13 @@ export default function MediaPage() {
   });
 
   const rows = items.map(mapMediaToRow);
+
+  usePendingCoverRefresh({
+    viewKey: `${selectedMediaType}:${items.map((media) => media.id).join(",")}`,
+    hasPendingCovers: items.some((media) => media.coverStatus === "pending"),
+    refetch: refetchMedia,
+    enabled: !!userId,
+  });
 
   const { mutate: upsertMedia } = useMutation<MediaUpsertRequest, MediaDto>({
     route: "/api/media",
@@ -89,6 +98,7 @@ export default function MediaPage() {
       releaseDate: null,
       createdAt: null,
       updatedAt: null,
+      coverStatus: "unsupported",
     });
   };
 
@@ -156,14 +166,16 @@ export default function MediaPage() {
           borderRadius: 2,
         }}
       >
-        <BaseDataGrid
-          loading={isMediaLoading}
-          error={!!mediaError}
-          rows={rows}
-          columns={columns}
-          rowCount={totalCount}
-          {...dataGridProps}
-        />
+        <NoSsr>
+          <BaseDataGrid
+            loading={isMediaLoading}
+            error={!!mediaError}
+            rows={rows}
+            columns={columns}
+            rowCount={totalCount}
+            {...dataGridProps}
+          />
+        </NoSsr>
       </Box>
 
       {draftRow ? (

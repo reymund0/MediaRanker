@@ -123,6 +123,49 @@ public class MediaCollectionCrudTests(PostgresContainerFixture postgresFixture, 
     }
 
     [Fact]
+    public async Task UpsertCollection_UpdateWithoutUpload_PreservesAutomaticCoverAssociation()
+    {
+        long coverId;
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+            var cover = new MediaCover
+            {
+                Provider = ArtworkProvider.Tmdb,
+                LookupKind = CoverLookupKind.SeriesImdb,
+                LookupId = "tt0903747",
+                Outcome = CoverOutcome.Ready,
+                ProviderItemId = "1396",
+                ImagePath = "/series.jpg",
+                CheckedAt = DateTimeOffset.UtcNow,
+                ExpiresAt = DateTimeOffset.UtcNow.AddDays(30)
+            };
+            db.MediaCovers.Add(cover);
+            await db.SaveChangesAsync();
+            var series = await db.MediaCollections.SingleAsync(collection => collection.Id == _testSeries.Id);
+            series.CoverId = cover.Id;
+            await db.SaveChangesAsync();
+            coverId = cover.Id;
+        }
+
+        var response = await Client.PostAsJsonAsync("/api/mediacollection", new MediaCollectionUpsertRequest
+        {
+            Id = _testSeries.Id,
+            Title = "Series Metadata Edited Without Upload",
+            CollectionType = MediaCollectionType.Series,
+            MediaType = "Movie",
+            ReleaseDate = _testSeries.ReleaseDate!.Value
+        });
+        TestUtils.AssertSuccessResponse(response);
+
+        using var verifyScope = Factory.Services.CreateScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+        var updated = await verifyDb.MediaCollections.SingleAsync(collection => collection.Id == _testSeries.Id);
+        updated.CoverId.Should().Be(coverId);
+        updated.Title.Should().Be("Series Metadata Edited Without Upload");
+    }
+
+    [Fact]
     public async Task DeleteCollection_RemovesRow()
     {
         var response = await Client.DeleteAsync($"/api/mediacollection/{_testSeries.Id}");

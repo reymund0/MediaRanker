@@ -14,6 +14,7 @@ export interface ReviewDto {
   mediaTitle: string;
   mediaType: string;
   mediaCoverImageUrl: string | null;
+  coverStatus: CoverStatus;
 }
 
 export interface ReviewFieldDto {
@@ -29,7 +30,16 @@ export interface UnreviewedMediaDto {
   title: string;
   releaseDate: string | null;
   coverImageUrl: string | null;
+  coverStatus: CoverStatus;
 }
+
+export type CoverStatus =
+  | "ready"
+  | "pending"
+  | "missing"
+  | "failed"
+  | "disabled"
+  | "unsupported";
 
 export interface ReviewFieldUpsertRequest {
   templateFieldId: number;

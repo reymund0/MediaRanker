@@ -39,7 +39,7 @@ public class TemplateServiceTests
         var act = () => _service.UpdateTemplateAsync("system", -1, new TemplateUpsertRequest 
         { 
             Name = "New Name", 
-            MediaType = "Movie", 
+            MediaType = "Movie",
             Fields = [] 
         });
 
@@ -57,7 +57,7 @@ public class TemplateServiceTests
             Id = 1, 
             Name = "User Template", 
             UserId = "user-1", 
-            MediaType = "Movie" 
+            MediaType = "Movie"
         };
         _context.Templates.Add(userTemplate);
         await _context.SaveChangesAsync();
@@ -66,7 +66,7 @@ public class TemplateServiceTests
         var act = () => _service.UpdateTemplateAsync("user-2", 1, new TemplateUpsertRequest 
         { 
             Name = "New Name", 
-            MediaType = "Movie", 
+            MediaType = "Movie",
             Fields = [] 
         });
 

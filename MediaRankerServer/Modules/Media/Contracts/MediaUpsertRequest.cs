@@ -6,7 +6,6 @@ namespace MediaRankerServer.Modules.Media.Contracts;
 public class MediaUpsertRequest
 {
     public long? Id { get; set; }
-    public long? CoverUploadId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string MediaType { get; set; } = string.Empty;
     public DateOnly ReleaseDate { get; set; }

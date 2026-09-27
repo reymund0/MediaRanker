@@ -53,7 +53,7 @@ export function ReviewCard({
 
   useEffect(() => {
     const loadReview = async () => {
-      if (review) {
+      if (review && cardState !== "edit") {
         setCurrentReview({
           id: review.id,
           mediaId: review.mediaId,
@@ -81,7 +81,7 @@ export function ReviewCard({
       }
     };
     loadReview();
-  }, [review]);
+  }, [cardState, review]);
 
   useEffect(() => {
     if (cardState !== "new" && cardState !== "detailed-view") {
@@ -163,6 +163,7 @@ export function ReviewCard({
         <ReviewCardEdit
           review={currentReview!}
           mediaTitle={mediaTitle}
+          mediaType={mediaType}
           templateFields={templateFields}
           isNew={isNewReview}
           onInsert={(review) => {

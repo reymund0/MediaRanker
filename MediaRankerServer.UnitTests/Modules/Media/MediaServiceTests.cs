@@ -5,8 +5,7 @@ using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Events;
 using MediaRankerServer.Modules.Media.Services;
 using MediaRankerServer.Modules.Media.Data.Entities;
-using MediaRankerServer.Modules.Files.Services;
-using MediaRankerServer.Modules.Files.Data.Entities;
+using MediaRankerServer.Modules.Media.Services.Interfaces;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
 using MediaRankerServer.UnitTests.Shared;
@@ -19,7 +18,7 @@ namespace MediaRankerServer.UnitTests.Modules.Media;
 public class MediaServiceTests : IDisposable
 {
     private readonly PostgreSQLContext _context;
-    private readonly Mock<IFileService> _mockFileService;
+    private readonly Mock<IArtworkService> _mockArtworkService;
     private readonly Mock<IValidator<MediaUpsertRequest>> _mockValidator;
     private readonly Mock<IPublisher> _mockPublisher;
     private readonly MediaService _service;
@@ -29,9 +28,10 @@ public class MediaServiceTests : IDisposable
     {
         _context = TestDbContextFactory.Create();
 
-        _mockFileService = new Mock<IFileService>();
-        _mockFileService.Setup(f => f.GetFileUrl(It.IsAny<string>(), It.IsAny<FileEntityType>()))
-            .Returns((string path, FileEntityType type) => path);
+        _mockArtworkService = new Mock<IArtworkService>();
+        _mockArtworkService
+            .Setup(service => service.GetMediaArtworkAsync(It.IsAny<IEnumerable<long>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<long, CoverPresentation>());
 
         _mockValidator = new Mock<IValidator<MediaUpsertRequest>>();
         _mockValidator.Setup(v => v.Validate(It.IsAny<MediaUpsertRequest>()))
@@ -39,7 +39,7 @@ public class MediaServiceTests : IDisposable
 
         _mockPublisher = new Mock<IPublisher>();
 
-        _service = new MediaService(_context, _mockFileService.Object, _mockValidator.Object, _mockPublisher.Object);
+        _service = new MediaService(_context, _mockArtworkService.Object, _mockValidator.Object, _mockPublisher.Object);
     }
 
     public void Dispose()
@@ -47,6 +47,56 @@ public class MediaServiceTests : IDisposable
         _context.Database.EnsureDeleted();
         _context.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    [Fact]
+    public async Task GetMediaByIdAsync_UsesArtworkPresentationForReturnedMedia()
+    {
+        var media = new MediaEntity
+        {
+            Title = "The Matrix",
+            MediaType = "Movie",
+            ReleaseDate = new DateOnly(1999, 3, 31)
+        };
+        _context.Media.Add(media);
+        await _context.SaveChangesAsync();
+        _mockArtworkService
+            .Setup(service => service.GetMediaArtworkAsync(
+                It.Is<IEnumerable<long>>(ids => ids.SequenceEqual(new[] { media.Id })),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<long, CoverPresentation>
+            {
+                [media.Id] = new("https://image.tmdb.org/t/p/w342/matrix.jpg", "ready")
+            });
+
+        var result = await _service.GetMediaByIdAsync(media.Id, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result!.CoverImageUrl.Should().Be("https://image.tmdb.org/t/p/w342/matrix.jpg");
+        result.CoverStatus.Should().Be("ready");
+    }
+
+    [Fact]
+    public async Task GetMediaByIdAsync_WhenArtworkIsNotRequested_DoesNotCreateArtworkDemand()
+    {
+        var media = new MediaEntity
+        {
+            Title = "Review Validation Movie",
+            MediaType = "Movie",
+            ReleaseDate = new DateOnly(1999, 3, 31),
+            ExternalSource = MediaExternalSource.Imdb,
+            ExternalId = "tt0133093"
+        };
+        _context.Media.Add(media);
+        await _context.SaveChangesAsync();
+
+        var result = await _service.GetMediaByIdAsync(media.Id, CancellationToken.None, requestArtwork: false);
+
+        result.Should().NotBeNull();
+        result!.CoverStatus.Should().Be("unsupported");
+        _mockArtworkService.Verify(
+            service => service.GetMediaArtworkAsync(It.IsAny<IEnumerable<long>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -116,44 +166,26 @@ public class MediaServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateMediaAsync_WithCoverUploadId_AssignsCoverId()
+    public async Task UpdateMediaAsync_WithoutUpload_PreservesAutomaticCoverAssociation()
     {
-        // Arrange
-        var cover = new MediaCover { Id = 100, FileUploadId = 123, FileKey = "covers/interstellar.png", FileName = "interstellar.png", FileContentType = "image/png", FileSizeBytes = 1024 };
-        _context.MediaCovers.Add(cover);
-        await _context.SaveChangesAsync();
-
-        var request = new MediaUpsertRequest
+        var cover = new MediaCover
         {
-            Title = "Interstellar",
-            MediaType = "Movie",
-            ReleaseDate = new DateOnly(2014, 11, 7),
-            CoverUploadId = 123
+            Id = 100,
+            Provider = ArtworkProvider.Tmdb,
+            LookupKind = CoverLookupKind.MovieImdb,
+            LookupId = "tt0816692",
+            Outcome = CoverOutcome.Ready,
+            ImagePath = "/interstellar.jpg",
+            CheckedAt = DateTimeOffset.UtcNow,
+            ExpiresAt = DateTimeOffset.UtcNow.AddDays(30)
         };
-
-        // Act
-        var result = await _service.CreateMediaAsync(DefaultUserId, request);
-
-        // Assert
-        result.Should().NotBeNull();
-        var entity = await _context.Media.FirstAsync(m => m.Id == result.Id);
-        entity.CoverId.Should().Be(100);
-    }
-
-    [Fact]
-    public async Task UpdateMediaAsync_WithCoverUploadId_UpdatesCoverId()
-    {
-        // Arrange
-        var oldCover = new MediaCover { Id = 100, FileUploadId = 123, FileKey = "covers/old.png", FileName = "old.png", FileContentType = "image/png", FileSizeBytes = 1024 };
-        var newCover = new MediaCover { Id = 200, FileUploadId = 456, FileKey = "covers/new.png", FileName = "new.png", FileContentType = "image/png", FileSizeBytes = 2048 };
-        _context.MediaCovers.AddRange(oldCover, newCover);
-
+        _context.MediaCovers.Add(cover);
         var existingMedia = new MediaEntity
         {
             Title = "Interstellar",
             MediaType = "Movie",
             ReleaseDate = new DateOnly(2014, 11, 7),
-            CoverId = 100
+            CoverId = cover.Id
         };
         _context.Media.Add(existingMedia);
         await _context.SaveChangesAsync();
@@ -164,7 +196,6 @@ public class MediaServiceTests : IDisposable
             Title = "Interstellar Updated",
             MediaType = "Movie",
             ReleaseDate = new DateOnly(2014, 11, 7),
-            CoverUploadId = 456
         };
 
         // Act
@@ -173,7 +204,7 @@ public class MediaServiceTests : IDisposable
         // Assert
         var entity = await _context.Media.FirstAsync(m => m.Id == existingMedia.Id);
         entity.Title.Should().Be("Interstellar Updated");
-        entity.CoverId.Should().Be(200);
+        entity.CoverId.Should().Be(cover.Id);
     }
 
     [Fact]
@@ -235,14 +266,14 @@ public class MediaServiceTests : IDisposable
     // --- Validation tests ---
 
     [Fact]
-    public async Task CreateMediaAsync_WhenCoverNotFound_ThrowsDomainException()
+    public async Task CreateMediaAsync_WhenMediaTypeIsUnknown_ThrowsDomainException()
     {
+        // Arrange
         var request = new MediaUpsertRequest
         {
             Title = "New Movie",
-            MediaType = "Movie",
+            MediaType = "Unknown",
             ReleaseDate = new DateOnly(2020, 1, 1),
-            CoverUploadId = 99999,  // Non-existent
         };
 
         // Act
@@ -250,6 +281,6 @@ public class MediaServiceTests : IDisposable
 
         // Assert
         await act.Should().ThrowAsync<DomainException>()
-            .Where(e => e.Type == "cover_not_found");
+            .Where(e => e.Type == "media_type_not_found");
     }
 }

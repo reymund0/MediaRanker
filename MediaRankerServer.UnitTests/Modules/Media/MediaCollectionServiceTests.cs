@@ -1,11 +1,9 @@
 using FluentAssertions;
 using FluentValidation;
-using MediaRankerServer.Modules.Files.Contracts;
-using MediaRankerServer.Modules.Files.Data.Entities;
-using MediaRankerServer.Modules.Files.Services;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Modules.Media.Services;
+using MediaRankerServer.Modules.Media.Services.Interfaces;
 using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
 using MediaRankerServer.UnitTests.Shared;
@@ -18,7 +16,7 @@ namespace MediaRankerServer.UnitTests.Modules.Media;
 public class MediaCollectionServiceTests : IDisposable
 {
     private readonly PostgreSQLContext _context;
-    private readonly Mock<IFileService> _mockFileService;
+    private readonly Mock<IArtworkService> _mockArtworkService;
     private readonly Mock<IValidator<MediaCollectionUpsertRequest>> _mockValidator;
     private readonly MediaCollectionService _service;
     private const string DefaultUserId = "test-user-1";
@@ -30,9 +28,10 @@ public class MediaCollectionServiceTests : IDisposable
     {
         _context = TestDbContextFactory.Create();
 
-        _mockFileService = new Mock<IFileService>();
-        _mockFileService.Setup(f => f.GetFileUrl(It.IsAny<string>(), It.IsAny<FileEntityType>()))
-            .Returns((string path, FileEntityType _) => path);
+        _mockArtworkService = new Mock<IArtworkService>();
+        _mockArtworkService
+            .Setup(service => service.GetCollectionArtworkAsync(It.IsAny<IEnumerable<long>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<long, CoverPresentation>());
 
         _mockValidator = new Mock<IValidator<MediaCollectionUpsertRequest>>();
         _mockValidator.Setup(v => v.Validate(It.IsAny<MediaCollectionUpsertRequest>()))
@@ -40,7 +39,7 @@ public class MediaCollectionServiceTests : IDisposable
 
         _service = new MediaCollectionService(
             _context,
-            _mockFileService.Object,
+            _mockArtworkService.Object,
             _mockValidator.Object
         );
     }
@@ -260,59 +259,71 @@ public class MediaCollectionServiceTests : IDisposable
             .Where(e => e.Type == "collection_not_found");
     }
 
-    // --- Cover handling ---
-
     [Fact]
-    public async Task CreateCollectionAsync_WithCoverUploadId_AssignsCoverId()
+    public async Task UpdateCollectionAsync_WithoutUpload_PreservesAutomaticCoverAssociation()
     {
-        // Arrange
-        var cover = new MediaCover { Id = 100, FileUploadId = 42, FileKey = "covers/my-series.png", FileName = "my-series.png", FileContentType = "image/png", FileSizeBytes = 2048 };
-        _context.MediaCovers.Add(cover);
-        await _context.SaveChangesAsync();
-
-        // Act
-        var result = await _service.CreateCollectionAsync(DefaultUserId, new MediaCollectionUpsertRequest
+        var cover = new MediaCover
         {
-            Title = "My Movie Series",
-            CollectionType = MediaCollectionType.Series,
-            MediaType = MovieMediaType,
-            ReleaseDate = new DateOnly(2020, 1, 1),
-            CoverUploadId = 42,
-        });
-
-        // Assert
-        var entity = await _context.MediaCollections.FirstAsync(mc => mc.Id == result.Id);
-        entity.CoverId.Should().Be(100);
-    }
-
-    [Fact]
-    public async Task UpdateCollectionAsync_CoverNotFound_ThrowsDomainException()
-    {
-        // Arrange
+            Id = 100,
+            Provider = ArtworkProvider.Tmdb,
+            LookupKind = CoverLookupKind.SeriesImdb,
+            LookupId = "tt0944947",
+            Outcome = CoverOutcome.Ready,
+            ImagePath = "/series.jpg",
+            CheckedAt = DateTimeOffset.UtcNow,
+            ExpiresAt = DateTimeOffset.UtcNow.AddDays(30)
+        };
+        _context.MediaCovers.Add(cover);
         var existing = new MediaCollection
         {
             Title = "Series",
             CollectionType = MediaCollectionType.Series,
             MediaType = MovieMediaType,
             ReleaseDate = new DateOnly(2019, 1, 1),
-            CoverId = null
+            CoverId = cover.Id
         };
         _context.MediaCollections.Add(existing);
         await _context.SaveChangesAsync();
 
-        // Act - Try to update with non-existent cover
-        var act = () => _service.UpdateCollectionAsync(DefaultUserId, existing.Id, new MediaCollectionUpsertRequest
+        await _service.UpdateCollectionAsync(DefaultUserId, existing.Id, new MediaCollectionUpsertRequest
         {
             Id = existing.Id,
             Title = "Series Updated",
             CollectionType = MediaCollectionType.Series,
             MediaType = MovieMediaType,
-            ReleaseDate = new DateOnly(2019, 1, 1),
-            CoverUploadId = 99999,  // Non-existent
+            ReleaseDate = new DateOnly(2019, 1, 1)
         });
 
-        // Assert
-        await act.Should().ThrowAsync<DomainException>()
-            .Where(e => e.Type == "cover_not_found");
+        var entity = await _context.MediaCollections.FirstAsync(mc => mc.Id == existing.Id);
+        entity.Title.Should().Be("Series Updated");
+        entity.CoverId.Should().Be(cover.Id);
+    }
+
+    [Fact]
+    public async Task GetCollectionByIdAsync_UsesArtworkPresentationForReturnedCollection()
+    {
+        var collection = new MediaCollection
+        {
+            Title = "Example Series",
+            CollectionType = MediaCollectionType.Series,
+            MediaType = MovieMediaType,
+            ReleaseDate = new DateOnly(2024, 1, 1)
+        };
+        _context.MediaCollections.Add(collection);
+        await _context.SaveChangesAsync();
+        _mockArtworkService
+            .Setup(service => service.GetCollectionArtworkAsync(
+                It.Is<IEnumerable<long>>(ids => ids.SequenceEqual(new[] { collection.Id })),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<long, CoverPresentation>
+            {
+                [collection.Id] = new("https://image.tmdb.org/t/p/w342/series.jpg", "ready")
+            });
+
+        var result = await _service.GetCollectionByIdAsync(collection.Id, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result!.CoverImageUrl.Should().Be("https://image.tmdb.org/t/p/w342/series.jpg");
+        result.CoverStatus.Should().Be("ready");
     }
 }

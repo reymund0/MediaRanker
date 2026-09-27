@@ -5,6 +5,7 @@ import { GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import { parseISO } from "date-fns";
 import { TemplateDto, TemplateFieldDto } from "./contracts";
 import { DateTimeCell } from "@/lib/components/data-grid/datetime-cell";
+import { MEDIA_TYPE_LABELS } from "@/lib/contracts/shared";
 
 export type TemplateRow = Omit<
   TemplateDto,
@@ -52,7 +53,7 @@ export function buildTemplateColumns({
           >
             <Typography noWrap>{params.value}</Typography>
             <Chip
-              label={params.row.mediaType}
+              label={MEDIA_TYPE_LABELS[params.row.mediaType]}
               size="small"
               variant="outlined"
             />

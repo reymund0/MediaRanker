@@ -1,19 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Box, Stack } from "@mui/material";
+import { Stack } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { FormDialog } from "@/lib/components/feedback/dialog/form-dialog";
 import { FormSelect } from "@/lib/components/inputs/select/form-select";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
 import { FormDatePicker } from "@/lib/components/date-picker/form-date-picker";
-import { FormFileUpload } from "@/lib/components/file-upload/form-file-upload";
-import { useMutation } from "@/lib/api/use-mutation";
-import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
-import {
-  MediaUpsertRequest,
-  GenerateUploadCoverUrlRequest,
-  GenerateUploadCoverUrlResponse,
-} from "./contracts";
+import { MediaUpsertRequest } from "./contracts";
 import { ALL_MEDIA_TYPES, MEDIA_TYPE_LABELS, MediaType } from "@/lib/contracts/shared";
 import { MediaRow } from "./grid-utils";
 
@@ -22,7 +15,6 @@ const mediaEditSchema = z.object({
   title: z.string().trim().min(1, "Media title is required"),
   mediaType: z.nativeEnum(MediaType, { message: "Media type is required" }),
   releaseDate: z.date({ message: "Valid release date is required" }),
-  coverUploadId: z.number().optional(),
 });
 
 type MediaEditFormValues = z.infer<typeof mediaEditSchema>;
@@ -47,55 +39,19 @@ export function MediaEditModal({
       title: row.title,
       mediaType: row.mediaType as MediaType,
       releaseDate: row.releaseDate ?? undefined,
-      coverUploadId: undefined,
     },
     mode: "onChange",
   });
 
   const { handleSubmit } = methods;
-  const { showSuccess, showError } = useAlert();
-
-  const { mutateAsync: generateUploadUrl } = useMutation<
-    GenerateUploadCoverUrlRequest,
-    GenerateUploadCoverUrlResponse
-  >({
-    route: "/api/media/UploadCover",
-    method: "POST",
-  });
-
-  const { mutateAsync: completeUpload } = useMutation<number, void>({
-    route: (uploadId) => `/api/media/CompleteUploadCover/${uploadId}`,
-    method: "POST",
-  });
-
-  const handleGenerateUploadUrl = async (file: File) => {
-    return await generateUploadUrl({
-      mediaId: row.id || null,
-      fileName: file.name,
-      contentType: file.type,
-      fileSizeBytes: file.size,
-    });
-  };
-
-  const handleCompleteUpload = async (uploadId: number) => {
-    await completeUpload(uploadId);
-  };
-
-  const onUploadError = (message: string) => {
-    showError(message);
-  };
-
   const onSubmitClick = (data: MediaEditFormValues) => {
     onSubmit({
       id: data.id || null,
       title: data.title.trim(),
       mediaType: data.mediaType,
       releaseDate: data.releaseDate.toISOString().slice(0, 10),
-      coverUploadId: data.coverUploadId,
     });
   };
-
-  console.log(row);
 
   return (
     <FormDialog<MediaEditFormValues>
@@ -122,20 +78,6 @@ export function MediaEditModal({
             }))}
           />
         </Stack>
-        <Box sx={{ display: "flex", justifyContent: "center" }}>
-          <FormFileUpload<MediaEditFormValues>
-            name="coverUploadId"
-            label={`Upload ${row.coverImageUrl ? "New" : ""} Cover`}
-            initialPreviewUrl={row.coverImageUrl}
-            onGenerateUploadUrl={handleGenerateUploadUrl}
-            onCompleteUpload={handleCompleteUpload}
-            onUploadSuccess={() =>
-              showSuccess("Cover image uploaded successfully")
-            }
-            onUploadError={onUploadError}
-            previewSx={{ height: 200 }}
-          />
-        </Box>
       </Stack>
     </FormDialog>
   );

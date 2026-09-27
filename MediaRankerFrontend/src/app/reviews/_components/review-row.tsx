@@ -11,10 +11,12 @@ import {
   Typography,
 } from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useQuery } from "@/lib/api/use-query";
 import { ReviewDto } from "../contracts";
 import { ReviewCard } from "./review-card";
 import { CARD_WIDTH, CARD_GAP } from "./review-card-utils";
+import { usePendingCoverRefresh } from "@/lib/api/use-pending-cover-refresh";
 
 const SCROLL_AMOUNT = (CARD_WIDTH + CARD_GAP) * 3;
 
@@ -25,6 +27,7 @@ export interface ReviewRowProps {
 }
 
 export function ReviewRow({ mediaType, mediaTypeLabel, userId }: ReviewRowProps) {
+  const queryClient = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasOverflow, setHasOverflow] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -45,13 +48,39 @@ export function ReviewRow({ mediaType, mediaTypeLabel, userId }: ReviewRowProps)
   });
 
   useEffect(() => {
-    const loadReviews = async () => {
-      if (reviewsData) {
-        setReviews(reviewsData);
+    if (!reviewsData) {
+      return;
+    }
+
+    // The server response is external query state; retain local card order and edits.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setReviews((currentReviews) => {
+      if (currentReviews.length === 0) {
+        return reviewsData;
       }
-    };
-    loadReviews();
+
+      const refreshedById = new Map(
+        reviewsData.map((review) => [review.id, review]),
+      );
+      const currentIds = new Set(currentReviews.map((review) => review.id));
+      return [
+        ...currentReviews.flatMap((review) => {
+          const refreshed = refreshedById.get(review.id);
+          return refreshed ? [refreshed] : [];
+        }),
+        ...reviewsData.filter((review) => !currentIds.has(review.id)),
+      ];
+    });
   }, [reviewsData]);
+
+  usePendingCoverRefresh({
+    viewKey: `${mediaType}:${reviews.map((review) => review.id).join(",")}`,
+    hasPendingCovers: reviews.some(
+      (review) => review.coverStatus === "pending",
+    ),
+    refetch,
+    enabled: !!userId,
+  });
 
   const updateScrollState = useCallback(() => {
     const el = scrollRef.current;
@@ -90,21 +119,40 @@ export function ReviewRow({ mediaType, mediaTypeLabel, userId }: ReviewRowProps)
     }, 50);
   };
 
-  const handleNewCardSave = (review: ReviewDto) => {
+  const reconcileSavedReviews = async (
+    update: (current: ReviewDto[]) => ReviewDto[],
+  ) => {
+    const queryKey = ["reviews", mediaType];
+    // Discard an older artwork refresh before publishing a successful mutation.
+    await queryClient.cancelQueries({ queryKey, exact: true });
+    queryClient.setQueryData<ReviewDto[]>(queryKey, (current) =>
+      update(current ?? reviews),
+    );
+    setReviews(update);
+  };
+
+  const handleNewCardSave = async (review: ReviewDto) => {
+    await reconcileSavedReviews((current) => [
+      review,
+      ...current.filter((item) => item.id !== review.id),
+    ]);
     setHasNewCard(false);
-    setReviews((prev) => [review, ...prev]);
   };
 
   const handleNewCardCancel = () => {
     setHasNewCard(false);
   };
 
-  const handleReviewUpdate = (updated: ReviewDto) => {
-    setReviews((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+  const handleReviewUpdate = async (updated: ReviewDto) => {
+    await reconcileSavedReviews((current) =>
+      current.map((review) => (review.id === updated.id ? updated : review)),
+    );
   };
 
-  const handleReviewDelete = (reviewId: number) => {
-    setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+  const handleReviewDelete = async (reviewId: number) => {
+    await reconcileSavedReviews((current) =>
+      current.filter((review) => review.id !== reviewId),
+    );
   };
 
   return (
@@ -116,6 +164,7 @@ export function ReviewRow({ mediaType, mediaTypeLabel, userId }: ReviewRowProps)
         <IconButton
           size="small"
           onClick={handleAddReview}
+          aria-label={`Add ${mediaTypeLabel} review`}
           disabled={hasNewCard}
           color="primary"
           sx={{
@@ -135,6 +184,7 @@ export function ReviewRow({ mediaType, mediaTypeLabel, userId }: ReviewRowProps)
           <IconButton
             size="small"
             onClick={scrollLeft}
+            aria-label={`Scroll ${mediaTypeLabel} reviews left`}
             disabled={!canScrollLeft}
           >
             <ArrowBackIosNewIcon fontSize="small" />
@@ -199,6 +249,7 @@ export function ReviewRow({ mediaType, mediaTypeLabel, userId }: ReviewRowProps)
           <IconButton
             size="small"
             onClick={scrollRight}
+            aria-label={`Scroll ${mediaTypeLabel} reviews right`}
             disabled={!canScrollRight}
           >
             <ArrowForwardIosIcon fontSize="small" />

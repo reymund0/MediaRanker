@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, CircularProgress, Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { ALL_MEDIA_TYPES, MEDIA_TYPE_LABELS, MediaType } from "@/lib/contracts/shared";
 import { useUser } from "@/lib/auth/user-provider";
 import { ReviewRow } from "./_components/review-row";

@@ -13,6 +13,7 @@ const NAV_LINKS: NavLink[] = [
   { label: "Media", href: "/media" },
   { label: "Templates", href: "/templates" },
   { label: "Reviews", href: "/reviews" },
+  { label: "Credits", href: "/credits" },
 ];
 
 export function AppNavbar() {

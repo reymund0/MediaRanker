@@ -20,6 +20,7 @@ export type UsePagedQueryResult<T> = {
   totalCount: number;
   isLoading: boolean;
   error: ProblemDetailsError | null;
+  refetch: () => Promise<unknown>;
 };
 
 export function usePagedQuery<T>({
@@ -83,7 +84,9 @@ export function usePagedQuery<T>({
   });
 
   const [storedTotalCount, setStoredTotalCount] = useState(0);
-  const [lastCountedFilterKey, setLastCountedFilterKey] = useState<string | null>(null);
+  const [lastCountedFilterKey, setLastCountedFilterKey] = useState<
+    string | null
+  >(null);
 
   const params = new URLSearchParams();
 
@@ -113,7 +116,8 @@ export function usePagedQuery<T>({
     enabled !== false &&
     (!isSearching || debouncedSearchTerm.length >= minSearchChars);
 
-  const shouldIncludeCount = isFetchEnabled && filterKey !== lastCountedFilterKey;
+  const shouldIncludeCount =
+    isFetchEnabled && filterKey !== lastCountedFilterKey;
   if (shouldIncludeCount) {
     params.set("includeTotalCount", "true");
   }
@@ -121,7 +125,7 @@ export function usePagedQuery<T>({
   const queryString = params.toString();
   const fullRoute = queryString ? `${route}?${queryString}` : route;
 
-  const { data, isLoading, error } = useQuery<PageResult<T>>({
+  const { data, isLoading, error, refetch } = useQuery<PageResult<T>>({
     route: fullRoute,
     queryKey: [
       ...queryKey,
@@ -144,7 +148,6 @@ export function usePagedQuery<T>({
       setStoredTotalCount(data.totalCount);
       setLastCountedFilterKey(filterKey);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, filterKey]);
 
   // When fetch is disabled, return empty rows instead of potentially cached data.
@@ -153,5 +156,6 @@ export function usePagedQuery<T>({
     totalCount: isFetchEnabled ? storedTotalCount : 0,
     isLoading,
     error: error ?? null,
+    refetch,
   };
 }

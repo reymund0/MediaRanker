@@ -16,17 +16,14 @@ public class MediaCollectionDto
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public string? CoverImageUrl { get; set; }
+    public string CoverStatus { get; set; } = "unsupported";
 }
 
 public static class MediaCollectionDtoMapper
 {
-    public static MediaCollectionDto Map(MediaCollection collection, IFileService fileService)
+    public static MediaCollectionDto Map(MediaCollection collection, CoverPresentation? cover = null)
     {
-        string? coverImageUrl = null;
-        if (collection.Cover != null)
-        {
-            coverImageUrl = fileService.GetFileUrl(collection.Cover.FileKey, FileEntityType.MediaCover);
-        }
+        cover ??= CoverPresentation.Unsupported;
 
         return new MediaCollectionDto
         {
@@ -39,7 +36,8 @@ public static class MediaCollectionDtoMapper
             ReleaseDate = collection.ReleaseDate,
             CreatedAt = collection.CreatedAt,
             UpdatedAt = collection.UpdatedAt,
-            CoverImageUrl = coverImageUrl
+            CoverImageUrl = cover.Url,
+            CoverStatus = cover.Status
         };
     }
 }

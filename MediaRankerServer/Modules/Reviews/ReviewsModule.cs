@@ -4,7 +4,6 @@ using MediaRankerServer.Modules.Reviews.Services;
 using MediaRankerServer.Modules.Templates.Services;
 using MediaRankerServer.Modules.Media.Services;
 using MediaRankerServer.Modules.Media.Services.Interfaces;
-using MediaRankerServer.Modules.Files.Services;
 
 
 namespace MediaRankerServer.Modules.Reviews;
@@ -16,7 +15,6 @@ public static class ReviewsModule
         services.AddScoped<IReviewService, ReviewService>();
         services.AddScoped<ITemplateService, TemplateService>();
         services.AddScoped<IMediaService, MediaService>();
-        services.AddScoped<IFileService, S3FileService>();
         services.AddScoped<IValidator<ReviewInsertRequest>, ReviewInsertRequestValidator>();
         services.AddScoped<IValidator<ReviewUpdateRequest>, ReviewUpdateRequestValidator>();
         return services;

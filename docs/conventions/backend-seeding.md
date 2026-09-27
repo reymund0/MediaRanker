@@ -7,7 +7,7 @@ This document contains non-always-on details for how MediaRanker handles system 
 - Seed artifacts are module-owned and live under `MediaRankerServer/Modules/<Module>/Data/Seeds`.
 - Current seed artifacts:
   - `MediaRankerServer/Modules/Templates/Data/Seeds/SeedSystemTemplates.sql`
-  - `MediaRankerServer/Modules/Media/Data/Seeds/SeedSystemMediaTypes.sql`
+- Media types are canonical strings defined by `MediaRankerServer/Shared/Data/MediaTypes.cs`; they are no longer database seed rows. `SeedSystemMediaTypes.sql` is retained for historical migrations.
 
 ## Seed Identity Rules
 

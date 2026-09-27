@@ -101,6 +101,141 @@ namespace MediaRankerServer.Migrations
                     b.ToTable("file_uploads", (string)null);
                 });
 
+            modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.IgdbImport", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("CoverImageId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("cover_image_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("FetchedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fetched_at");
+
+                    b.Property<DateTimeOffset?>("FirstReleaseDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_release_date");
+
+                    b.Property<long?>("GameTypeId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("game_type_id");
+
+                    b.Property<string>("GameTypeName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("game_type_name");
+
+                    b.Property<long>("IgdbGameId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("igdb_game_id");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset?>("ProviderUpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("provider_updated_at");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<long?>("VersionParentId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("version_parent_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_igdb_imports");
+
+                    b.HasIndex("IgdbGameId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_igdb_imports_game_id");
+
+                    b.HasIndex("ProviderUpdatedAt")
+                        .HasDatabaseName("ix_igdb_imports_provider_updated_at");
+
+                    b.HasIndex("FirstReleaseDate", "GameTypeName")
+                        .HasDatabaseName("ix_igdb_imports_admission");
+
+                    b.ToTable("igdb_imports", (string)null);
+                });
+
+            modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.IgdbImportState", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<bool>("BootstrapCompleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("bootstrap_completed");
+
+                    b.Property<DateTimeOffset?>("BootstrapStartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("bootstrap_started_at");
+
+                    b.Property<Guid?>("ClaimToken")
+                        .HasColumnType("uuid")
+                        .HasColumnName("claim_token");
+
+                    b.Property<DateTimeOffset?>("ClaimedUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("claimed_until");
+
+                    b.Property<long>("LastCommittedId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_committed_id");
+
+                    b.Property<DateTimeOffset?>("LastCompletedUpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_completed_updated_at");
+
+                    b.Property<bool>("RunIsBootstrap")
+                        .HasColumnType("boolean")
+                        .HasColumnName("run_is_bootstrap");
+
+                    b.Property<long?>("RunMaximumId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("run_maximum_id");
+
+                    b.Property<DateTimeOffset?>("RunUpdatedAfter")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("run_updated_after");
+
+                    b.Property<DateTimeOffset?>("RunUpdatedBefore")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("run_updated_before");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_igdb_import_state");
+
+                    b.ToTable("igdb_import_state", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_igdb_import_state_singleton", "id = 1");
+                        });
+                });
+
             modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.ImdbImport", b =>
                 {
                     b.Property<long>("Id")
@@ -374,40 +509,71 @@ namespace MediaRankerServer.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempt_count");
+
+                    b.Property<DateTimeOffset?>("CheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("checked_at");
+
+                    b.Property<Guid?>("ClaimToken")
+                        .HasColumnType("uuid")
+                        .HasColumnName("claim_token");
+
+                    b.Property<DateTimeOffset?>("ClaimedUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("claimed_until");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("NOW()");
 
-                    b.Property<string>("FileContentType")
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("FailureCode")
+                        .HasColumnType("text")
+                        .HasColumnName("failure_code");
+
+                    b.Property<string>("ImagePath")
+                        .HasColumnType("text")
+                        .HasColumnName("image_path");
+
+                    b.Property<string>("LookupId")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("file_content_type");
+                        .HasColumnName("lookup_id");
 
-                    b.Property<string>("FileKey")
+                    b.Property<string>("LookupKind")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("file_key");
+                        .HasColumnName("lookup_kind");
 
-                    b.Property<string>("FileName")
+                    b.Property<DateTimeOffset?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<string>("Outcome")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("file_name");
+                        .HasColumnName("outcome");
 
-                    b.Property<long>("FileSizeBytes")
-                        .HasColumnType("bigint")
-                        .HasColumnName("file_size_bytes");
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("provider");
 
-                    b.Property<long>("FileUploadId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("file_upload_id");
+                    b.Property<string>("ProviderItemId")
+                        .HasColumnType("text")
+                        .HasColumnName("provider_item_id");
 
-                    b.Property<bool>("MarkedForCleanup")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("marked_for_cleanup");
+                    b.Property<DateTimeOffset?>("RequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("requested_at");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .ValueGeneratedOnAdd()
@@ -415,10 +581,25 @@ namespace MediaRankerServer.Migrations
                         .HasColumnName("updated_at")
                         .HasDefaultValueSql("NOW()");
 
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
+
                     b.HasKey("Id")
                         .HasName("pk_media_covers");
 
-                    b.ToTable("media_covers", (string)null);
+                    b.HasIndex("NextAttemptAt", "ClaimedUntil")
+                        .HasDatabaseName("ix_media_covers_next_attempt_at_claimed_until");
+
+                    b.HasIndex("Provider", "LookupKind", "LookupId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_media_covers_provider_lookup_kind_lookup_id");
+
+                    b.ToTable("media_covers", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_media_cover_ready", "outcome <> 'Ready' OR (image_path IS NOT NULL AND checked_at IS NOT NULL AND expires_at IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.MediaEntity", b =>
@@ -616,9 +797,9 @@ namespace MediaRankerServer.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("id");
 
-                    b.Property<string>("MediaCoverFileKey")
-                        .HasColumnType("text")
-                        .HasColumnName("media_cover_file_key");
+                    b.Property<long?>("MediaCoverId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("media_cover_id");
 
                     b.Property<long>("MediaId")
                         .HasColumnType("bigint")

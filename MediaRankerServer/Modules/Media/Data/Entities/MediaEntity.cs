@@ -7,7 +7,8 @@ namespace MediaRankerServer.Modules.Media.Data.Entities;
 
 public enum MediaExternalSource
 {
-    Imdb
+    Imdb,
+    Igdb
 }
 
 public class MediaEntity : ITimestampedEntity

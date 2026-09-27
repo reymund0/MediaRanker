@@ -14,6 +14,7 @@ Use optional docs under `docs/conventions/` for deeper details.
 - App type: personal media reviewing/ranking web app.
 - Current status: auth is implemented; initial template/field persistence and seed migrations exist.
 - Authorization model: any authenticated user (no roles/scopes yet).
+- An opt-in localhost-only development test identity is available; production and ordinary login use Cognito. Never weaken its environment, explicit-flag, or loopback guards. Setup is in `docs/conventions/dev-commands.md`.
 - Architecture: Modular Monolith (Option A - feature folders in single project).
 
 ## Repo Layout (updated)
@@ -62,6 +63,8 @@ Do not edit build artifacts:
 - For staged external data loads into domain tables, keep bulk SQL in a module-owned data provider, keep orchestration/order in the service, and make loads idempotent with `INSERT ... ON CONFLICT` where practical.
 
 ### File Upload Lifecycle (Files Module)
+
+- Media covers use automatic provider references, not this upload lifecycle. Movies/TV resolve through TMDB using IMDb identity; games import from IGDB. See `docs/conventions/backend-conventions.md` and `dev-commands.md` for demand, cache, and setup rules.
 
 - Uploads are module-driven and two-phase:
   1. Frontend requests an upload URL from a feature module endpoint.

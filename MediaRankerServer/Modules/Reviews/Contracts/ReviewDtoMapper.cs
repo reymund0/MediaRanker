@@ -1,4 +1,5 @@
 using MediaRankerServer.Modules.Reviews.Data.Entities;
+using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Reviews.Data.Views;
 using MediaRankerServer.Modules.Files.Data.Entities;
 using MediaRankerServer.Modules.Files.Services;
@@ -7,13 +8,9 @@ namespace MediaRankerServer.Modules.Reviews.Contracts;
 
 public static class ReviewDtoMapper
 {
-  public static ReviewDto Map(IFileService fileService, ReviewDetailView review, IEnumerable<ReviewFieldDetails> fields)
+  public static ReviewDto Map(CoverPresentation? cover, ReviewDetailView review, IEnumerable<ReviewFieldDetails> fields)
   {
-    var mediaCoverImageUrl = string.Empty;
-    if (review.MediaCoverFileKey != null)
-    {
-      mediaCoverImageUrl = fileService.GetFileUrl(review.MediaCoverFileKey, FileEntityType.MediaCover);
-    }
+    cover ??= CoverPresentation.Unsupported;
     
     return new ReviewDto
     {
@@ -31,7 +28,8 @@ public static class ReviewDtoMapper
       MediaId = review.MediaId,
       MediaTitle = review.MediaTitle,
       MediaType = review.MediaType,
-      MediaCoverImageUrl = mediaCoverImageUrl
+      MediaCoverImageUrl = cover.Url,
+      CoverStatus = cover.Status
     };
   }
 

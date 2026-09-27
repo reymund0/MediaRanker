@@ -8,7 +8,7 @@ namespace MediaRankerServer.Modules.Media.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class MediaController(IMediaService mediaService, IMediaCoverService mediaCoverService) : ControllerBase
+public class MediaController(IMediaService mediaService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetMedia([FromQuery] string? mediaType, [FromQuery] PageRequest request, CancellationToken cancellationToken)
@@ -35,21 +35,17 @@ public class MediaController(IMediaService mediaService, IMediaCoverService medi
         return Ok(media);
     }
 
+    // Tombstones keep removed upload URLs at 404 instead of ASP.NET's method-matching 405.
+    [ApiExplorerSettings(IgnoreApi = true)]
     [HttpPost("UploadCover")]
-    public async Task<IActionResult> GenerateUploadCoverUrl([FromBody] GenerateUploadCoverUrlRequest request, CancellationToken cancellationToken)
-    {
-        var userId = User.GetAuthenticatedUserId();
-        var url = await mediaCoverService.GenerateUploadCoverUrlAsync(userId, request, cancellationToken);
-        return Ok(url);
-    }
-
     [HttpPost("CompleteUploadCover/{uploadId:long}")]
-    public async Task<IActionResult> CompleteUploadCover(long uploadId, CancellationToken cancellationToken)
+    public IActionResult RetiredCoverUpload() => new ObjectResult(new ProblemDetails
     {
-        var userId = User.GetAuthenticatedUserId();
-        await mediaCoverService.CompleteUploadCoverAsync(userId, uploadId, cancellationToken);
-        return Ok(true);
-    }
+        Status = StatusCodes.Status404NotFound,
+        Type = "about:blank",
+        Title = "Not Found",
+        Detail = "This endpoint is no longer available."
+    }) { StatusCode = StatusCodes.Status404NotFound };
 
     [HttpDelete("{mediaId:long}")]
     public async Task<IActionResult> DeleteMedia(long mediaId, CancellationToken cancellationToken)

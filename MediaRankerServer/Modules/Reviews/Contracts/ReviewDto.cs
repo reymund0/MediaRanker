@@ -27,4 +27,5 @@ public class ReviewDto
   public string MediaTitle {get; set;} = null!;
   public string MediaType {get; set;} = null!;
   public string? MediaCoverImageUrl {get; set;}
+  public string CoverStatus { get; set; } = "unsupported";
 }

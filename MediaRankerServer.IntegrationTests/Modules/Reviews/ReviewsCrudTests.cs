@@ -2,12 +2,20 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using MediaRankerServer.IntegrationTests.Infrastructure;
 using MediaRankerServer.IntegrationTests.Utils;
+using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Data.Entities;
+using MediaRankerServer.Modules.Media.Services;
+using MediaRankerServer.Modules.Media.Services.Interfaces;
 using MediaRankerServer.Modules.Reviews.Contracts;
 using MediaRankerServer.Modules.Reviews.Data.Entities;
+using MediaRankerServer.Modules.Reviews.Services;
 using MediaRankerServer.Modules.Templates.Data.Entities;
+using MediaRankerServer.Modules.Templates.Services;
 using MediaRankerServer.Shared.Data;
+using MediaRankerServer.Shared.Exceptions;
 using MediaRankerServer.Shared.Paging;
+using FluentValidation;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -80,6 +88,9 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
         Reviews.Should().NotBeNull();
         Reviews.Should().NotBeEmpty();
         Reviews.Should().Contain(r => r.Id == _testReviews.Id);
+        var review = Reviews.Single(r => r.Id == _testReviews.Id);
+        review.MediaCoverImageUrl.Should().BeNull();
+        review.CoverStatus.Should().Be("unsupported");
     }
 
     [Fact]
@@ -93,6 +104,9 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
         result!.Items.Should().NotBeEmpty();
         result.Items.Should().Contain(m => m.Id == _testUnreviewedMedia.Id);
         result.TotalCount.Should().BeGreaterThanOrEqualTo(1);
+        var media = result.Items.Single(m => m.Id == _testUnreviewedMedia.Id);
+        media.CoverImageUrl.Should().BeNull();
+        media.CoverStatus.Should().Be("unsupported");
     }
 
     [Fact]
@@ -143,6 +157,56 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
         Reviews.Should().NotBeNull();
         Reviews!.Id.Should().NotBe(_testReviews.Id);
     }
+
+    [Fact]
+    public async Task CreateReview_WhenMediaTypeIsIncompatible_DoesNotRequestArtwork()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var services = scope.ServiceProvider;
+        var db = services.GetRequiredService<PostgreSQLContext>();
+        var incompatibleTemplate = new Template
+        {
+            Name = "TV review template",
+            MediaType = "TvShow",
+            UserId = TestAuthHandler.DefaultUserId,
+            Fields = [new TemplateField { Name = "Story", Position = 1 }]
+        };
+        var movie = new MediaEntity
+        {
+            Title = "Movie rejected by TV template",
+            MediaType = "Movie",
+            ExternalSource = MediaExternalSource.Imdb,
+            ExternalId = "tt0133093"
+        };
+        db.AddRange(incompatibleTemplate, movie);
+        await db.SaveChangesAsync();
+
+        var artwork = new TrackingArtworkService();
+        var mediaService = new MediaService(
+            db,
+            artwork,
+            services.GetRequiredService<IValidator<MediaUpsertRequest>>(),
+            services.GetRequiredService<IPublisher>());
+        var reviewService = new ReviewService(
+            db,
+            services.GetRequiredService<IValidator<ReviewInsertRequest>>(),
+            services.GetRequiredService<IValidator<ReviewUpdateRequest>>(),
+            mediaService,
+            services.GetRequiredService<ITemplateService>(),
+            artwork);
+
+        var act = () => reviewService.CreateReviewAsync(TestAuthHandler.DefaultUserId, new ReviewInsertRequest
+        {
+            MediaId = movie.Id,
+            TemplateId = incompatibleTemplate.Id,
+            Fields = [new ReviewFieldInsertRequest { TemplateFieldId = incompatibleTemplate.Fields.Single().Id, Value = 5 }]
+        });
+
+        await act.Should().ThrowAsync<DomainException>()
+            .Where(exception => exception.Type == "review_media_type_mismatch");
+        artwork.MediaRequests.Should().BeEmpty();
+        (await db.MediaCovers.CountAsync()).Should().Be(0);
+    }
     
     [Fact]
     public async Task UpdateReviews_UpdatesExistingRecord()
@@ -177,5 +241,19 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
         var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
         var exists = await db.Reviews.AnyAsync(r => r.Id == _testReviews.Id);
         exists.Should().BeFalse();
+    }
+
+    private sealed class TrackingArtworkService : IArtworkService
+    {
+        public List<long> MediaRequests { get; } = [];
+
+        public Task<IReadOnlyDictionary<long, CoverPresentation>> GetMediaArtworkAsync(IEnumerable<long> mediaIds, CancellationToken ct = default)
+        {
+            MediaRequests.AddRange(mediaIds);
+            return Task.FromResult<IReadOnlyDictionary<long, CoverPresentation>>(new Dictionary<long, CoverPresentation>());
+        }
+
+        public Task<IReadOnlyDictionary<long, CoverPresentation>> GetCollectionArtworkAsync(IEnumerable<long> collectionIds, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<long, CoverPresentation>>(new Dictionary<long, CoverPresentation>());
     }
 }

@@ -20,7 +20,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
     private const string TconstMovieWithYear   = "tt0000001";
     // (b) eligible movie with null year
     private const string TconstMovieNullYear   = "tt0000002";
-    // (c) eligible video game
+    // (c) video game, deliberately ignored by the IMDb loader
     private const string TconstVideoGame       = "tt0000003";
     // (d) ineligible tvSeries
     private const string TconstTvSeries        = "tt0000004";
@@ -57,12 +57,12 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
 
         await db.SaveChangesAsync();
 
-        // Seed matching ratings rows so the load phase INNER JOIN passes (num_votes >= default MinVotesMovies/Tv=1000, MinVotesVideoGames=50).
+        // Seed matching ratings rows so the load phase INNER JOIN passes for the supported movie/TV types.
         await SeedRatingsAsync(db,
         [
             new() { Tconst = TconstMovieWithYear, AverageRating = 7.5m, NumVotes = 5000 },
             new() { Tconst = TconstMovieNullYear, AverageRating = 6.0m, NumVotes = 5000 },
-            new() { Tconst = TconstVideoGame,     AverageRating = 8.0m, NumVotes = 200  },
+            new() { Tconst = TconstVideoGame,     AverageRating = 8.0m, NumVotes = 5000 },
             new() { Tconst = TconstTvSeries,      AverageRating = 7.0m, NumVotes = 5000 },
         ]);
     }
@@ -90,8 +90,9 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
         var mediaRows = await db.Media.ToListAsync();
 
-        mediaRows.Should().HaveCount(3);
+        mediaRows.Should().HaveCount(2);
         mediaRows.Should().NotContain(m => m.ExternalId == TconstTvSeries);
+        mediaRows.Should().NotContain(m => m.ExternalId == TconstVideoGame);
     }
 
     [Fact]
@@ -127,7 +128,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
     }
 
     [Fact]
-    public async Task LoadAsync_VideoGame_HasVideoGameMediaType()
+    public async Task LoadAsync_VideoGame_IsExcludedEvenWhenItMeetsMovieVoteThreshold()
     {
         await SeedImdbImportsAsync();
 
@@ -138,8 +139,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
         var row = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == TconstVideoGame);
 
-        row.Should().NotBeNull();
-        row!.MediaType.Should().Be("VideoGame");
+        row.Should().BeNull();
     }
 
     [Fact]
@@ -154,7 +154,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
         var rows = await db.Media.Where(m => m.ExternalSource == MediaExternalSource.Imdb).ToListAsync();
 
-        rows.Should().HaveCount(3);
+        rows.Should().HaveCount(2);
     }
 
     [Fact]
@@ -176,7 +176,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
 
         var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
         var allMedia = await db.Media.ToListAsync();
-        allMedia.Should().HaveCount(3, "no new rows should be inserted on second run");
+        allMedia.Should().HaveCount(2, "no new rows should be inserted on second run");
 
         var updatedRow = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == TconstMovieWithYear);
         updatedRow.Should().NotBeNull();
@@ -491,9 +491,9 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
     // Ratings filter tests
     // -------------------------------------------------------------------------
 
-    private ImdbLoadService LoadServiceWithMinVotes(IServiceScope scope, int movies, int tv, int videoGames) =>
+    private ImdbLoadService LoadServiceWithMinVotes(IServiceScope scope, int movies, int tv) =>
         new(scope.ServiceProvider.GetRequiredService<IImdbLoadProvider>(),
-            Options.Create(new ImdbImportOptions { MinVotesMovies = movies, MinVotesTv = tv, MinVotesVideoGames = videoGames }),
+            Options.Create(new ImdbImportOptions { MinVotesMovies = movies, MinVotesTv = tv }),
             scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger<ImdbLoadService>());
 
 
@@ -508,7 +508,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         await db.SaveChangesAsync();
         await SeedRatingsAsync(db, [new() { Tconst = tconst, AverageRating = 9.0m, NumVotes = 49 }]);
 
-        var loadService = LoadServiceWithMinVotes(scope, movies: 50, tv: 50, videoGames: 50);
+        var loadService = LoadServiceWithMinVotes(scope, movies: 50, tv: 50);
         await loadService.LoadAsync();
 
         var row = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == tconst);
@@ -526,7 +526,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         await db.SaveChangesAsync();
         await SeedRatingsAsync(db, [new() { Tconst = tconst, AverageRating = 7.0m, NumVotes = 50 }]);
 
-        var loadService = LoadServiceWithMinVotes(scope, movies: 50, tv: 50, videoGames: 50);
+        var loadService = LoadServiceWithMinVotes(scope, movies: 50, tv: 50);
         await loadService.LoadAsync();
 
         var row = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == tconst);
@@ -544,7 +544,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         await db.SaveChangesAsync();
         // No matching ratings row seeded.
 
-        var loadService = LoadServiceWithMinVotes(scope, movies: 50, tv: 50, videoGames: 50);
+        var loadService = LoadServiceWithMinVotes(scope, movies: 50, tv: 50);
         await loadService.LoadAsync();
 
         var row = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == tconst);
@@ -568,7 +568,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
             episodes: [new() { Tconst = episodeTconst, ParentTconst = seriesTconst, SeasonNumber = 1, EpisodeNumber = 1, RawLine = "e" }],
             ratings:  [new() { Tconst = seriesTconst, AverageRating = 7.0m, NumVotes = 49 }]);
 
-        var loadService = LoadServiceWithMinVotes(scope, movies: 50, tv: 50, videoGames: 50);
+        var loadService = LoadServiceWithMinVotes(scope, movies: 50, tv: 50);
         await loadService.LoadAsync();
 
         var seriesRow = await db.MediaCollections.FirstOrDefaultAsync(mc => mc.ExternalId == seriesTconst);
@@ -595,7 +595,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
             episodes: [new() { Tconst = episodeTconst, ParentTconst = seriesTconst, SeasonNumber = 1, EpisodeNumber = 1, RawLine = "e" }],
             ratings:  [new() { Tconst = seriesTconst, AverageRating = 7.0m, NumVotes = 50 }]);
 
-        var loadService = LoadServiceWithMinVotes(scope, movies: 50, tv: 50, videoGames: 50);
+        var loadService = LoadServiceWithMinVotes(scope, movies: 50, tv: 50);
         await loadService.LoadAsync();
 
         var seriesRow = await db.MediaCollections.FirstOrDefaultAsync(mc => mc.ExternalId == seriesTconst);

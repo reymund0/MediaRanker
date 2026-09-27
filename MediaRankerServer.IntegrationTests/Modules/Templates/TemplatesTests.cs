@@ -92,6 +92,31 @@ public class TemplatesTests(PostgresContainerFixture postgresFixture, LocalStack
         templates.Should().Contain(t => t.MediaType == VideoGameMediaType);
     }
 
+    [Theory]
+    [InlineData("Unknown")]
+    [InlineData("-1")]
+    [InlineData("Video Game")]
+    public async Task CreateTemplate_WithInvalidMediaType_RejectsWithoutPersisting(string mediaType)
+    {
+        var request = new TemplateUpsertRequest
+        {
+            MediaType = mediaType,
+            Name = "Invalid type template",
+            Fields = [new() { Name = "Story", Position = 1 }]
+        };
+
+        var response = await Client.PostAsJsonAsync("/api/templates", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var problem = await response.Content.ReadFromJsonAsync<Microsoft.AspNetCore.Mvc.ValidationProblemDetails>();
+        problem.Should().NotBeNull();
+        problem!.Status.Should().Be(400);
+        problem.Errors.Should().ContainKey("MediaType");
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+        (await db.Templates.AnyAsync(template => template.Name == request.Name)).Should().BeFalse();
+    }
+
     [Fact]
     public async Task CreateTemplate_WithValidRequest_PersistsTemplateAndFields()
     {

@@ -1,257 +1,281 @@
+using System.Globalization;
 using MediaRankerServer.Modules.Media.Data;
 using MediaRankerServer.Modules.Media.Jobs;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using System.Globalization;
 
 namespace MediaRankerServer.Modules.Media.Services;
 
-public record ImdbImportRunResult(ImdbImportResult Basics, ImdbImportResult? Episodes, ImdbImportResult Ratings, bool RatingsSucceeded);
+public record ImdbImportRunResult(
+    ImdbImportResult Basics,
+    ImdbImportResult? Episodes,
+    ImdbImportResult Ratings,
+    bool RatingsSucceeded,
+    bool Completed = false,
+    bool FeedBlocked = false,
+    string? StopReason = null,
+    ImdbImportCounters? Counters = null,
+    DateTimeOffset? RatingsCutoffUtc = null);
 
-public class ImdbImportService(
-    ImdbTsvProvider parser,
-    IImdbImportProvider importProvider,
-    IOptions<ImdbImportOptions> options,
-    ILogger<ImdbImportService> logger)
+/// <summary>Owns one complete replay while database providers are resolved per callback unit.</summary>
+public class ImdbImportService
 {
-    private readonly ImdbImportOptions config = options.Value;
-    private int basicsInserted = 0;
-    private int basicsSkipped = 0;
-    private int episodesInserted = 0;
-    private int episodesSkipped = 0;
-    private int ratingsInserted = 0;
-    private int ratingsSkipped = 0;
-    private bool ratingsFailed = false;
-
-    // Headers for IMDB datasets
     private static readonly string[] BasicsHeaders = [
-        "tconst", "titleType", "primaryTitle", "originalTitle",
-        "isAdult", "startYear", "endYear", "runtimeMinutes", "genres"
-    ];
+        "tconst", "titleType", "primaryTitle", "originalTitle", "isAdult", "startYear", "endYear", "runtimeMinutes", "genres"];
+    private static readonly string[] EpisodeHeaders = ["tconst", "parentTconst", "seasonNumber", "episodeNumber"];
+    private static readonly string[] RatingsHeaders = ["tconst", "averageRating", "numVotes"];
 
-    private static readonly string[] EpisodeHeaders = [
-        "tconst", "parentTconst", "seasonNumber", "episodeNumber"
-    ];
+    private readonly ImdbTsvProvider parser;
+    private readonly IServiceScopeFactory? scopeFactory;
+    private readonly IImdbImportProvider? providerOverride;
+    private readonly ImdbImportOptions config;
+    private readonly ILogger<ImdbImportService> logger;
 
-    private static readonly string[] RatingsHeaders = [
-        "tconst", "averageRating", "numVotes"
-    ];
-
-    public virtual async Task<ImdbImportRunResult> ImportAsync(CancellationToken ct = default)
+    [ActivatorUtilitiesConstructor]
+    public ImdbImportService(
+        ImdbTsvProvider parser,
+        IServiceScopeFactory scopeFactory,
+        IOptions<ImdbImportOptions> options,
+        ILogger<ImdbImportService> logger)
     {
-        logger.LogInformation("Starting IMDB import job run.");
-
-        var ratings = await ImportRatingsAsync(ct);
-        var basics = await ImportBasicsAsync(ct);
-        var episodes = await ImportEpisodesAsync(ct);
-        return new ImdbImportRunResult(basics, episodes, ratings, !ratingsFailed);
+        this.parser = parser;
+        this.scopeFactory = scopeFactory;
+        config = options.Value;
+        this.logger = logger;
     }
 
-    private async Task<ImdbImportResult> ImportBasicsAsync(CancellationToken ct)
+    // Compatibility constructor for isolated callers that supply a fake provider.
+    public ImdbImportService(
+        ImdbTsvProvider parser,
+        IImdbImportProvider importProvider,
+        IOptions<ImdbImportOptions> options,
+        ILogger<ImdbImportService> logger)
     {
-        await parser.RunBatchImportAsync<ImdbTsvRow>(
+        this.parser = parser;
+        providerOverride = importProvider;
+        config = options.Value;
+        this.logger = logger;
+    }
+
+    public Task<ImdbImportRunResult> ImportAsync(CancellationToken ct = default) =>
+        ImportAsync(new ImdbImportExecution(config), ct);
+
+    public async Task<ImdbImportRunResult> ImportAsync(ImdbImportExecution execution, CancellationToken ct = default)
+    {
+        config.ValidateFiniteProfile();
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        deadline.CancelAfter(TimeSpan.FromSeconds(config.MaxWholeSessionSeconds));
+        var runCt = deadline.Token;
+        logger.LogInformation("Starting IMDb import invocation.");
+
+        execution.SetStage("database-cutoff");
+        var cutoff = await WithProviderAsync(p => p.GetDatabaseUtcNowAsync(runCt), runCt);
+        execution.SetStage("ratings");
+        var ratings = await ImportRatingsAsync(execution, runCt);
+        execution.SetStage("basics");
+        var basics = await ImportBasicsAsync(execution, runCt);
+        execution.SetStage("episodes");
+        var episodes = await ImportEpisodesAsync(execution, runCt);
+
+        execution.SetStage("cleanup:stale-ratings");
+        await CleanupAsync(cutoff, execution, runCt);
+        execution.SetStage("import-complete");
+        logger.LogInformation("IMDb feeds completed. Rows read: {RowsRead}, rows affected: {RowsAffected}, HTTP attempts: {HttpAttempts}.",
+            execution.Counters.RowsRead, execution.Counters.RowsAffected, execution.HttpAttempts);
+
+        return new ImdbImportRunResult(
+            basics,
+            episodes,
+            ratings,
+            RatingsSucceeded: true,
+            Completed: true,
+            Counters: execution.Counters,
+            RatingsCutoffUtc: cutoff);
+    }
+
+    private async Task<ImdbImportResult> ImportRatingsAsync(ImdbImportExecution execution, CancellationToken ct)
+    {
+        var affected = 0;
+        var skipped = 0;
+        await parser.RunBatchImportAsync(
+            config.RatingsDatasetUrl,
+            RatingsHeaders,
+            ParseRatingsRow,
+            async (batch, callbackCt) =>
+            {
+                var result = await WithProviderAsync(p => p.ImportRatingsAsync(batch, callbackCt), callbackCt);
+                affected += result.Affected;
+                skipped += result.Skipped;
+                execution.Counters.AddBatch(result);
+            },
+            execution,
+            ct);
+
+        if (affected == 0)
+            throw new InvalidDataException("IMDb ratings feed produced no affected rows.");
+        return new ImdbImportResult(affected, skipped);
+    }
+
+    private async Task<ImdbImportResult> ImportBasicsAsync(ImdbImportExecution execution, CancellationToken ct)
+    {
+        var affected = 0;
+        var skipped = 0;
+        await parser.RunBatchImportAsync(
             config.DatasetUrl,
             BasicsHeaders,
             ParseBasicsRow,
-            ImportBasicsBatchAsync,
+            async (batch, callbackCt) =>
+            {
+                var result = await WithProviderAsync(p => p.ImportBasicsAsync(batch, callbackCt), callbackCt);
+                affected += result.Affected;
+                skipped += result.Skipped;
+                execution.Counters.AddBatch(result);
+            },
+            execution,
             ct);
-
-        logger.LogInformation("IMDB basics import completed. Inserted: {Inserted}, Skipped: {Skipped}",
-            basicsInserted, basicsSkipped);
-        
-        // Delete unwanted rows from imdb_imports.
-        try 
-        {
-            var deletedTvPilot = await importProvider.DeleteTvPilotImportsAsync(ct);
-            logger.LogInformation("Deleted {Count} TV pilot imports", deletedTvPilot);
-            
-            var deletedFuture = await importProvider.DeleteFutureImportsAsync(ct);
-            logger.LogInformation("Deleted {Count} future imports", deletedFuture);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error deleting unwanted rows from imdb_imports, continuing with import");
-        }
-
-        return new ImdbImportResult(basicsInserted, basicsSkipped);
+        return new ImdbImportResult(affected, skipped);
     }
 
-    private async Task ImportBasicsBatchAsync(List<ImdbTsvRow> batch, CancellationToken ct)
+    private async Task<ImdbImportResult> ImportEpisodesAsync(ImdbImportExecution execution, CancellationToken ct)
     {
-        try
-        {
-            var result = await importProvider.ImportBasicsAsync(batch, ct);
-            basicsInserted += result.Inserted;
-            basicsSkipped += result.Skipped;
-        }
-        catch (Exception ex)
-        {
-            // Don't let a single batch failure stop the entire import
-            logger.LogError(ex, "Error importing basics batch");
-        }
-    }
-
-    private static ImdbTsvRow? ParseBasicsRow(string[] columns, int lineNumber, string line)
-    {
-        // Skip adult content
-        if (columns[4] == "1")
-        {
-            return null;
-        }
-
-        return new ImdbTsvRow(
-            Tconst: columns[0],
-            TitleType: columns[1],
-            PrimaryTitle: SanitizeTitle(columns[2]),
-            OriginalTitle: SanitizeTitle(columns[3]),
-            IsAdult: columns[4] == "1",
-            StartYear: ParseNullableInt(columns[5]),
-            EndYear: ParseNullableInt(columns[6]),
-            RuntimeMinutes: ParseNullableInt(columns[7]),
-            Genres: columns[8] == @"\N" ? null : columns[8],
-            RawLine: line
-        );
-    }
-
-    private async Task<ImdbImportResult> ImportEpisodesAsync(CancellationToken ct)
-    {
-        await parser.RunBatchImportAsync<ImdbEpisodeTsvRow>(
+        var affected = 0;
+        var skipped = 0;
+        await parser.RunBatchImportAsync(
             config.EpisodesDatasetUrl,
             EpisodeHeaders,
             ParseEpisodeRow,
-            ImportEpisodesBatchAsync,
-            ct);
-
-        logger.LogInformation("IMDB episodes import completed. Inserted: {Inserted}, Skipped: {Skipped}",
-            episodesInserted, episodesSkipped);
-
-        // Because the imported episodes don't contain isAdult flag, we need to clean those up ourselves.
-        try
-        {
-            var deletedCount = await importProvider.DeleteOrphanEpisodesAsync(ct);
-            logger.LogInformation(
-                "Cleaned up {Count} orphan rows from imdb_import_episodes with no matching imdb_imports entry",
-                deletedCount >= 0 ? deletedCount.ToString() : "unknown");
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to delete orphan rows from imdb_import_episodes; continuing.");
-        }
-
-        return new ImdbImportResult(episodesInserted, episodesSkipped);
-    }
-
-    private async Task ImportEpisodesBatchAsync(List<ImdbEpisodeTsvRow> batch, CancellationToken ct)
-    {
-        try
-        {
-            var result = await importProvider.ImportEpisodesAsync(batch, ct);
-            episodesInserted += result.Inserted;
-            episodesSkipped += result.Skipped;
-        }
-        catch (Exception ex)
-        {
-            // Don't let a single batch failure stop the entire import
-            logger.LogError(ex, "Error importing episodes batch");
-        }
-    }
-
-    private static ImdbEpisodeTsvRow ParseEpisodeRow(string[] columns, int lineNumber, string line)
-    {
-        var seasonNumber = ParseNullableInt(columns[2]);
-        var episodeNumber = ParseNullableInt(columns[3]);
-
-        return new ImdbEpisodeTsvRow(
-            Tconst: columns[0],
-            ParentTconst: columns[1],
-            // NULL Season/Episode should never actually happen in the imdb dataset, but enter as -1 so we can find them later.
-            SeasonNumber: seasonNumber ?? -1,
-            EpisodeNumber: episodeNumber ?? -1,
-            RawLine: line
-        );
-    }
-
-    private async Task<ImdbImportResult> ImportRatingsAsync(CancellationToken ct)
-    {
-        var runStartUtc = DateTimeOffset.UtcNow;
-        try
-        {
-            await parser.RunBatchImportAsync<ImdbRatingTsvRow>(
-                config.RatingsDatasetUrl,
-                RatingsHeaders,
-                ParseRatingsRow,
-                ImportRatingsBatchAsync,
-                ct);
-
-            logger.LogInformation("IMDB ratings import completed. Inserted: {Inserted}, Skipped: {Skipped}",
-                ratingsInserted, ratingsSkipped);
-
-            if (ratingsInserted == 0)
+            async (batch, callbackCt) =>
             {
-                // Defensive guard: an empty/garbled feed would silently suppress all media during load.
-                logger.LogError("IMDB ratings import produced zero inserted rows; marking as failed.");
-                ratingsFailed = true;
-                return new ImdbImportResult(0, 0);
-            }
-
-            var evicted = await importProvider.DeleteStaleRatingsAsync(runStartUtc, ct);
-            logger.LogInformation("Deleted {Count} stale rows from imdb_import_ratings", evicted);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "IMDB ratings ingestion failed.");
-            ratingsFailed = true;
-        }
-
-        return new ImdbImportResult(ratingsInserted, ratingsSkipped);
+                var result = await WithProviderAsync(p => p.ImportEpisodesAsync(batch, callbackCt), callbackCt);
+                affected += result.Affected;
+                skipped += result.Skipped;
+                execution.Counters.AddBatch(result);
+            },
+            execution,
+            ct);
+        return new ImdbImportResult(affected, skipped);
     }
 
-    private async Task ImportRatingsBatchAsync(List<ImdbRatingTsvRow> batch, CancellationToken ct)
+    private async Task CleanupAsync(DateTimeOffset cutoff, ImdbImportExecution execution, CancellationToken ct)
     {
-        // Ratings batches rethrow on error (unlike basics/episodes which swallow per-batch failures).
-        // This is intentional: a batch failure here must propagate so the service-level catch sets ratingsFailed.
-        var result = await importProvider.ImportRatingsAsync(batch, ct);
-        ratingsInserted += result.Inserted;
-        ratingsSkipped += result.Skipped;
+        await DrainCleanupAsync("stale-ratings", p => p.DeleteStaleRatingsAsync(cutoff, config.MaxCleanupRowsPerUnit, ct), execution, ct);
+        await DrainCleanupAsync("future", p => p.DeleteFutureImportsAsync(config.MaxCleanupRowsPerUnit, ct), execution, ct);
+        await DrainCleanupAsync("tv-pilot", p => p.DeleteTvPilotImportsAsync(config.MaxCleanupRowsPerUnit, ct), execution, ct);
+        await DrainOrphanEpisodesAsync(execution, ct);
     }
 
-    private ImdbRatingTsvRow? ParseRatingsRow(string[] columns, int lineNumber, string line)
+    private async Task DrainOrphanEpisodesAsync(ImdbImportExecution execution, CancellationToken ct)
     {
-        var tconst = columns[0];
-
-        if (!decimal.TryParse(columns[1], NumberStyles.Number, CultureInfo.InvariantCulture, out var avg))
+        execution.SetStage("cleanup:orphan-episodes");
+        long? afterId = null;
+        while (true)
         {
-            logger.LogWarning("Skipping IMDB ratings row at line {LineNumber}: invalid averageRating value '{Value}'",
-                lineNumber, columns[1]);
-            return null;
-        }
+            var batch = await WithProviderAsync(
+                p => p.DeleteOrphanEpisodesBatchAsync(afterId, config.MaxCleanupRowsPerUnit, ct), ct);
+            execution.Counters.AddCleanup(batch.Affected);
+            if (!batch.HasMore) return;
+            if (batch.NextId is null || (afterId is not null && batch.NextId <= afterId))
+                throw new InvalidDataException("IMDb orphan episode cleanup returned non-advancing page progress.");
 
-        if (!int.TryParse(columns[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var votes))
-        {
-            logger.LogWarning("Skipping IMDB ratings row at line {LineNumber}: invalid numVotes value '{Value}'",
-                lineNumber, columns[2]);
-            return null;
+            afterId = batch.NextId;
+            logger.LogInformation("IMDb cleanup stage {Stage} affected {Count} rows; continuing after episode id {NextId}.",
+                "orphan-episodes", batch.Affected, afterId);
+            if (config.YieldBetweenUnitsMilliseconds > 0)
+                await Task.Delay(config.YieldBetweenUnitsMilliseconds, ct);
         }
-
-        return new ImdbRatingTsvRow(tconst, avg, votes, line);
     }
 
-    private static string SanitizeTitle(string title)
+    private async Task DrainCleanupAsync(
+        string stage,
+        Func<IImdbImportProvider, Task<int>> operation,
+        ImdbImportExecution execution,
+        CancellationToken ct)
     {
-        return title.Replace("{", "").Replace("}", "");
+        execution.SetStage($"cleanup:{stage}");
+        while (true)
+        {
+            var affected = await WithProviderAsync(operation, ct);
+            execution.Counters.AddCleanup(affected);
+            if (affected == 0) return;
+            logger.LogInformation("IMDb cleanup stage {Stage} affected {Count} rows.", stage, affected);
+            if (config.YieldBetweenUnitsMilliseconds > 0)
+                await Task.Delay(config.YieldBetweenUnitsMilliseconds, ct);
+        }
     }
 
-    private static int? ParseNullableInt(string value)
+    private async Task<T> WithProviderAsync<T>(Func<IImdbImportProvider, Task<T>> operation, CancellationToken ct)
     {
-        if (value == @"\N" || string.IsNullOrEmpty(value))
-        {
-            return null;
-        }
-
-        if (int.TryParse(value, out var result))
-        {
-            return result;
-        }
-
-        return null;
+        if (providerOverride is not null) return await operation(providerOverride);
+        using var scope = scopeFactory!.CreateScope();
+        return await operation(scope.ServiceProvider.GetRequiredService<IImdbImportProvider>());
     }
+
+    private static ImdbTsvRow? ParseBasicsRow(string[] columns, long lineNumber, string line)
+    {
+        RequireTconst(columns[0], "basics", lineNumber);
+        RequireText(columns[1], "basics", lineNumber);
+        RequireText(columns[2], "basics", lineNumber);
+        RequireText(columns[3], "basics", lineNumber);
+        var adult = columns[4] switch
+        {
+            "0" => false,
+            "1" => true,
+            _ => throw InvalidRow("basics", lineNumber)
+        };
+
+        var startYear = ParseNullableInt(columns[5], "basics", lineNumber);
+        var endYear = ParseNullableInt(columns[6], "basics", lineNumber);
+        var runtime = ParseNullableInt(columns[7], "basics", lineNumber);
+        if (adult || columns[1] == "videoGame") return null;
+
+        return new ImdbTsvRow(columns[0], columns[1], SanitizeTitle(columns[2]), SanitizeTitle(columns[3]), adult,
+            startYear, endYear, runtime, columns[8] == @"\N" ? null : columns[8], line);
+    }
+
+    private static ImdbEpisodeTsvRow ParseEpisodeRow(string[] columns, long lineNumber, string line)
+    {
+        RequireTconst(columns[0], "episodes", lineNumber);
+        RequireTconst(columns[1], "episodes", lineNumber);
+        return new ImdbEpisodeTsvRow(columns[0], columns[1], ParseEpisodeNumber(columns[2], lineNumber), ParseEpisodeNumber(columns[3], lineNumber), line);
+    }
+
+    private static ImdbRatingTsvRow ParseRatingsRow(string[] columns, long lineNumber, string line)
+    {
+        RequireTconst(columns[0], "ratings", lineNumber);
+        if (!decimal.TryParse(columns[1], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var rating) || rating is < 0 or > 10)
+            throw InvalidRow("ratings", lineNumber);
+        if (!int.TryParse(columns[2], NumberStyles.None, CultureInfo.InvariantCulture, out var votes) || votes < 0)
+            throw InvalidRow("ratings", lineNumber);
+        return new ImdbRatingTsvRow(columns[0], rating, votes, line);
+    }
+
+    private static int ParseEpisodeNumber(string value, long lineNumber) => value switch
+    {
+        @"\N" => -1,
+        _ when int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var result) => result,
+        _ => throw InvalidRow("episodes", lineNumber)
+    };
+
+    private static int? ParseNullableInt(string value, string feed, long lineNumber)
+    {
+        if (value == @"\N") return null;
+        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var result)) return result;
+        throw InvalidRow(feed, lineNumber);
+    }
+
+    private static void RequireTconst(string value, string feed, long lineNumber)
+    {
+        if (value.Length < 3 || !value.StartsWith("tt", StringComparison.Ordinal) || !value[2..].All(char.IsDigit))
+            throw InvalidRow(feed, lineNumber);
+    }
+
+    private static void RequireText(string value, string feed, long lineNumber)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value == @"\N") throw InvalidRow(feed, lineNumber);
+    }
+
+    private static InvalidDataException InvalidRow(string feed, long lineNumber) =>
+        new($"IMDb {feed} feed contained an invalid required value at line {lineNumber}.");
+
+    private static string SanitizeTitle(string title) => title.Replace("{", string.Empty, StringComparison.Ordinal).Replace("}", string.Empty, StringComparison.Ordinal);
 }
