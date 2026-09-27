@@ -43,4 +43,6 @@
 
 - [x] 7.1 Integrate upstream MR-51 canonical media types across import/artwork, API/frontend and test fixtures, preserving cover behavior and existing selection policies.
 - [x] 7.2 Correct the two incompatible migrations under the user's explicit history exception; verify type preservation, rejected unknown mappings, fresh and previously imported histories, and rollback using disposable databases only.
-- [ ] 7.3 Reconcile final reviews and their actual coverage, verify the combined branch, commit, sync/archive this change and publish the requested PR. Scheduled imports and the loaded local database remain untouched.
+- [x] 7.3 Reconcile final reviews and their actual coverage, verify the combined branch and commit the integration. Scheduled imports and the loaded local database remain untouched.
+
+Authorized release follow-through after implementation: sync/archive this change and publish the requested PR. These lifecycle actions are recorded in the final checkpoint and verification handoff rather than treated as prerequisites for archiving their own task list.
