@@ -4,6 +4,8 @@ using MediaRankerServer.Modules.Media.Jobs;
 using MediaRankerServer.Shared.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Npgsql;
+using NpgsqlTypes;
 
 namespace MediaRankerServer.Modules.Media.Data;
 
@@ -80,6 +82,57 @@ public class ImdbImportSqlProvider(
 
     public Task<int> DeleteOrphanEpisodesAsync(int maxRows, CancellationToken ct) =>
         ExecuteBoundedDeleteAsync("imdb_import_episodes", "NOT EXISTS (SELECT 1 FROM imdb_imports i WHERE i.tconst = imdb_import_episodes.tconst)", maxRows, "orphan-episodes", ct);
+
+    public async Task<ImdbCleanupBatchResult> DeleteOrphanEpisodesBatchAsync(long? afterId, int maxRows, CancellationToken ct)
+    {
+        ValidateLimit(maxRows);
+        const string sql = """
+            WITH candidates AS MATERIALIZED (
+                SELECT e.id, e.tconst
+                FROM imdb_import_episodes e
+                WHERE (@after_id IS NULL OR e.id > @after_id)
+                ORDER BY e.id
+                LIMIT @max_rows
+            ), orphan_candidates AS (
+                SELECT c.id
+                FROM candidates c
+                WHERE NOT EXISTS (SELECT 1 FROM imdb_imports i WHERE i.tconst = c.tconst)
+            ), deleted AS (
+                DELETE FROM imdb_import_episodes e
+                USING orphan_candidates o
+                WHERE e.id = o.id
+                RETURNING e.id
+            )
+            SELECT (SELECT count(*)::integer FROM deleted) AS affected,
+                   (SELECT max(id)::bigint FROM candidates) AS next_id,
+                   ((SELECT count(*)::integer FROM candidates) = @max_rows) AS has_more;
+            """;
+
+        try
+        {
+            dbContext.Database.SetCommandTimeout(statementTimeout);
+            var pages = await dbContext.Database.SqlQueryRaw<ImdbCleanupBatchPage>(
+                sql,
+                new NpgsqlParameter("after_id", NpgsqlDbType.Bigint) { Value = afterId is null ? DBNull.Value : afterId.Value },
+                new NpgsqlParameter("max_rows", NpgsqlDbType.Integer) { Value = maxRows })
+                .ToListAsync(ct);
+            var page = pages.Single();
+            var result = new ImdbCleanupBatchResult(page.Affected, page.NextId, page.HasMore);
+            logger.LogInformation("IMDb cleanup stage {Stage} examined through {NextId}, affected {Count} rows.",
+                "orphan-episodes", result.NextId, result.Affected);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError("IMDb SQL stage {Stage} failed for candidate cap {CandidateCap}. ErrorCategory: {ErrorCategory}.",
+                "orphan-episodes", maxRows, ex.GetType().Name);
+            throw;
+        }
+        finally
+        {
+            dbContext.Database.SetCommandTimeout(null);
+        }
+    }
 
     public async Task<int> DeleteStaleRatingsAsync(DateTimeOffset cutoffUtc, int maxRows, CancellationToken ct)
     {
@@ -198,8 +251,18 @@ public class ImdbImportSqlProvider(
         if (maxRows <= 0) throw new ArgumentOutOfRangeException(nameof(maxRows));
     }
 
+    private sealed class ImdbCleanupBatchPage
+    {
+        public int Affected { get; set; }
+        public long? NextId { get; set; }
+        public bool HasMore { get; set; }
+    }
+
     private static string NullableInt(int? value) => value?.ToString(CultureInfo.InvariantCulture) ?? "NULL";
     private static string NullableString(string? value) => value is null ? "NULL" : $"'{EscapeSql(value)}'";
-    private static string EscapeSql(string value) => value.Replace("'", "''", StringComparison.Ordinal);
+    // ExecuteSqlRaw also parses composite-format braces, including those inside SQL literals.
+    // Escape both layers so retained source text reaches PostgreSQL unchanged.
+    private static string EscapeSql(string value) => value.Replace("'", "''", StringComparison.Ordinal)
+        .Replace("{", "{{", StringComparison.Ordinal).Replace("}", "}}", StringComparison.Ordinal);
     private static string BoolToSql(bool value) => value ? "TRUE" : "FALSE";
 }

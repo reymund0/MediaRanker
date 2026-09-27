@@ -164,6 +164,10 @@ Rollback disables the new bootstrap mode and restores the prior application revi
 
 - Final throughput targets, IMDb byte/disk/deadline allowance, endpoint latency ceilings and larger IGDB budgets will be set from representative local measurements before live activation. No throughput estimate is yet supported.
 
+## Approved upstream integration at closeout
+
+Integrate MR-51's canonical `VideoGame`, `Book`, `Movie`, `TvShow`, `Album`, and `Concert` values across existing import, artwork, API and frontend paths. Preserve the original negative-ID mapping explicitly; enum ordinals are not legacy IDs. Convert values in media, collections and templates before dropping source columns, reject unknown mappings, and reverse-map valid values on rollback. The user expressly permits amendments to the two conflicting migrations. Their review-view SQL must support fresh chronological migration order and the existing history where automatic cover art preceded the pending enum migration. Reconcile the final model snapshot and automatic-cover-art target model while preserving the enum migration's historical target model. Verify fresh migration, imported-history upgrade, rollback and representative catalog/artwork behavior in isolated databases. Do not migrate or restart the loaded local app during closeout.
+
 ## Provider references
 
 Checked 2026-09-21: [IGDB documentation](https://api-docs.igdb.com/) documents up to 4 requests/second, 8 open requests, and 500 items/request; these are provider ceilings, not recommended bootstrap settings. [IMDb noncommercial dataset documentation](https://www.imdb.com/interfaces/?mode=desktop) describes daily refreshed gzip TSV datasets. Only documentation was fetched; no catalog API or dataset download was performed.

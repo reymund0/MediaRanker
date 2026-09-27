@@ -21,6 +21,10 @@ The accepted cover-art implementation can resume IGDB ingestion, but its daily d
 
 None in the main specification tree, which is empty. This capability builds on the accepted, unarchived `automatic-cover-art` change without editing or reopening its specifications or 33 completed tasks.
 
+## Authorized closeout amendment — 2026-09-26
+
+The user subsequently authorized review fixes, commits, specification sync/archive and a PR, while deferring scheduled-import activation. They also approved integrating upstream MR-51 (`d2d2e8b`), which replaces the media-types table with canonical string types. This expands integration to affected API/frontend contracts, import/artwork queries, fixtures and migration compatibility. The explicit migration-history exception permits correcting `RemoveMediaTypesTable` and `AutomaticCoverArt` so fresh and already-imported histories preserve existing type values and build the correct review view. Unknown mappings must stop migration rather than silently lose data. Verify these paths on disposable databases; the loaded local database is outside this closeout's write scope. The original no-commit/no-PR/no-schema limits below are superseded only for this approved amendment.
+
 ## Impact
 
 - Backend: existing Media import jobs/options/services, IMDb parser/SQL providers, IGDB client/limiter and staging loader; artwork demand registration only if representative measurements require a bounded batching fix.

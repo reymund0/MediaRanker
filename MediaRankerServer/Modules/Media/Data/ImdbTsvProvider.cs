@@ -194,6 +194,11 @@ public class ImdbTsvProvider(
 
         async Task FlushBatchAsync()
         {
+            // A positive yield applies between successful database units. Delay only
+            // when another full batch is ready, so the final callback adds no tail wait.
+            if (batches > 0 && config.YieldBetweenUnitsMilliseconds > 0)
+                await Task.Delay(config.YieldBetweenUnitsMilliseconds, ct);
+            ct.ThrowIfCancellationRequested();
             await batchHandler(batch, ct);
             batches++;
             execution.Counters.AddBatchUnit();

@@ -57,23 +57,31 @@ public class ImdbImportService
         this.logger = logger;
     }
 
-    public async Task<ImdbImportRunResult> ImportAsync(CancellationToken ct = default)
+    public Task<ImdbImportRunResult> ImportAsync(CancellationToken ct = default) =>
+        ImportAsync(new ImdbImportExecution(config), ct);
+
+    public async Task<ImdbImportRunResult> ImportAsync(ImdbImportExecution execution, CancellationToken ct = default)
     {
         config.ValidateFiniteProfile();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
         deadline.CancelAfter(TimeSpan.FromSeconds(config.MaxWholeSessionSeconds));
         var runCt = deadline.Token;
-        var execution = new ImdbImportExecution(config);
         logger.LogInformation("Starting IMDb import invocation.");
 
+        execution.SetStage("database-cutoff");
         var cutoff = await WithProviderAsync(p => p.GetDatabaseUtcNowAsync(runCt), runCt);
+        execution.SetStage("ratings");
         var ratings = await ImportRatingsAsync(execution, runCt);
+        execution.SetStage("basics");
         var basics = await ImportBasicsAsync(execution, runCt);
+        execution.SetStage("episodes");
         var episodes = await ImportEpisodesAsync(execution, runCt);
 
+        execution.SetStage("cleanup:stale-ratings");
         await CleanupAsync(cutoff, execution, runCt);
-        logger.LogInformation("IMDb feeds completed. Rows read: {RowsRead}, HTTP attempts: {HttpAttempts}.",
-            execution.Counters.RowsRead, execution.HttpAttempts);
+        execution.SetStage("import-complete");
+        logger.LogInformation("IMDb feeds completed. Rows read: {RowsRead}, rows affected: {RowsAffected}, HTTP attempts: {HttpAttempts}.",
+            execution.Counters.RowsRead, execution.Counters.RowsAffected, execution.HttpAttempts);
 
         return new ImdbImportRunResult(
             basics,
@@ -87,7 +95,7 @@ public class ImdbImportService
 
     private async Task<ImdbImportResult> ImportRatingsAsync(ImdbImportExecution execution, CancellationToken ct)
     {
-        var inserted = 0;
+        var affected = 0;
         var skipped = 0;
         await parser.RunBatchImportAsync(
             config.RatingsDatasetUrl,
@@ -96,21 +104,21 @@ public class ImdbImportService
             async (batch, callbackCt) =>
             {
                 var result = await WithProviderAsync(p => p.ImportRatingsAsync(batch, callbackCt), callbackCt);
-                inserted += result.Inserted;
+                affected += result.Affected;
                 skipped += result.Skipped;
                 execution.Counters.AddBatch(result);
             },
             execution,
             ct);
 
-        if (inserted == 0)
+        if (affected == 0)
             throw new InvalidDataException("IMDb ratings feed produced no affected rows.");
-        return new ImdbImportResult(inserted, skipped);
+        return new ImdbImportResult(affected, skipped);
     }
 
     private async Task<ImdbImportResult> ImportBasicsAsync(ImdbImportExecution execution, CancellationToken ct)
     {
-        var inserted = 0;
+        var affected = 0;
         var skipped = 0;
         await parser.RunBatchImportAsync(
             config.DatasetUrl,
@@ -119,18 +127,18 @@ public class ImdbImportService
             async (batch, callbackCt) =>
             {
                 var result = await WithProviderAsync(p => p.ImportBasicsAsync(batch, callbackCt), callbackCt);
-                inserted += result.Inserted;
+                affected += result.Affected;
                 skipped += result.Skipped;
                 execution.Counters.AddBatch(result);
             },
             execution,
             ct);
-        return new ImdbImportResult(inserted, skipped);
+        return new ImdbImportResult(affected, skipped);
     }
 
     private async Task<ImdbImportResult> ImportEpisodesAsync(ImdbImportExecution execution, CancellationToken ct)
     {
-        var inserted = 0;
+        var affected = 0;
         var skipped = 0;
         await parser.RunBatchImportAsync(
             config.EpisodesDatasetUrl,
@@ -139,13 +147,13 @@ public class ImdbImportService
             async (batch, callbackCt) =>
             {
                 var result = await WithProviderAsync(p => p.ImportEpisodesAsync(batch, callbackCt), callbackCt);
-                inserted += result.Inserted;
+                affected += result.Affected;
                 skipped += result.Skipped;
                 execution.Counters.AddBatch(result);
             },
             execution,
             ct);
-        return new ImdbImportResult(inserted, skipped);
+        return new ImdbImportResult(affected, skipped);
     }
 
     private async Task CleanupAsync(DateTimeOffset cutoff, ImdbImportExecution execution, CancellationToken ct)
@@ -153,7 +161,28 @@ public class ImdbImportService
         await DrainCleanupAsync("stale-ratings", p => p.DeleteStaleRatingsAsync(cutoff, config.MaxCleanupRowsPerUnit, ct), execution, ct);
         await DrainCleanupAsync("future", p => p.DeleteFutureImportsAsync(config.MaxCleanupRowsPerUnit, ct), execution, ct);
         await DrainCleanupAsync("tv-pilot", p => p.DeleteTvPilotImportsAsync(config.MaxCleanupRowsPerUnit, ct), execution, ct);
-        await DrainCleanupAsync("orphan-episodes", p => p.DeleteOrphanEpisodesAsync(config.MaxCleanupRowsPerUnit, ct), execution, ct);
+        await DrainOrphanEpisodesAsync(execution, ct);
+    }
+
+    private async Task DrainOrphanEpisodesAsync(ImdbImportExecution execution, CancellationToken ct)
+    {
+        execution.SetStage("cleanup:orphan-episodes");
+        long? afterId = null;
+        while (true)
+        {
+            var batch = await WithProviderAsync(
+                p => p.DeleteOrphanEpisodesBatchAsync(afterId, config.MaxCleanupRowsPerUnit, ct), ct);
+            execution.Counters.AddCleanup(batch.Affected);
+            if (!batch.HasMore) return;
+            if (batch.NextId is null || (afterId is not null && batch.NextId <= afterId))
+                throw new InvalidDataException("IMDb orphan episode cleanup returned non-advancing page progress.");
+
+            afterId = batch.NextId;
+            logger.LogInformation("IMDb cleanup stage {Stage} affected {Count} rows; continuing after episode id {NextId}.",
+                "orphan-episodes", batch.Affected, afterId);
+            if (config.YieldBetweenUnitsMilliseconds > 0)
+                await Task.Delay(config.YieldBetweenUnitsMilliseconds, ct);
+        }
     }
 
     private async Task DrainCleanupAsync(
@@ -162,6 +191,7 @@ public class ImdbImportService
         ImdbImportExecution execution,
         CancellationToken ct)
     {
+        execution.SetStage($"cleanup:{stage}");
         while (true)
         {
             var affected = await WithProviderAsync(operation, ct);

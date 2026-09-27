@@ -37,6 +37,21 @@ public class ImdbLoadServiceTests
     }
 
     [Fact]
+    public async Task SharedExecutionRetainsCommittedLoadRowsWhenALaterUnitFails()
+    {
+        var provider = new FakeLoadProvider { FailSecondNonSeriesBatch = true };
+        var config = new ImdbImportOptions { MaxLoadRowsPerUnit = 2 };
+        var execution = new ImdbImportExecution(config);
+        var service = new ImdbLoadService(provider, Options.Create(config), NullLogger<ImdbLoadService>.Instance);
+
+        var run = () => service.LoadAsync(execution);
+
+        await run.Should().ThrowAsync<InvalidOperationException>();
+        execution.CurrentStage.Should().Be("load:non-series");
+        execution.Counters.LoadRowsAffected.Should().Be(1);
+    }
+
+    [Fact]
     public async Task FullReplayUsesTheSameBoundedSequence()
     {
         var firstProvider = new FakeLoadProvider();
@@ -71,6 +86,7 @@ public class ImdbLoadServiceTests
     {
         public bool CancelAfterFirstBatch { get; init; }
         public bool EpisodeConflictThenNew { get; init; }
+        public bool FailSecondNonSeriesBatch { get; init; }
         public int EpisodeCalls { get; private set; }
         public List<string?> EpisodeCursors { get; } = [];
         public List<string> Stages { get; } = [];
@@ -100,7 +116,10 @@ public class ImdbLoadServiceTests
                     ? new ImdbLoadBatchResult(1, "tt-existing", true)
                     : new ImdbLoadBatchResult(1, null, false));
             }
-            var hasMore = NextCall(stage) == 1;
+            var call = NextCall(stage);
+            if (stage == "non-series" && FailSecondNonSeriesBatch && call == 2)
+                throw new InvalidOperationException("fixture load failure");
+            var hasMore = call == 1;
             if (CancelAfterFirstBatch) throw new OperationCanceledException(ct);
             return Task.FromResult(new ImdbLoadBatchResult(affected, hasMore ? "next" : null, hasMore));
         }

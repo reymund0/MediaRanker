@@ -23,7 +23,7 @@ using Npgsql;
 namespace MediaRankerServer.IntegrationTests.Modules.Media;
 
 /// <summary>
-/// Opt-in mixed-load evidence for the bounded importer and the read paths that
+/// Opt-in matched mixed-load evidence for the importer and the read paths that
 /// share its fixture database. The importer uses the real SQL provider and
 /// client, while every upstream request is routed to the local fake handler.
 /// </summary>
@@ -58,7 +58,15 @@ public sealed class BulkCatalogMixedWorkloadTests(
             "Endpoint command counts are not attributed through WebApplicationFactory; importer and direct artwork contexts carry command instrumentation, while endpoint latency and membership are recorded.",
             "Temporary-disk high-water is unavailable because this workload does not create an owned download directory.",
             "Five idle and five overlap samples are comparable local evidence, not a production tail or speedup claim.",
+#if BOOTSTRAP_CHECKPOINT_BASELINE
+            "The checkpoint baseline exposes only legacy import result fields; HTTP sends are counted at the fake handler and cursor fields are null because completion resets the cursor.",
+            "The checkpoint baseline plan probe intercepts its first emitted eligibility SELECT before admission writes, then executes that exact SELECT with EXPLAIN on the 50,000-row fixture.",
+            "For baseline samples, ImportAdmissionRows is normalized from the legacy EligibleGamesLoaded result; durable cursor fields are null because completion resets the cursor and the result does not expose it.",
+#else
             "The generated eligibility EXPLAIN is opt-in and uses one 50,000-row disposable fixture; no plan is captured unless MEDIARANKER_BULK_MIXED_EXPLAIN=1.",
+#endif
+            "Transaction counts and maximum transaction duration are not instrumented by these contexts; zero values must not be read as proof that no transactions ran.",
+            "Artwork provider lookup is disabled in this fixture, so overlap covers artwork SQL reads rather than concurrent artwork provider sends.",
             "Lease headroom is the minimum observed after provider operations; it does not sample the minimum inside an in-flight statement."
         };
 
@@ -123,7 +131,7 @@ public sealed class BulkCatalogMixedWorkloadTests(
         timer.Stop();
         var after = CaptureResources();
 
-        await AssertImporterProgressAsync(result, expectedStagedRows: StagingRows, ct);
+        await AssertImporterProgressAsync(result, fake, expectedStagedRows: StagingRows, ct);
         artwork.Covers.Keys.Should().HaveCount(ArtworkTargets);
         review.Failures.Should().Be(0);
         review.MediaIds.Should().BeEquivalentTo(expectedReviewMediaIds);
@@ -183,7 +191,7 @@ public sealed class BulkCatalogMixedWorkloadTests(
         var artwork = artworkTask.Result;
         var review = reviewTask.Result;
 
-        await AssertImporterProgressAsync(result, expectedStagedRows: StagingRows, ct);
+        await AssertImporterProgressAsync(result, fake, expectedStagedRows: StagingRows, ct);
         artwork.Covers.Keys.Should().HaveCount(ArtworkTargets);
         artwork.Covers.Keys.Should().OnlyContain(id => id > 0);
         review.Failures.Should().Be(0);
@@ -204,6 +212,17 @@ public sealed class BulkCatalogMixedWorkloadTests(
 
     private async Task<ImporterRun> RunImporterAsync(PostgreSQLContext db, IgdbClient client, CancellationToken ct)
     {
+#if BOOTSTRAP_CHECKPOINT_BASELINE
+        var options = new IgdbOptions
+        {
+            ImportEnabled = true,
+            ClientId = "fixture-client",
+            ClientSecret = "fixture-secret",
+            PageSize = 100,
+            PageBudget = 2,
+            LeaseSeconds = 120
+        };
+#else
         var options = new IgdbOptions
         {
             ImportEnabled = true,
@@ -220,6 +239,7 @@ public sealed class BulkCatalogMixedWorkloadTests(
             ScheduledSessionAdmissionRowLimit = 500,
             ScheduledSessionMinutes = 1
         };
+#endif
         var provider = new HeadroomProvider(
             new IgdbImportSqlProvider(db, NullLogger<IgdbImportSqlProvider>.Instance));
         var service = new IgdbImportService(
@@ -228,11 +248,25 @@ public sealed class BulkCatalogMixedWorkloadTests(
             Options.Create(options),
             Options.Create(new ArtworkOptions { PositiveCacheDays = 30, NegativeCacheDays = 7 }),
             NullLogger<IgdbImportService>.Instance);
+#if BOOTSTRAP_CHECKPOINT_BASELINE
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var linkedDeadline = CancellationTokenSource.CreateLinkedTokenSource(ct, deadline.Token);
+        var timer = Stopwatch.StartNew();
+        var legacyResult = await service.ImportAsync(linkedDeadline.Token);
+        timer.Stop();
+        return new(legacyResult.PagesCommitted, legacyResult.RowsCommitted, legacyResult.EligibleGamesLoaded,
+            legacyResult.RunCompleted, legacyResult.LeaseAcquired, timer.Elapsed, legacyResult.EligibleGamesLoaded,
+            null, null, provider.MinimumLeaseHeadroomMilliseconds,
+            provider.MaximumRenewalIntervalMilliseconds, provider.LeaseDurationMilliseconds);
+#else
         using var session = new ImportBudgetSession(new ImportSessionLimits(20, 500, TimeSpan.FromSeconds(15)));
         using var unit = session.CreateUnit(new ImportWorkUnitLimits(2, 20, 500, 2, TimeSpan.FromSeconds(15)));
         var result = await service.ImportAsync(unit, bootstrap: true, ct);
-        return new(result, provider.MinimumLeaseHeadroomMilliseconds,
-            provider.MaximumRenewalIntervalMilliseconds, provider.LeaseDurationMilliseconds);
+        return new(result.PagesCommitted, result.RowsCommitted, result.EligibleGamesLoaded, result.RunCompleted,
+            result.LeaseAcquired, result.Elapsed, result.AdmissionRows, result.DurableCursor, result.RunMaximumId,
+            provider.MinimumLeaseHeadroomMilliseconds, provider.MaximumRenewalIntervalMilliseconds,
+            provider.LeaseDurationMilliseconds);
+#endif
     }
 
     private async Task<ArtworkMeasurement> RunArtworkAsync(
@@ -381,7 +415,13 @@ public sealed class BulkCatalogMixedWorkloadTests(
         await using var seedDb = CreateDb(new BulkCatalogDbInstrumentation());
         await dbClearForExplainAsync(seedDb, ct);
         await SeedStagingOnlyAsync(seedDb.Database.GetConnectionString()!, explainRows, ct);
-        var capture = new ActualEligibilitySqlCapture();
+        var capture = new ActualEligibilitySqlCapture(
+#if BOOTSTRAP_CHECKPOINT_BASELINE
+            stopAfterCapture: true
+#else
+            stopAfterCapture: false
+#endif
+        );
         var instrumentation = new BulkCatalogDbInstrumentation();
         await using var db = CreateDb(instrumentation, capture);
         var provider = new IgdbImportSqlProvider(db, NullLogger<IgdbImportSqlProvider>.Instance);
@@ -389,11 +429,27 @@ public sealed class BulkCatalogMixedWorkloadTests(
         if (lease is null)
             return [new("actual-eligibility", false, string.Empty, null, "fixture lease was busy")];
 
+#if BOOTSTRAP_CHECKPOINT_BASELINE
+        try
+        {
+            await provider.LoadEligibleGamesAsync(lease, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Main game" },
+                DateTimeOffset.UtcNow, TimeSpan.FromDays(30), TimeSpan.FromDays(7), ct);
+        }
+        catch (EligibilityCommandCapturedException)
+        {
+            // Preserve the initial fixture while capturing SQL emitted by the real baseline provider.
+        }
+        finally
+        {
+            await provider.ReleaseLeaseAsync(lease, ct);
+        }
+#else
         using var session = new ImportBudgetSession(new ImportSessionLimits(10, 500, TimeSpan.FromSeconds(15)));
         using var unit = session.CreateUnit(new ImportWorkUnitLimits(1, 10, 500, 1, TimeSpan.FromSeconds(15)));
         await provider.LoadEligibleGamesAsync(lease, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Main game" },
             DateTimeOffset.UtcNow, TimeSpan.FromDays(30), TimeSpan.FromDays(7), unit, ct);
         await provider.ReleaseLeaseAsync(lease, ct);
+#endif
 
         var queries = capture.Commands.Where(command => command.CommandText.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
             .DistinctBy(command => command.CommandText).ToArray();
@@ -498,14 +554,17 @@ public sealed class BulkCatalogMixedWorkloadTests(
         return new IgdbClient(api, new BulkCatalogHttpClientFactory(twitch), new IgdbRequestLimiter(options), Options.Create(options));
     }
 
-    private async Task AssertImporterProgressAsync(ImporterRun importer, int expectedStagedRows, CancellationToken ct)
+    private async Task AssertImporterProgressAsync(ImporterRun importer, BulkCatalogFakeProviderHandler fake,
+        int expectedStagedRows, CancellationToken ct)
     {
-        var result = importer.Run;
-        result.RunCompleted.Should().BeTrue();
-        result.PagesCommitted.Should().Be(1);
-        result.RowsCommitted.Should().Be(1);
-        result.AdmissionRows.Should().Be(50, "the fetched provider version is older than staging and must not renew imported rows");
-        result.HttpAttempts.Should().BeGreaterThanOrEqualTo(3);
+        importer.RunCompleted.Should().BeTrue();
+        importer.PagesCommitted.Should().Be(1);
+        importer.RowsCommitted.Should().Be(1);
+        importer.EligibleGamesLoaded.Should().Be(50,
+            "the fixture has 50 eligible staged rows and the stale fetched version must preserve their existing values");
+        importer.AdmissionRows.Should().Be(50,
+            "the fetched provider version is older than staging and both API versions report the 50 eligible games loaded");
+        fake.Attempts.Count.Should().BeGreaterThanOrEqualTo(3, "every actual fake HTTP send is counted at the handler boundary");
         importer.MinimumLeaseHeadroomMilliseconds.Should().BeGreaterThan(0);
         importer.MaximumRenewalIntervalMilliseconds.Should().NotBeNull();
         importer.LeaseDurationMilliseconds.Should().BeGreaterThanOrEqualTo(
@@ -537,17 +596,18 @@ public sealed class BulkCatalogMixedWorkloadTests(
         ReviewRows,
         endpointRepetitions,
         (long)elapsed.TotalMilliseconds,
-        importer.Run.Elapsed.TotalMilliseconds,
+        importer.Elapsed.TotalMilliseconds,
         artwork?.Elapsed.TotalMilliseconds,
         artwork is null ? null : Percentile(artwork.ReadMilliseconds, 0.50),
         artwork is null ? null : Percentile(artwork.ReadMilliseconds, 0.95),
         review?.P50Milliseconds,
         review?.P95Milliseconds,
         review?.Failures ?? 0,
-        importer.Run.PagesCommitted,
-        importer.Run.RowsCommitted,
-        importer.Run.AdmissionRows,
-        importer.Run.HttpAttempts,
+        importer.PagesCommitted,
+        importer.RowsCommitted,
+        importer.AdmissionRows,
+        importer.EligibleGamesLoaded,
+        fake.Attempts.Count,
         importerInstrumentation.Commands.Count,
         (artworkInstrumentation?.Commands.Count ?? artworkCommands) + importerInstrumentation.Commands.Count,
         importerInstrumentation.Commands.Count(command => !command.Succeeded)
@@ -555,8 +615,8 @@ public sealed class BulkCatalogMixedWorkloadTests(
         importerInstrumentation.TransactionsStarted + (artworkInstrumentation?.TransactionsStarted ?? 0),
         Math.Max(importerInstrumentation.MaximumTransactionDurationMilliseconds,
             artworkInstrumentation?.MaximumTransactionDurationMilliseconds ?? 0),
-        importer.Run.DurableCursor,
-        importer.Run.RunMaximumId,
+        importer.DurableCursor,
+        importer.RunMaximumId,
         importer.MinimumLeaseHeadroomMilliseconds,
         importer.MaximumRenewalIntervalMilliseconds,
         importer.LeaseDurationMilliseconds,
@@ -691,7 +751,9 @@ public sealed class BulkCatalogMixedWorkloadTests(
         }
     }
 
-    private sealed class ActualEligibilitySqlCapture : DbCommandInterceptor
+    private sealed class EligibilityCommandCapturedException : Exception;
+
+    private sealed class ActualEligibilitySqlCapture(bool stopAfterCapture = false) : DbCommandInterceptor
     {
         private readonly ConcurrentQueue<CapturedCommand> commands = new();
         public IReadOnlyList<CapturedCommand> Commands => commands.ToArray();
@@ -718,6 +780,7 @@ public sealed class BulkCatalogMixedWorkloadTests(
                     parameter.ParameterName,
                     parameter.Value,
                     (parameter as NpgsqlParameter)?.NpgsqlDbType)).ToArray()));
+            if (stopAfterCapture) throw new EligibilityCommandCapturedException();
         }
     }
 
@@ -725,7 +788,15 @@ public sealed class BulkCatalogMixedWorkloadTests(
     private sealed record CapturedParameter(string ParameterName, object? Value, NpgsqlTypes.NpgsqlDbType? NpgsqlDbType);
 
     private sealed record ImporterRun(
-        IgdbImportRunResult Run,
+        int PagesCommitted,
+        int RowsCommitted,
+        int EligibleGamesLoaded,
+        bool RunCompleted,
+        bool LeaseAcquired,
+        TimeSpan Elapsed,
+        int? AdmissionRows,
+        long? DurableCursor,
+        long? RunMaximumId,
         long? MinimumLeaseHeadroomMilliseconds,
         long? MaximumRenewalIntervalMilliseconds,
         long LeaseDurationMilliseconds);
@@ -782,10 +853,16 @@ public sealed class BulkCatalogMixedWorkloadTests(
 
         public Task ReleaseLeaseAsync(IgdbImportLease lease, CancellationToken ct) => inner.ReleaseLeaseAsync(lease, ct);
 
-        public Task<int> LoadEligibleGamesAsync(IgdbImportLease lease, IReadOnlySet<string> supportedGameTypes,
-            DateTimeOffset now, TimeSpan positiveCacheDuration, TimeSpan negativeCacheDuration, CancellationToken ct) =>
-            inner.LoadEligibleGamesAsync(lease, supportedGameTypes, now, positiveCacheDuration, negativeCacheDuration, ct);
+        public async Task<int> LoadEligibleGamesAsync(IgdbImportLease lease, IReadOnlySet<string> supportedGameTypes,
+            DateTimeOffset now, TimeSpan positiveCacheDuration, TimeSpan negativeCacheDuration, CancellationToken ct)
+        {
+            var loaded = await inner.LoadEligibleGamesAsync(lease, supportedGameTypes, now,
+                positiveCacheDuration, negativeCacheDuration, ct);
+            Observe(lease);
+            return loaded;
+        }
 
+#if !BOOTSTRAP_CHECKPOINT_BASELINE
         public async Task<IgdbAdmissionResult> LoadEligibleGamesAsync(IgdbImportLease lease,
             IReadOnlySet<string> supportedGameTypes, DateTimeOffset now, TimeSpan positiveCacheDuration,
             TimeSpan negativeCacheDuration, ImportWorkUnitBudget budget, CancellationToken ct)
@@ -797,6 +874,7 @@ public sealed class BulkCatalogMixedWorkloadTests(
         }
 
         public Task<DateTimeOffset?> GetLeaseBusyUntilAsync(CancellationToken ct) => inner.GetLeaseBusyUntilAsync(ct);
+#endif
 
         private void Observe(IgdbImportLease? lease)
         {
@@ -867,7 +945,8 @@ internal sealed record BulkCatalogMixedWorkloadSample(
     int ReviewFailures,
     int ImportPagesCommitted,
     int ImportRowsCommitted,
-    int ImportAdmissionRows,
+    int? ImportAdmissionRows,
+    int ImportEligibleGamesLoaded,
     int ImportHttpAttempts,
     int ImportSqlCommands,
     int SqlCommands,

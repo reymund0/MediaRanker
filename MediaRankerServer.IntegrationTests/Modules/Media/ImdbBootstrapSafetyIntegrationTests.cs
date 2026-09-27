@@ -109,6 +109,31 @@ public class ImdbBootstrapSafetyIntegrationTests(
     }
 
     [Fact]
+    public async Task BasicsAndRatingsReplayReportAffectedRowsForUpserts()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+        var provider = new ImdbImportSqlProvider(db, NullLogger<ImdbImportSqlProvider>.Instance,
+            Options.Create(new ImdbImportOptions()));
+        var basics = new ImdbTsvRow("tt8199901", "movie", "Replay title", "Replay title", false,
+            2020, null, 90, "Drama", "tt8199901\\tmovie\\tReplay title");
+        var rating = new ImdbRatingTsvRow("tt8199901", 8.2m, 1234, "tt8199901\\t8.2\\t1234");
+
+        var firstBasics = await provider.ImportBasicsAsync([basics], CancellationToken.None);
+        var replayedBasics = await provider.ImportBasicsAsync([basics], CancellationToken.None);
+        var firstRating = await provider.ImportRatingsAsync([rating], CancellationToken.None);
+        var replayedRating = await provider.ImportRatingsAsync([rating], CancellationToken.None);
+
+        firstBasics.Affected.Should().Be(1);
+        replayedBasics.Affected.Should().Be(1);
+        firstRating.Affected.Should().Be(1);
+        replayedRating.Affected.Should().Be(1);
+        replayedRating.ToString().Should().Contain("Affected = 1").And.NotContain("Inserted");
+        (await db.ImdbImports.CountAsync(row => row.Tconst == "tt8199901")).Should().Be(1);
+        (await db.ImdbImportRatings.CountAsync(row => row.Tconst == "tt8199901")).Should().Be(1);
+    }
+
+    [Fact]
     public async Task LoadUsesUnitCapAndKeepsAHeavySeasonAsOneGroup()
     {
         using var scope = Factory.Services.CreateScope();
@@ -200,7 +225,7 @@ public class ImdbBootstrapSafetyIntegrationTests(
                 new ImdbEpisodeTsvRow("tt8200001", "tt-not-the-original-parent", 7, 9, "new-staging"),
                 new ImdbEpisodeTsvRow("tt8200002", "tt8200000", 1, 2, "new-episode")
             ], CancellationToken.None);
-        imported.Inserted.Should().Be(1);
+        imported.Affected.Should().Be(1);
 
         var loadProvider = new ImdbLoadSqlProvider(db, NullLogger<ImdbLoadSqlProvider>.Instance, options);
         var first = await loadProvider.LoadEpisodeMediaBatchAsync(null, 1, CancellationToken.None);

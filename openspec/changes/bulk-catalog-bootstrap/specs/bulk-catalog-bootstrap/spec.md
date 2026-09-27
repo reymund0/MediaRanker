@@ -160,6 +160,25 @@ Bootstrap SHALL preserve existing IMDb movie/TV selection and IGDB released-game
 - **WHEN** metadata is admitted without artwork
 - **THEN** no artwork request is created until the existing authorized demand flow selects that title
 
+### Requirement: Data-preserving upstream compatibility
+The integrated catalog SHALL retain media, collection and template type identities when upgrading from either supported migration history. It MUST preserve catalog identities, review links and provider-cover freshness during the type conversion, reject unknown type mappings rather than silently replace them, and use the canonical media types consistently across imports, artwork and user-facing flows.
+
+#### Scenario: Existing imported catalog adopts canonical types
+- **WHEN** a catalog with automatic cover art already applied upgrades to canonical media types
+- **THEN** all six supported types map correctly, existing catalog and review identities and cover freshness survive, and review reads still resolve shared TV artwork
+
+#### Scenario: Fresh database applies the combined history
+- **WHEN** an empty database applies the combined migration sequence
+- **THEN** its resulting schema supports canonical media types, imports and provider-cover review reads
+
+#### Scenario: Unknown legacy type is encountered
+- **WHEN** a type conversion encounters an unsupported legacy type identity
+- **THEN** it fails transactionally before discarding that identity
+
+#### Scenario: Canonical types are rolled back
+- **WHEN** the supported migration rollback converts canonical types to legacy identities
+- **THEN** the six supported type values retain their legacy identities and valid references
+
 ### Requirement: Honest progress and measured bulk readiness
 The system SHALL distinguish upstream completion, remaining eligible admission, paused/failed sessions and catalog readiness in sanitized progress output. It SHALL report committed/affected counts, elapsed time, actual HTTP attempts, effective limits and stop reasons without secrets or false inserted-row/percentage claims. Before larger live imports, the workflow MUST have data/performance reviews and representative isolated measurements of SQL amplification, query plans, transaction duration, memory/disk, lease headroom, recovery and mixed import/artwork traffic.
 

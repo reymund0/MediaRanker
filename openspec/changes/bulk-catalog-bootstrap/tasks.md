@@ -2,7 +2,7 @@
 
 - [x] 1.1 Confirm the recorded pre-implementation data/performance design reviews, independent review disposition and any outstanding limitation in the orchestration log, then record the isolated test resource envelope, endpoint latency ceilings, representative fixture distributions, baseline commit and exact commands; verify live HTTP is blocked, fixture PostgreSQL is distinct from the original database, and no original app/process changes are needed.
 - [x] 1.2 Add a focused measurement harness using existing test dependencies for SQL command counts, actual HTTP attempts/timing, stage/transaction duration, memory/disk and lease headroom; verify counter accuracy against small known fixtures.
-- [ ] 1.3 Measure the checkpoint baseline with 0/5k/50k staging rows, 1/25/100 canonical targets and 1,000 reviews, including unchanged backlog, heavy TV parents and mixed importer/artwork traffic; save comparable warm/cold results and required query plans, marking unsupported representative-scale conclusions explicitly.
+- [x] 1.3 Measure the checkpoint baseline with 0/5k/50k staging rows, 1/25/100 canonical targets and 1,000 reviews, including unchanged backlog, heavy TV parents and mixed importer/artwork traffic; save comparable warm/cold results and required query plans, marking unsupported representative-scale conclusions explicitly.
 
 ## 2. Finite bootstrap orchestration and request accounting
 
@@ -29,11 +29,18 @@
 
 - [x] 5.1 Use baseline results to implement only needed bounded artwork demand lookup/registration/attachment improvements within existing services; verify equivalent authorized result membership, review persistence, canonical TV deduplication and measured SQL/latency improvement, or document evidence that no change is needed.
 - [x] 5.2 Verify metadata-only import creates no IMDb artwork demand/TMDB calls/image downloads, fresh imported IGDB cover reads make zero extra discovery calls, local replay preserves expiry, and demand-only missing/expired resolution remains compatible across browse/review surfaces.
-- [ ] 5.3 Repeat the comparable measurement matrix after integration, including query plans, transaction/cancellation duration, bounded backlog memory/disk, lease margin, request budgets and healthy mixed-workload progress; record sample counts/variance and reconcile absolute gates and baseline regressions. Expand fixture scale only within the recorded resource envelope.
+- [x] 5.3 Repeat the comparable measurement matrix after integration, including query plans, transaction/cancellation duration, bounded backlog memory/disk, lease margin, request budgets and healthy mixed-workload progress; record sample counts/variance and reconcile absolute gates and baseline regressions. Expand fixture scale only within the recorded resource envelope.
 
 ## 6. Review, operating profile and handoff
 
 - [x] 6.1 Obtain data/performance reviews of actual measured results and reconcile findings against evidence; verify that no static review or five-game smoke is used as bulk readiness proof and that any required schema/architecture expansion is amended before implementation.
 - [ ] 6.2 Complete focused correctness/OpenSpec coverage and independent new-change review checkpoints, preserving the accepted automatic-cover-art waiver; verify task-owned working-tree/untracked coverage and record incomplete reviews honestly rather than reopening the prior gate.
-- [ ] 6.3 Document the tested start/stop/restart procedure, per-provider recovery semantics, effective flag precedence, process-local limits, sanitized progress and measured finite profile/forecast; verify commands/configuration against implemented options without enabling the running original app.
+
+- [x] 6.3 Document the tested start/stop/restart procedure, per-provider recovery semantics, effective flag precedence, process-local limits, sanitized progress and measured finite profile/forecast; verify commands/configuration against implemented options without enabling the running original app.
 - [x] 6.4 Validate the new OpenSpec change strictly and deliver measured results plus any unrun gates; verify accepted cover-art artifacts remain unchanged and provider flags remain disabled. Present a required separately authorized IMDb calibration plan for one bounded download per required feed and full-size isolated measurements, with exact HTTP/byte/disk/time limits and target; IMDb readiness remains unproven until that gate passes. Present an IGDB live sample plan only if needed. Do not run live bulk import, reset/migrate the original database, deploy, commit or open a PR as part of this task.
+
+## 7. Authorized closeout integration
+
+- [ ] 7.1 Integrate upstream MR-51 canonical media types across import/artwork, API/frontend and test fixtures, preserving cover behavior and existing selection policies.
+- [ ] 7.2 Correct the two incompatible migrations under the user's explicit history exception; verify type preservation, rejected unknown mappings, fresh and previously imported histories, and rollback using disposable databases only.
+- [ ] 7.3 Reconcile final reviews and their actual coverage, verify the combined branch, commit, sync/archive this change and publish the requested PR. Scheduled imports and the loaded local database remain untouched.

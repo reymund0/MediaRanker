@@ -5,6 +5,7 @@ using System.Text;
 using FluentAssertions;
 using MediaRankerServer.Modules.Media.Data;
 using MediaRankerServer.Modules.Media.Jobs;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit.Abstractions;
@@ -33,6 +34,33 @@ public class ImdbTsvProviderTests
         imported.Should().Equal("1", "2", "3");
         result.RowsRead.Should().Be(3);
         result.Batches.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task PositiveYieldWaitsBetweenBatchesAndCancellationStopsBeforeTheNextCallback()
+    {
+        var handler = new FixtureHandler(Compress("id\tname\n1\tone\n2\ttwo\n"));
+        var provider = new ImdbTsvProvider(new HttpClient(handler),
+            Options.Create(new ImdbImportOptions { BatchSize = 1, YieldBetweenUnitsMilliseconds = 5_000 }),
+            NullLogger<ImdbTsvProvider>.Instance);
+        using var cancellation = new CancellationTokenSource();
+        var firstBatch = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var callbacks = 0;
+        var run = provider.RunBatchImportAsync("https://fixture.invalid/feed.gz", ["id", "name"],
+            (columns, _, _) => columns[0], (_, _) =>
+            {
+                if (Interlocked.Increment(ref callbacks) == 1) firstBatch.TrySetResult(true);
+                return Task.CompletedTask;
+            }, cancellation.Token);
+
+        await firstBatch.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await Task.Delay(50);
+        callbacks.Should().Be(1, "the configured yield separates adjacent committed batches");
+        run.IsCompleted.Should().BeFalse();
+
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await run);
+        callbacks.Should().Be(1);
     }
 
     [Theory]
@@ -100,6 +128,73 @@ public class ImdbTsvProviderTests
             (columns, _, _) => columns[0], (_, _) => throw new InvalidOperationException("fixture batch failure"));
         await run.Should().ThrowAsync<InvalidOperationException>();
         handler.Calls.Should().Be(1);
+    }
+
+    [WindowsFact]
+    public async Task CleanupFailurePreservesOriginalBatchFailure()
+    {
+        var bytes = Compress($"id\tname\n1\t{Guid.NewGuid():N}\n");
+        using var replacement = new TempDirectoryReplacement(bytes);
+        var logger = new RecordingLogger<ImdbTsvProvider>();
+        using var client = new HttpClient(new FixtureHandler(bytes));
+        var provider = new ImdbTsvProvider(client, Options.Create(new ImdbImportOptions()), logger);
+        var originalFailure = new InvalidOperationException("fixture batch failed");
+        Func<Task> run = async () => await provider.RunBatchImportAsync("https://fixture.invalid/feed.gz", ["id", "name"],
+            (columns, _, _) => columns[0], (_, _) =>
+            {
+                replacement.ReplaceCurrentFeedPathWithDirectory();
+                return Task.FromException(originalFailure);
+            });
+
+        var failure = await run.Should().ThrowAsync<InvalidOperationException>();
+        failure.Which.Should().BeSameAs(originalFailure);
+        logger.Messages.Should().Contain(message => message.StartsWith(
+            "IMDb feed temporary-file cleanup failed. ErrorCategory:", StringComparison.Ordinal));
+    }
+
+    [WindowsFact]
+    public async Task CleanupFailurePreservesCancellation()
+    {
+        var bytes = Compress($"id\tname\n1\t{Guid.NewGuid():N}\n");
+        using var replacement = new TempDirectoryReplacement(bytes);
+        var logger = new RecordingLogger<ImdbTsvProvider>();
+        using var client = new HttpClient(new FixtureHandler(bytes));
+        var provider = new ImdbTsvProvider(client, Options.Create(new ImdbImportOptions()), logger);
+        using var cancellation = new CancellationTokenSource();
+        Func<Task> run = async () => await provider.RunBatchImportAsync("https://fixture.invalid/feed.gz", ["id", "name"],
+            (columns, _, _) => columns[0], (_, _) =>
+            {
+                replacement.ReplaceCurrentFeedPathWithDirectory();
+                cancellation.Cancel();
+                return Task.CompletedTask;
+            }, cancellation.Token);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(run);
+        logger.Messages.Should().Contain(message => message.StartsWith(
+            "IMDb feed temporary-file cleanup failed. ErrorCategory:", StringComparison.Ordinal));
+    }
+
+    [WindowsFact]
+    public async Task CleanupOnlyFailureIsSanitized()
+    {
+        var bytes = Compress($"id\tname\n1\t{Guid.NewGuid():N}\n");
+        using var replacement = new TempDirectoryReplacement(bytes);
+        var logger = new RecordingLogger<ImdbTsvProvider>();
+        using var client = new HttpClient(new FixtureHandler(bytes));
+        var provider = new ImdbTsvProvider(client, Options.Create(new ImdbImportOptions()), logger);
+        Func<Task> run = async () => await provider.RunBatchImportAsync("https://fixture.invalid/feed.gz", ["id", "name"],
+            (columns, _, _) => columns[0], (_, _) =>
+            {
+                replacement.ReplaceCurrentFeedPathWithDirectory();
+                return Task.CompletedTask;
+            });
+
+        var failure = await run.Should().ThrowAsync<IOException>();
+        failure.Which.Should().BeOfType<IOException>();
+        failure.Which.Message.Should().Be("IMDb feed temporary-file cleanup failed.");
+        failure.Which.InnerException.Should().BeNull();
+        logger.Messages.Should().Contain(message => message.StartsWith(
+            "IMDb feed temporary-file cleanup failed. ErrorCategory:", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -548,5 +643,80 @@ public class ImdbTsvProviderTests
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    private sealed class TempDirectoryReplacement(byte[] expectedBytes) : IDisposable
+    {
+        private string? originalPath;
+        private string? relocatedPath;
+
+        public void ReplaceCurrentFeedPathWithDirectory()
+        {
+            var matches = new List<string>();
+            foreach (var path in Directory.EnumerateFiles(Path.GetTempPath(), "mediaranker-imdb-*.gz"))
+            {
+                try
+                {
+                    if (new FileInfo(path).Length != expectedBytes.LongLength)
+                        continue;
+
+                    using var stream = new FileStream(path, FileMode.Open, FileAccess.Read,
+                        FileShare.ReadWrite | FileShare.Delete);
+                    if (stream.Length != expectedBytes.LongLength)
+                        continue;
+
+                    var actualBytes = new byte[expectedBytes.Length];
+                    stream.ReadExactly(actualBytes);
+                    if (actualBytes.AsSpan().SequenceEqual(expectedBytes))
+                        matches.Add(path);
+                }
+                catch (IOException)
+                {
+                    // Another in-flight feed may still hold its exclusive download handle.
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    // Ignore unrelated temp files that cannot be read by this test process.
+                }
+            }
+
+            matches.Should().ContainSingle("the random row payload identifies this invocation's owned feed file");
+            originalPath = matches[0];
+            relocatedPath = Path.Combine(Path.GetTempPath(), $"mediaranker-test-owned-{Guid.NewGuid():N}.gz");
+            File.Move(originalPath, relocatedPath);
+            Directory.CreateDirectory(originalPath);
+        }
+
+        public void Dispose()
+        {
+            if (originalPath is { } original && Directory.Exists(original))
+                Directory.Delete(original);
+            if (relocatedPath is { } relocated && File.Exists(relocated))
+                File.Delete(relocated);
+        }
+    }
+
+    private sealed class RecordingLogger<T> : ILogger<T>
+    {
+        public List<string> Messages { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            if (logLevel >= LogLevel.Error)
+                Messages.Add(formatter(state, exception));
+        }
+    }
+}
+
+internal sealed class WindowsFactAttribute : FactAttribute
+{
+    public WindowsFactAttribute()
+    {
+        if (!OperatingSystem.IsWindows())
+            Skip = "This test relies on Windows sharing and DeleteOnClose path semantics.";
     }
 }

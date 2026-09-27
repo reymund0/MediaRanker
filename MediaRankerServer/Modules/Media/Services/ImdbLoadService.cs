@@ -35,37 +35,42 @@ public class ImdbLoadService
     }
 
     public Task<ImdbLoadResult> LoadAsync(CancellationToken ct = default) =>
-        RunBoundedAsync(LoadAllAsync, ct);
+        RunBoundedAsync(token => LoadAllAsync(null, token), ct);
 
-    private async Task<ImdbLoadResult> LoadAllAsync(CancellationToken runCt)
+    public Task<ImdbLoadResult> LoadAsync(ImdbImportExecution execution, CancellationToken ct = default) =>
+        RunBoundedAsync(token => LoadAllAsync(execution, token), ct);
+
+    private async Task<ImdbLoadResult> LoadAllAsync(ImdbImportExecution? execution, CancellationToken runCt)
     {
-        var nonSeries = await LoadNonSeriesMediaCoreAsync(runCt);
-        var series = await LoadSeriesCollectionsCoreAsync(runCt);
-        var seasons = await LoadSeasonCollectionsCoreAsync(runCt);
-        var episodes = await LoadEpisodeMediaCoreAsync(runCt);
+        var nonSeries = await LoadNonSeriesMediaCoreAsync(runCt, execution);
+        var series = await LoadSeriesCollectionsCoreAsync(runCt, execution);
+        var seasons = await LoadSeasonCollectionsCoreAsync(runCt, execution);
+        var episodes = await LoadEpisodeMediaCoreAsync(runCt, execution);
+        execution?.SetStage("load-complete");
         return new ImdbLoadResult(nonSeries.Affected + series.Affected + seasons.Affected + episodes.Affected);
     }
 
     public Task<ImdbLoadResult> LoadNonSeriesMediaAsync(CancellationToken ct = default) =>
-        RunBoundedAsync(LoadNonSeriesMediaCoreAsync, ct);
+        RunBoundedAsync(token => LoadNonSeriesMediaCoreAsync(token), ct);
 
     public Task<ImdbLoadResult> LoadSeriesCollectionsAsync(CancellationToken ct = default) =>
-        RunBoundedAsync(LoadSeriesCollectionsCoreAsync, ct);
+        RunBoundedAsync(token => LoadSeriesCollectionsCoreAsync(token), ct);
 
     public Task<ImdbLoadResult> LoadSeasonCollectionsAsync(CancellationToken ct = default) =>
-        RunBoundedAsync(LoadSeasonCollectionsCoreAsync, ct);
+        RunBoundedAsync(token => LoadSeasonCollectionsCoreAsync(token), ct);
 
     public Task<ImdbLoadResult> LoadEpisodeMediaAsync(CancellationToken ct = default) =>
-        RunBoundedAsync(LoadEpisodeMediaCoreAsync, ct);
+        RunBoundedAsync(token => LoadEpisodeMediaCoreAsync(token), ct);
 
-    private Task<ImdbLoadResult> LoadNonSeriesMediaCoreAsync(CancellationToken ct) =>
-        DrainAsync("non-series", (provider, after, token) => provider.LoadNonSeriesMediaBatchAsync(config.MinVotesMovies, after, config.MaxLoadRowsPerUnit, token), ct);
+    private Task<ImdbLoadResult> LoadNonSeriesMediaCoreAsync(CancellationToken ct, ImdbImportExecution? execution = null) =>
+        DrainAsync("non-series", (provider, after, token) => provider.LoadNonSeriesMediaBatchAsync(config.MinVotesMovies, after, config.MaxLoadRowsPerUnit, token), ct, execution);
 
-    private Task<ImdbLoadResult> LoadSeriesCollectionsCoreAsync(CancellationToken ct) =>
-        DrainAsync("series", (provider, after, token) => provider.LoadSeriesCollectionsBatchAsync(config.MinVotesTv, after, config.MaxLoadRowsPerUnit, token), ct);
+    private Task<ImdbLoadResult> LoadSeriesCollectionsCoreAsync(CancellationToken ct, ImdbImportExecution? execution = null) =>
+        DrainAsync("series", (provider, after, token) => provider.LoadSeriesCollectionsBatchAsync(config.MinVotesTv, after, config.MaxLoadRowsPerUnit, token), ct, execution);
 
-    private async Task<ImdbLoadResult> LoadSeasonCollectionsCoreAsync(CancellationToken ct)
+    private async Task<ImdbLoadResult> LoadSeasonCollectionsCoreAsync(CancellationToken ct, ImdbImportExecution? execution = null)
     {
+        execution?.SetStage("load:seasons");
         logger.LogInformation("Starting IMDb load: season collections.");
         var total = 0;
         string? parent = null;
@@ -74,6 +79,7 @@ public class ImdbLoadService
         {
             var batch = await WithProviderAsync((provider, token) => provider.LoadSeasonCollectionsBatchAsync(parent, season, config.MaxLoadRowsPerUnit, token), ct);
             total += batch.Affected;
+            execution?.Counters.AddLoad(batch.Affected);
             if (!batch.HasMore)
             {
                 logger.LogInformation("IMDb load stage {Stage} completed. Affected rows: {Affected}.", "seasons", total);
@@ -85,8 +91,8 @@ public class ImdbLoadService
         }
     }
 
-    private Task<ImdbLoadResult> LoadEpisodeMediaCoreAsync(CancellationToken ct) =>
-        DrainAsync("episodes", (provider, after, token) => provider.LoadEpisodeMediaBatchAsync(after, config.MaxLoadRowsPerUnit, token), ct);
+    private Task<ImdbLoadResult> LoadEpisodeMediaCoreAsync(CancellationToken ct, ImdbImportExecution? execution = null) =>
+        DrainAsync("episodes", (provider, after, token) => provider.LoadEpisodeMediaBatchAsync(after, config.MaxLoadRowsPerUnit, token), ct, execution);
 
     private async Task<T> RunBoundedAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken ct)
     {
@@ -99,8 +105,10 @@ public class ImdbLoadService
     private async Task<ImdbLoadResult> DrainAsync(
         string stage,
         Func<IImdbLoadProvider, string?, CancellationToken, Task<ImdbLoadBatchResult>> operation,
-        CancellationToken ct)
+        CancellationToken ct,
+        ImdbImportExecution? execution = null)
     {
+        execution?.SetStage($"load:{stage}");
         logger.LogInformation("Starting IMDb load stage {Stage}.", stage);
         var total = 0;
         string? after = null;
@@ -108,6 +116,7 @@ public class ImdbLoadService
         {
             var batch = await WithProviderAsync((provider, token) => operation(provider, after, token), ct);
             total += batch.Affected;
+            execution?.Counters.AddLoad(batch.Affected);
             if (!batch.HasMore)
             {
                 logger.LogInformation("IMDb load stage {Stage} completed. Affected rows: {Affected}.", stage, total);

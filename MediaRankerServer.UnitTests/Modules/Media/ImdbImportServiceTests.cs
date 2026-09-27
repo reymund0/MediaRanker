@@ -58,6 +58,33 @@ public class ImdbImportServiceTests
     }
 
     [Fact]
+    public async Task FailedMiddleBasicsBatchKeepsCommittedRowsAndSuccessfulReplayReportsAffectedUpserts()
+    {
+        var provider = new FakeImportProvider { FailBasicsOnCall = 2 };
+        var feeds = CompleteFeeds();
+        feeds["basics"] = "tconst\ttitleType\tprimaryTitle\toriginalTitle\tisAdult\tstartYear\tendYear\truntimeMinutes\tgenres\n"
+            + "tt0000001\tmovie\tFirst\tFirst\t0\t2020\t\\N\t90\tDrama\n"
+            + "tt0000004\tmovie\tSecond\tSecond\t0\t2021\t\\N\t90\tComedy\n";
+        var service = CreateService(provider, feeds, batchSize: 1);
+
+        var failedRun = () => service.ImportAsync();
+
+        await failedRun.Should().ThrowAsync<InvalidOperationException>();
+        provider.BasicsRows.Select(row => row.Tconst).Should().Equal("tt0000001");
+        provider.CleanupCalls.Should().Be(0);
+        provider.EpisodeCalls.Should().Be(0);
+
+        provider.FailBasicsOnCall = null;
+        var replay = await service.ImportAsync();
+
+        replay.Completed.Should().BeTrue();
+        replay.Basics.Affected.Should().Be(2);
+        replay.Counters!.RowsAffected.Should().Be(4);
+        provider.BasicsRows.Select(row => row.Tconst).Should().BeEquivalentTo("tt0000001", "tt0000004");
+        provider.BasicsRows.Select(row => row.Tconst).Should().OnlyHaveUniqueItems();
+    }
+
+    [Fact]
     public async Task StrictRequiredValueErrorPreventsCleanup()
     {
         var provider = new FakeImportProvider();
@@ -97,6 +124,58 @@ public class ImdbImportServiceTests
 
         provider.StaleCutoffs.Should().HaveCount(3);
         provider.StaleCutoffs.Should().OnlyContain(cutoff => cutoff == provider.StaleCutoffs[0]);
+    }
+
+    [Fact]
+    public async Task OrphanCleanupAdvancesAfterAZeroDeletePageAndCountsOnlyDeletes()
+    {
+        var provider = new FakeImportProvider
+        {
+            OrphanBatchResults = new Queue<ImdbCleanupBatchResult>([
+                new(0, 10, true),
+                new(2, 20, false)])
+        };
+        var service = CreateService(provider, CompleteFeeds(), batchSize: 1);
+
+        var result = await service.ImportAsync();
+
+        provider.OrphanBatchAfterIds.Should().Equal(null, 10L);
+        result.Counters!.CleanupRowsAffected.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task OrphanCleanupCursorAndCountersResetForEachInvocation()
+    {
+        var provider = new FakeImportProvider
+        {
+            OrphanBatchResults = new Queue<ImdbCleanupBatchResult>([
+                new(1, 100, false),
+                new(2, 200, false)])
+        };
+        var service = CreateService(provider, CompleteFeeds(), batchSize: 1);
+
+        var first = await service.ImportAsync();
+        var second = await service.ImportAsync();
+
+        provider.OrphanBatchAfterIds.Should().HaveCount(2);
+        provider.OrphanBatchAfterIds[0].Should().BeNull();
+        provider.OrphanBatchAfterIds[1].Should().BeNull();
+        first.Counters!.CleanupRowsAffected.Should().Be(1);
+        second.Counters!.CleanupRowsAffected.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task OrphanCleanupRejectsNonAdvancingFullPage()
+    {
+        var provider = new FakeImportProvider
+        {
+            OrphanBatchResults = new Queue<ImdbCleanupBatchResult>([new(0, null, true)])
+        };
+        var service = CreateService(provider, CompleteFeeds(), batchSize: 1);
+
+        var run = () => service.ImportAsync();
+
+        await run.Should().ThrowAsync<InvalidDataException>();
     }
 
     [Fact]
@@ -155,6 +234,7 @@ public class ImdbImportServiceTests
     private sealed class FakeImportProvider : IImdbImportProvider
     {
         public bool FailBasics { get; init; }
+        public int? FailBasicsOnCall { get; set; }
         public bool FailEpisodes { get; init; }
         public bool FailCleanup { get; init; }
         public int CleanupCalls { get; private set; }
@@ -164,13 +244,22 @@ public class ImdbImportServiceTests
         public List<ImdbEpisodeTsvRow> EpisodeRows { get; } = [];
         public List<DateTimeOffset> Cutoffs { get; } = [];
         public List<DateTimeOffset> StaleCutoffs { get; } = [];
+        public List<long?> OrphanBatchAfterIds { get; } = [];
         public Queue<int> StaleDeleteResults { get; init; } = new([0]);
+        public Queue<ImdbCleanupBatchResult> OrphanBatchResults { get; init; } = new();
+        private int basicsCalls;
 
         public Task<ImdbImportResult> ImportRatingsAsync(List<ImdbRatingTsvRow> rows, CancellationToken ct) => Task.FromResult(new ImdbImportResult(rows.Count, 0));
         public Task<ImdbImportResult> ImportBasicsAsync(List<ImdbTsvRow> rows, CancellationToken ct)
         {
-            if (FailBasics) throw new InvalidOperationException("fixture batch failure");
-            BasicsRows.AddRange(rows);
+            basicsCalls++;
+            if (FailBasics || basicsCalls == FailBasicsOnCall) throw new InvalidOperationException("fixture batch failure");
+            foreach (var row in rows)
+            {
+                var existing = BasicsRows.FindIndex(item => item.Tconst == row.Tconst);
+                if (existing < 0) BasicsRows.Add(row);
+                else BasicsRows[existing] = row;
+            }
             return Task.FromResult(new ImdbImportResult(rows.Count, 0));
         }
         public Task<ImdbImportResult> ImportEpisodesAsync(List<ImdbEpisodeTsvRow> rows, CancellationToken ct)
@@ -190,6 +279,14 @@ public class ImdbImportServiceTests
         public Task<int> DeleteFutureImportsAsync(int maxRows, CancellationToken ct) => Cleanup();
         public Task<int> DeleteTvPilotImportsAsync(int maxRows, CancellationToken ct) => Cleanup();
         public Task<int> DeleteOrphanEpisodesAsync(int maxRows, CancellationToken ct) => Cleanup();
+        public Task<ImdbCleanupBatchResult> DeleteOrphanEpisodesBatchAsync(long? afterId, int maxRows, CancellationToken ct)
+        {
+            CleanupCalls++;
+            OrphanBatchAfterIds.Add(afterId);
+            return Task.FromResult(OrphanBatchResults.Count == 0
+                ? new ImdbCleanupBatchResult(0, null, false)
+                : OrphanBatchResults.Dequeue());
+        }
         public Task<int> DeleteStaleRatingsAsync(DateTimeOffset cutoffUtc, int maxRows, CancellationToken ct)
         {
             CleanupCalls++;

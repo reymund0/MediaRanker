@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using MediaRankerServer.Modules.Media.Jobs;
 
 namespace MediaRankerServer.Modules.Media.Data;
@@ -6,11 +7,25 @@ namespace MediaRankerServer.Modules.Media.Data;
 public sealed class ImdbImportExecution(ImdbImportOptions options)
 {
     private readonly object gate = new();
+    private readonly long startedTimestamp = Stopwatch.GetTimestamp();
     private int httpAttempts;
+    private string currentStage = "created";
 
     public int HttpAttempts
     {
         get { lock (gate) return httpAttempts; }
+    }
+
+    public string CurrentStage
+    {
+        get { lock (gate) return currentStage; }
+    }
+
+    public TimeSpan Elapsed => Stopwatch.GetElapsedTime(startedTimestamp);
+
+    internal void SetStage(string stage)
+    {
+        lock (gate) currentStage = stage;
     }
 
     public void ReserveHttpAttempt()
@@ -32,7 +47,7 @@ public sealed class ImdbImportCounters
     public long ParsedRows { get; private set; }
     public long FilteredRows { get; private set; }
     public long BatchesCommitted { get; private set; }
-    public long RowsInserted { get; private set; }
+    public long RowsAffected { get; private set; }
     public long RowsSkipped { get; private set; }
     public long CleanupRowsAffected { get; private set; }
     public long LoadRowsAffected { get; private set; }
@@ -42,7 +57,7 @@ public sealed class ImdbImportCounters
     internal void AddFiltered() => FilteredRows++;
     internal void AddBatch(ImdbImportResult result)
     {
-        RowsInserted += result.Inserted;
+        RowsAffected += result.Affected;
         RowsSkipped += result.Skipped;
     }
     internal void AddBatchUnit() => BatchesCommitted++;

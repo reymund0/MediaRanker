@@ -160,11 +160,9 @@ public sealed class IgdbClientBudgetTests
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.BadRequest)]
-    [InlineData(HttpStatusCode.InternalServerError)]
     [InlineData(HttpStatusCode.Forbidden)]
     [InlineData(HttpStatusCode.TooManyRequests)]
-    public async Task ProviderFailuresActivateSharedCooldown(HttpStatusCode status)
+    public async Task AuthenticationAndThrottleFailuresActivateSharedCooldown(HttpStatusCode status)
     {
         var api = new RecordingHandler(_ => new HttpResponseMessage(status));
         var twitch = new RecordingHandler(_ => Json("{\"access_token\":\"token\",\"expires_in\":3600}"));
@@ -180,14 +178,59 @@ public sealed class IgdbClientBudgetTests
     }
 
     [Theory]
+    [InlineData("bad-request", "provider_error")]
+    [InlineData("not-found", "not_found")]
+    [InlineData("server-error", "provider_unavailable")]
+    [InlineData("network", "network_error")]
+    [InlineData("timeout", "network_error")]
+    public async Task OrdinaryArtworkApiFailureDoesNotBlockBudgetedCatalogSend(string mode, string expectedCode)
+    {
+        var calls = 0;
+        var api = new RecordingHandler(_ => Interlocked.Increment(ref calls) > 1
+            ? Json("[{\"id\":42}]")
+            : mode switch
+            {
+                "bad-request" => new HttpResponseMessage(HttpStatusCode.BadRequest),
+                "not-found" => new HttpResponseMessage(HttpStatusCode.NotFound),
+                "server-error" => new HttpResponseMessage(HttpStatusCode.InternalServerError),
+                "network" => throw new HttpRequestException("fixture network failure"),
+                _ => throw new TaskCanceledException("fixture timeout")
+            });
+        var twitch = new RecordingHandler(_ => Json("{\"access_token\":\"token\",\"expires_in\":3600}"));
+        var client = Create(api, twitch, requestsPerSecond: 1000);
+
+        var failure = await client.Invoking(x => x.GetCoverAsync("42", CancellationToken.None))
+            .Should().ThrowAsync<ProviderRequestException>();
+        failure.Which.Code.Should().Be(expectedCode);
+        failure.Which.IsLocalCooldown.Should().BeFalse();
+
+        using var session = new ImportBudgetSession(new ImportSessionLimits(1, 10, TimeSpan.FromMinutes(1)));
+        using var unit = session.CreateUnit(new ImportWorkUnitLimits(1, 1, 10, 1, TimeSpan.FromMinutes(1)));
+        (await client.GetMaximumGameIdAsync(unit, CancellationToken.None)).Should().Be(42);
+
+        session.HttpAttempts.Should().Be(1, "the healthy catalog request reuses the artwork call's token");
+        session.HttpAttemptsByOperation["maximum_id"].Should().Be(1);
+        api.Requests.Should().HaveCount(2);
+        twitch.Requests.Should().ContainSingle();
+    }
+
+    [Theory]
     [InlineData("network")]
     [InlineData("timeout")]
     [InlineData("invalid")]
+    [InlineData("bad-request")]
+    [InlineData("server-error")]
+    [InlineData("forbidden")]
+    [InlineData("rate-limited")]
     public async Task TokenFailuresActivateSharedCooldown(string mode)
     {
         var api = new RecordingHandler(_ => Json("[{\"id\":42}]"));
         var twitch = new RecordingHandler(_ => mode switch
         {
+            "bad-request" => new HttpResponseMessage(HttpStatusCode.BadRequest),
+            "server-error" => new HttpResponseMessage(HttpStatusCode.InternalServerError),
+            "forbidden" => new HttpResponseMessage(HttpStatusCode.Forbidden),
+            "rate-limited" => new HttpResponseMessage(HttpStatusCode.TooManyRequests),
             "network" => throw new HttpRequestException("fixture network failure"),
             "timeout" => throw new TaskCanceledException("fixture timeout"),
             _ => Json("{\"access_token\":null,\"expires_in\":0}")

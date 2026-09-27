@@ -143,7 +143,8 @@ public sealed class IgdbClient(
 
             var error = ToProviderException(response);
             response.Dispose();
-            await limiter.DeferAsync(error.RetryAfter, error.Code, CancellationToken.None);
+            if (error.Code is "rate_limited" or "authentication_failed")
+                await limiter.DeferAsync(error.RetryAfter, error.Code, CancellationToken.None);
             throw error;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -160,9 +161,7 @@ public sealed class IgdbClient(
         }
         catch (Exception ex)
         {
-            var error = new ProviderRequestException("network_error", innerException: ex);
-            await limiter.DeferAsync(error.RetryAfter, error.Code, CancellationToken.None);
-            throw error;
+            throw new ProviderRequestException("network_error", innerException: ex);
         }
     }
 

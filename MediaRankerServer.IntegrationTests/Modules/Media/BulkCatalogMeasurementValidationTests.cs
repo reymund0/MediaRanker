@@ -85,6 +85,8 @@ public sealed class BulkCatalogMeasurementValidationTests(
         counters.Commands.Should().HaveCount(2);
         counters.Commands.Should().OnlyContain(command => command.Succeeded && command.Kind == "reader");
         counters.TransactionsStarted.Should().Be(1);
+        counters.TransactionInstrumentation.CompletedDurationsMilliseconds.Should().ContainSingle()
+            .Which.Should().Be(counters.MaximumTransactionDurationMilliseconds);
 
         await WriteJsonAsync(outputPath, new BulkCatalogCounterArtifact(
             DateTimeOffset.UtcNow,

@@ -148,40 +148,70 @@ public class ImdbLoadSqlProvider(
         ValidateLimit(maxRows);
         var after = CursorPredicate("i.tconst", afterTconst);
         var sql = $"""
-            WITH selected AS (
-                SELECT i.primary_title, i.start_year, i.tconst, e.parent_tconst, e.season_number
+            WITH candidates AS MATERIALIZED (
+                SELECT i.primary_title, i.start_year, i.tconst
                 FROM imdb_imports i
-                INNER JOIN imdb_import_episodes e ON e.tconst = i.tconst
+                WHERE i.title_type = 'tvEpisode' AND {after}
+                ORDER BY i.tconst
+                LIMIT {maxRows}
+            ), selected AS (
+                SELECT candidates.primary_title, candidates.start_year, candidates.tconst,
+                       season.id AS season_id
+                FROM candidates
+                INNER JOIN imdb_import_episodes e ON e.tconst = candidates.tconst
                 INNER JOIN media_collections series ON series.external_id = e.parent_tconst
                                                     AND series.external_source = '{nameof(MediaExternalSource.Imdb)}'
                                                     AND series.collection_type = 'Series'
                 INNER JOIN media_collections season ON season.parent_media_collection_id = series.id
                                                     AND season.collection_type = 'Season'
+                                                    AND season.media_type_id = -4
                                                     AND season.title = CASE WHEN e.season_number = -1 THEN 'Unknown' ELSE e.season_number::text END
-                WHERE i.title_type = 'tvEpisode' AND {after}
-                ORDER BY i.tconst
-                LIMIT {maxRows}
             ), upsert AS (
                 INSERT INTO media (title, release_date, external_id, external_source,
                                    media_type_id, media_collection_id, created_at, updated_at)
                 SELECT s.primary_title,
                        CASE WHEN s.start_year IS NULL THEN NULL ELSE make_date(s.start_year, 7, 1) END,
-                       s.tconst, '{nameof(MediaExternalSource.Imdb)}', -4, season.id, now(), now()
+                       s.tconst, '{nameof(MediaExternalSource.Imdb)}', -4, s.season_id, now(), now()
                 FROM selected s
-                INNER JOIN media_collections series ON series.external_id = s.parent_tconst
-                                                    AND series.external_source = '{nameof(MediaExternalSource.Imdb)}'
-                                                    AND series.collection_type = 'Series'
-                INNER JOIN media_collections season ON season.parent_media_collection_id = series.id
-                                                    AND season.collection_type = 'Season'
-                                                    AND season.title = CASE WHEN s.season_number = -1 THEN 'Unknown' ELSE s.season_number::text END
                 ON CONFLICT (external_id, external_source) WHERE external_id IS NOT NULL
                 DO UPDATE SET title = EXCLUDED.title, release_date = EXCLUDED.release_date,
                               media_type_id = EXCLUDED.media_type_id, media_collection_id = EXCLUDED.media_collection_id,
                               updated_at = now()
                 RETURNING external_id
-            ) SELECT external_id AS "Value" FROM upsert ORDER BY external_id;
+            ), scanned AS (
+                SELECT count(*)::integer AS candidate_count, max(tconst) AS next_key
+                FROM candidates
+            ), affected AS (
+                SELECT count(*)::integer AS affected_count FROM upsert
+            )
+            SELECT affected.affected_count AS affected,
+                   scanned.next_key AS next_key,
+                   (scanned.candidate_count = {maxRows}) AS has_more
+            FROM scanned CROSS JOIN affected;
             """;
-        return ExecuteKeysetAsync(sql, "episodes", maxRows, ct);
+        return ExecuteEpisodeBatchAsync(sql, maxRows, ct);
+    }
+
+    private async Task<ImdbLoadBatchResult> ExecuteEpisodeBatchAsync(string sql, int maxRows, CancellationToken ct)
+    {
+        try
+        {
+            dbContext.Database.SetCommandTimeout(TimeSpan.FromSeconds(config.MaxStatementSeconds));
+            // Materialize the DML CTE query directly; further EF composition can wrap it in an outer SELECT.
+            var pages = await dbContext.Database.SqlQueryRaw<EpisodeLoadBatchPage>(sql).ToListAsync(ct);
+            var page = pages.Single();
+            return new ImdbLoadBatchResult(page.Affected, page.NextKey, page.HasMore);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError("IMDb load stage {Stage} failed at unit cap {UnitCap}. ErrorCategory: {ErrorCategory}.",
+                "episodes", maxRows, ex.GetType().Name);
+            throw;
+        }
+        finally
+        {
+            dbContext.Database.SetCommandTimeout(null);
+        }
     }
 
     private async Task<ImdbLoadBatchResult> ExecuteKeysetAsync(string sql, string stage, int maxRows, CancellationToken ct)
@@ -249,4 +279,11 @@ public class ImdbLoadSqlProvider(
     }
 
     private static string Escape(string value) => value.Replace("'", "''", StringComparison.Ordinal);
+
+    private sealed class EpisodeLoadBatchPage
+    {
+        public int Affected { get; set; }
+        public string? NextKey { get; set; }
+        public bool HasMore { get; set; }
+    }
 }

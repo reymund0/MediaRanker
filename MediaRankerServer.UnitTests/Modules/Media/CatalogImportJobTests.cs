@@ -8,6 +8,7 @@ using MediaRankerServer.Modules.Media.Jobs;
 using MediaRankerServer.Modules.Media.Providers;
 using MediaRankerServer.Modules.Media.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -147,6 +148,104 @@ public class CatalogImportJobTests
     }
 
     [Fact]
+    public async Task ScheduledImdbFailureLogsSanitizedCommittedImportProgress()
+    {
+        var handler = new RecordingImdbHandler(request =>
+        {
+            if (request.RequestUri!.AbsolutePath.EndsWith("/ratings", StringComparison.Ordinal))
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new ByteArrayContent(Gzip(Encoding.UTF8.GetBytes(
+                        "tconst\taverageRating\tnumVotes\ntt0000001\t8.0\t1000\n")))
+                };
+            throw new HttpRequestException("raw-private-marker");
+        });
+        var logger = new RecordingLogger<ImdbImportJob>();
+        var clock = new ManualTimeProvider(new DateTimeOffset(2026, 9, 21, 2, 0, 0, TimeSpan.Zero));
+        using var harness = CreateScheduledImdbJob(ValidImdbOptions(), handler, clock, logger);
+        harness.ImportProvider.Setup(provider => provider.ImportRatingsAsync(
+                It.IsAny<List<ImdbRatingTsvRow>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ImdbImportResult(1, 0));
+
+        await harness.Job.StartAsync(CancellationToken.None);
+        await clock.WaitForTimerCountAsync(1, TimeSpan.FromSeconds(5));
+        clock.Advance(TimeSpan.FromHours(1));
+        await handler.WaitForRequestCountAsync(2, TimeSpan.FromSeconds(5));
+        await clock.WaitForTimerCountAsync(2, TimeSpan.FromSeconds(5));
+
+        var progress = logger.Messages.Single(message => message.Contains("failure category HttpRequestException", StringComparison.Ordinal));
+        progress.Should().Contain("stage basics")
+            .And.Contain("HTTP attempts 2")
+            .And.Contain("elapsed ")
+            .And.Contain("batches committed 1")
+            .And.Contain("rows affected 1");
+        logger.Messages.Should().NotContain(message => message.Contains("raw-private-marker", StringComparison.Ordinal));
+        harness.ImportProvider.Verify(provider => provider.DeleteStaleRatingsAsync(
+            It.IsAny<DateTimeOffset>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        await harness.Job.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task ScheduledImdbLoadFailureLogsPriorLoadAndImportProgress()
+    {
+        var feeds = new Dictionary<string, byte[]>
+        {
+            ["/ratings"] = Gzip(Encoding.UTF8.GetBytes("tconst\taverageRating\tnumVotes\ntt0000001\t8.0\t1000\n")),
+            ["/basics"] = Gzip(Encoding.UTF8.GetBytes("tconst\ttitleType\tprimaryTitle\toriginalTitle\tisAdult\tstartYear\tendYear\truntimeMinutes\tgenres\n"
+                + "tt0000001\tmovie\tTitle\tTitle\t0\t2020\t\\N\t90\tDrama\n")),
+            ["/episodes"] = Gzip(Encoding.UTF8.GetBytes("tconst\tparentTconst\tseasonNumber\tepisodeNumber\ntt0000002\ttt0000003\t\\N\t1\n"))
+        };
+        var handler = new RecordingImdbHandler(request => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent(feeds[request.RequestUri!.AbsolutePath])
+        });
+        var logger = new RecordingLogger<ImdbImportJob>();
+        var clock = new ManualTimeProvider(new DateTimeOffset(2026, 9, 21, 2, 0, 0, TimeSpan.Zero));
+        var loadProvider = new Mock<IImdbLoadProvider>(MockBehavior.Strict);
+        loadProvider.Setup(provider => provider.LoadNonSeriesMediaBatchAsync(
+                It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns((int _, string? after, int _, CancellationToken _) => after is null
+                ? Task.FromResult(new ImdbLoadBatchResult(1, "tt0000001", true))
+                : Task.FromException<ImdbLoadBatchResult>(new InvalidOperationException("raw-load-marker")));
+        using var harness = CreateScheduledImdbJob(ValidImdbOptions(), handler, clock, logger, loadProvider.Object);
+        harness.ImportProvider.Setup(provider => provider.ImportRatingsAsync(
+                It.IsAny<List<ImdbRatingTsvRow>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ImdbImportResult(1, 0));
+        harness.ImportProvider.Setup(provider => provider.ImportBasicsAsync(
+                It.IsAny<List<ImdbTsvRow>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ImdbImportResult(1, 0));
+        harness.ImportProvider.Setup(provider => provider.ImportEpisodesAsync(
+                It.IsAny<List<ImdbEpisodeTsvRow>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ImdbImportResult(1, 0));
+        harness.ImportProvider.Setup(provider => provider.DeleteStaleRatingsAsync(
+                It.IsAny<DateTimeOffset>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
+        harness.ImportProvider.Setup(provider => provider.DeleteFutureImportsAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
+        harness.ImportProvider.Setup(provider => provider.DeleteTvPilotImportsAsync(
+                It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
+        harness.ImportProvider.Setup(provider => provider.DeleteOrphanEpisodesBatchAsync(
+                It.IsAny<long?>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ImdbCleanupBatchResult(0, null, false));
+
+        await harness.Job.StartAsync(CancellationToken.None);
+        await clock.WaitForTimerCountAsync(1, TimeSpan.FromSeconds(5));
+        clock.Advance(TimeSpan.FromHours(1));
+        await handler.WaitForRequestCountAsync(3, TimeSpan.FromSeconds(5));
+        await clock.WaitForTimerCountAsync(2, TimeSpan.FromSeconds(5));
+
+        var progress = logger.Messages.Single(message => message.Contains("failure category InvalidOperationException", StringComparison.Ordinal));
+        progress.Should().Contain("stage load:non-series")
+            .And.Contain("HTTP attempts 3")
+            .And.Contain("rows affected 3")
+            .And.Contain("load affected 1");
+        logger.Messages.Should().NotContain(message => message.Contains("raw-load-marker", StringComparison.Ordinal));
+        await harness.Job.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
     public async Task DisabledStartupNeverResolvesAnImporter()
     {
         using var services = new ServiceCollection().BuildServiceProvider();
@@ -182,7 +281,8 @@ public class CatalogImportJobTests
     }
 
     private static ImdbJobHarness CreateScheduledImdbJob(
-        ImdbImportOptions options, RecordingImdbHandler handler, ManualTimeProvider clock)
+        ImdbImportOptions options, RecordingImdbHandler handler, ManualTimeProvider clock,
+        ILogger<ImdbImportJob>? logger = null, IImdbLoadProvider? loadProvider = null)
     {
         var imdbOptions = Options.Create(options);
         var importProvider = new Mock<IImdbImportProvider>(MockBehavior.Strict);
@@ -190,7 +290,7 @@ public class CatalogImportJobTests
             .ReturnsAsync(new DateTimeOffset(2026, 9, 21, 0, 0, 0, TimeSpan.Zero));
         var httpClient = new HttpClient(handler);
         var parser = new ImdbTsvProvider(httpClient, imdbOptions, NullLogger<ImdbTsvProvider>.Instance);
-        var services = new ServiceCollection()
+        var registrations = new ServiceCollection()
             .AddSingleton<IImdbImportProvider>(importProvider.Object)
             .AddSingleton(parser)
             .AddSingleton(imdbOptions)
@@ -199,11 +299,14 @@ public class CatalogImportJobTests
                 scope.GetRequiredService<IServiceScopeFactory>(),
                 imdbOptions,
                 NullLogger<ImdbImportService>.Instance))
-            .BuildServiceProvider();
+            ;
+        if (loadProvider is not null)
+            registrations.AddScoped(_ => new ImdbLoadService(loadProvider, imdbOptions, NullLogger<ImdbLoadService>.Instance));
+        var services = registrations.BuildServiceProvider();
         var bootstrap = new CatalogBootstrapOptions();
         var schedules = new CatalogScheduleGate(bootstrap);
         var job = new ImdbImportJob(services.GetRequiredService<IServiceScopeFactory>(), imdbOptions,
-            bootstrap, schedules, clock, NullLogger<ImdbImportJob>.Instance);
+            bootstrap, schedules, clock, logger ?? NullLogger<ImdbImportJob>.Instance);
         return new ImdbJobHarness(services, httpClient, job, schedules, importProvider);
     }
 
@@ -290,6 +393,15 @@ public class CatalogImportJobTests
             HttpClient.Dispose();
             Services.Dispose();
         }
+    }
+
+    private sealed class RecordingLogger<T> : ILogger<T>
+    {
+        public List<string> Messages { get; } = [];
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter) => Messages.Add(formatter(state, exception));
     }
 
     private sealed class RecordingImdbHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler

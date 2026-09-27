@@ -5,14 +5,21 @@
 using System.Collections.Concurrent;
 using System.Data.Common;
 using System.Diagnostics;
+using System.Net.Http.Json;
 using FluentAssertions;
 using MediaRankerServer.IntegrationTests.Infrastructure;
+using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Data;
 using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Modules.Media.Jobs;
 using MediaRankerServer.Modules.Media.Providers;
 using MediaRankerServer.Modules.Media.Services;
+using MediaRankerServer.Modules.Reviews.Contracts;
+using MediaRankerServer.Modules.Reviews.Data.Entities;
+using MediaRankerServer.Modules.Templates.Data.Entities;
 using MediaRankerServer.Shared.Data;
+using MediaRankerServer.Shared.Paging;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
@@ -636,12 +643,13 @@ public sealed class IgdbBootstrapRecoveryIntegrationTests(
 
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+        var importedAt = DateTimeOffset.UtcNow.AddMinutes(-1);
         var recording = new RecordingIgdbClient
         {
             MaximumId = 1200,
             Types = [new IgdbGameType(0, "Main game")],
             Pages = [[new IgdbGame(1200, "Metadata game", DateTimeOffset.UtcNow.AddDays(-2), 0, null,
-                "metadata-cover", DateTimeOffset.UtcNow.AddMinutes(-1))]]
+                "metadata-cover", importedAt)]]
         };
         using var session = NewSession(maxAdmissionRows: 10, maxAdmissionBatches: 2);
         var result = await CreateService(recording,
@@ -652,9 +660,61 @@ public sealed class IgdbBootstrapRecoveryIntegrationTests(
         recording.Calls.Should().Contain("game_types");
         recording.Calls.Should().Contain("maximum_id");
         recording.Calls.Should().Contain("games");
+        recording.Calls.Should().NotContain("cover", "metadata import must reuse the staged IGDB cover reference");
         (await db.Set<MediaCover>().CountAsync(x => x.Provider == ArtworkProvider.Tmdb)).Should().Be(0);
-        (await db.Set<MediaEntity>().CountAsync(x => x.ExternalSource == MediaExternalSource.Igdb && x.ExternalId == "1200"))
-            .Should().Be(1);
+        var importedGame = await db.Set<MediaEntity>().AsNoTracking()
+            .SingleAsync(x => x.ExternalSource == MediaExternalSource.Igdb && x.ExternalId == "1200");
+        var importedCover = await db.Set<MediaCover>().AsNoTracking()
+            .SingleAsync(x => x.Provider == ArtworkProvider.Igdb && x.LookupKind == CoverLookupKind.IgdbGame
+                && x.LookupId == "1200");
+        importedCover.ImagePath.Should().Be("metadata-cover");
+        importedCover.ExpiresAt.Should().BeAfter(DateTimeOffset.UtcNow);
+
+        // Add a user-owned review so both authorized browse and review read models
+        // exercise the cover produced by the actual metadata admission above.
+        db.Reviews.Add(new Review
+        {
+            UserId = TestAuthHandler.DefaultUserId,
+            TemplateId = -1,
+            MediaId = importedGame.Id,
+            OverallScore = 8,
+            Fields = [new ReviewField { TemplateFieldId = -11, Value = 8 }]
+        });
+        await db.SaveChangesAsync();
+
+        // Keep both outbound provider clients local and observable. Any missed cache
+        // hit would be recorded and blocked before it could reach IGDB or Twitch.
+        var providerHttpAttempts = new ConcurrentQueue<string>();
+        using var endpointFactory = Factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            services.AddHttpClient<IgdbClient>()
+                .ConfigurePrimaryHttpMessageHandler(() => new RecordingProviderHttpHandler(providerHttpAttempts));
+            services.AddHttpClient(MediaProviderServiceCollectionExtensions.IgdbTwitchClientName)
+                .ConfigurePrimaryHttpMessageHandler(() => new RecordingProviderHttpHandler(providerHttpAttempts));
+        }));
+        using var endpointClient = endpointFactory.CreateClient();
+
+        var browseResponse = await endpointClient.GetAsync(
+            "/api/media?mediaTypeId=-1&searchField=title&searchTerm=Metadata%20game&page=0&pageSize=10&sortField=title&sortDirection=asc");
+        browseResponse.IsSuccessStatusCode.Should().BeTrue();
+        var browsePage = await browseResponse.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
+        var browsedGame = browsePage!.Items.Should().ContainSingle().Which;
+        browsedGame.Id.Should().Be(importedGame.Id);
+        browsedGame.Title.Should().Be("Metadata game");
+        browsedGame.CoverImageUrl.Should().Be("https://images.igdb.com/igdb/image/upload/t_cover_big/metadata-cover.jpg");
+        browsedGame.CoverStatus.Should().Be("ready");
+
+        var reviewResponse = await endpointClient.GetAsync("/api/reviews/byMediaType/-1");
+        reviewResponse.IsSuccessStatusCode.Should().BeTrue();
+        var reviews = await reviewResponse.Content.ReadFromJsonAsync<List<ReviewDto>>();
+        var gameReview = reviews!.Should().ContainSingle(review => review.MediaId == importedGame.Id).Which;
+        gameReview.MediaTitle.Should().Be("Metadata game");
+        gameReview.MediaCoverImageUrl.Should().Be("https://images.igdb.com/igdb/image/upload/t_cover_big/metadata-cover.jpg");
+        gameReview.CoverStatus.Should().Be("ready");
+
+        providerHttpAttempts.Should().BeEmpty("fresh imported covers must avoid IGDB discovery and Twitch token HTTP");
+        (await db.Set<MediaCover>().CountAsync(x => x.Provider == ArtworkProvider.Tmdb)).Should().Be(0,
+            "IGDB import and authorized reads must not create TMDB demand");
     }
 
     [Fact]
@@ -840,6 +900,16 @@ public sealed class IgdbBootstrapRecoveryIntegrationTests(
         private void ThrowIfConfigured()
         {
             if (Failure is not null) throw Failure;
+        }
+    }
+
+    private sealed class RecordingProviderHttpHandler(ConcurrentQueue<string> attempts) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            attempts.Enqueue($"{request.Method} {request.RequestUri}");
+            return Task.FromException<HttpResponseMessage>(
+                new InvalidOperationException("Provider HTTP is blocked by the integration fixture."));
         }
     }
 

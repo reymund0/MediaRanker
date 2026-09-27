@@ -106,7 +106,8 @@ internal sealed record BulkCatalogMeasurementArtifact(
     string Runtime,
     BulkCatalogResourceEnvelope ResourceEnvelope,
     IReadOnlyList<BulkCatalogMeasurementRecord> Measurements,
-    IReadOnlyList<string> CoverageGaps);
+    IReadOnlyList<string> CoverageGaps,
+    string? FailureCategory = null);
 
 internal sealed record BulkCatalogResourceEnvelope(
     string PostgreSqlImage,
@@ -301,11 +302,13 @@ internal sealed record BulkCatalogCommandRecord(string Kind, bool Succeeded, lon
 internal sealed class BulkCatalogTransactionInstrumentation : DbTransactionInterceptor
 {
     private readonly ConcurrentDictionary<DbTransaction, long> starts = new();
+    private readonly ConcurrentQueue<long> completedDurationsMilliseconds = new();
     private long maximumDurationMilliseconds;
     private int started;
 
     public int TransactionsStarted => Volatile.Read(ref started);
     public long MaximumDurationMilliseconds => Volatile.Read(ref maximumDurationMilliseconds);
+    public IReadOnlyList<long> CompletedDurationsMilliseconds => completedDurationsMilliseconds.ToArray();
 
     public override DbTransaction TransactionStarted(DbConnection connection, TransactionEndEventData eventData, DbTransaction result)
     {
@@ -338,6 +341,7 @@ internal sealed class BulkCatalogTransactionInstrumentation : DbTransactionInter
     {
         if (!starts.TryRemove(transaction, out var start)) return;
         var elapsed = (long)(Stopwatch.GetElapsedTime(start).TotalMilliseconds);
+        completedDurationsMilliseconds.Enqueue(elapsed);
         long current;
         do
         {
@@ -350,13 +354,16 @@ internal sealed class BulkCatalogTransactionInstrumentation : DbTransactionInter
 internal sealed class BulkCatalogMeasurementRunner
 {
     private static readonly HashSet<string> SupportedGameTypes = new(StringComparer.OrdinalIgnoreCase) { "Main game", "Remake", "Remaster" };
+    private static readonly string[] VarianceDiagnosticTables = ["igdb_imports", "media", "media_covers"];
     private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan SessionTimeout = TimeSpan.FromMinutes(15);
 
     private readonly string connectionString;
     private readonly HttpClient endpointClient;
     private readonly BulkCatalogMeasurementOptions options;
+    private readonly bool varianceDiagnosticsEnabled;
     private readonly DateTimeOffset startedAt = DateTimeOffset.UtcNow;
+    private string? failureCategory;
     private readonly List<string> coverageGaps =
     [
         "The harness uses fixture PostgreSQL and a local fake HTTP handler; it does not measure live provider failure incidence or authorize a live run.",
@@ -372,6 +379,8 @@ internal sealed class BulkCatalogMeasurementRunner
         this.connectionString = connectionString;
         this.endpointClient = endpointClient;
         this.options = options;
+        varianceDiagnosticsEnabled = options.Profile == "candidate"
+            && string.Equals(Environment.GetEnvironmentVariable("MEDIARANKER_BULK_VARIANCE_DIAGNOSTICS"), "1", StringComparison.Ordinal);
     }
 
     public async Task<BulkCatalogMeasurementArtifact> RunAsync(CancellationToken cancellationToken)
@@ -421,6 +430,11 @@ internal sealed class BulkCatalogMeasurementRunner
 
             return BuildArtifact(measurements);
         }
+        catch (Exception exception)
+        {
+            failureCategory = exception.GetType().Name;
+            throw;
+        }
         finally
         {
             // Preserve all completed rows when a 15-minute session deadline or a
@@ -439,7 +453,8 @@ internal sealed class BulkCatalogMeasurementRunner
         $"{Environment.Version}; {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}",
         new("postgres:16-alpine", "Testcontainers PostgreSQL only; original app/database is never opened", "local fake HTTP handler only; no external URI", "15 seconds per command", "2 GiB", "1 GiB", 1, options.Samples, "p95 <= 1s for 100 targets; p95 <= 3s for 1000 reviews; overlap <= 2x idle"),
         measurements,
-        coverageGaps);
+        coverageGaps,
+        failureCategory);
 
     private async Task PersistPartialAsync(IReadOnlyList<BulkCatalogMeasurementRecord> measurements)
     {
@@ -470,6 +485,7 @@ internal sealed class BulkCatalogMeasurementRunner
 
     private async Task<BulkCatalogMeasurementRecord> MeasureAdmissionOnceAsync(int stagingRows, int eligiblePercentage, string state, string temperature, CancellationToken ct)
     {
+        var varianceBefore = varianceDiagnosticsEnabled ? await CaptureVarianceTableStatsAsync(ct) : null;
         var fake = new BulkCatalogFakeProviderHandler();
         using var http = new HttpClient(fake) { BaseAddress = new Uri("http://fixture.invalid/v4/") };
         using var twitch = new HttpClient(fake) { BaseAddress = new Uri("http://fixture.invalid/") };
@@ -482,6 +498,7 @@ internal sealed class BulkCatalogMeasurementRunner
         var loaded = 0;
         var units = 0;
         var maxUnitMilliseconds = 0L;
+        var unitTimings = varianceDiagnosticsEnabled ? new List<AdmissionUnitTiming>() : null;
         try
         {
             if (options.Profile == "candidate")
@@ -494,26 +511,47 @@ internal sealed class BulkCatalogMeasurementRunner
                     using var unitDeadline = unit.CreateLinkedTokenSource(ct);
                     await using var unitDb = CreateDb(instrumentation);
                     var unitProvider = new IgdbImportSqlProvider(unitDb, NullLogger<IgdbImportSqlProvider>.Instance);
+                    var acquisitionTimer = varianceDiagnosticsEnabled ? Stopwatch.StartNew() : null;
                     var unitLease = await unitProvider.TryAcquireLeaseAsync(DateTimeOffset.UtcNow, TimeSpan.FromMinutes(2), unitDeadline.Token);
+                    acquisitionTimer?.Stop();
                     unitLease.Should().NotBeNull();
                     IgdbAdmissionResult progress;
+                    var admissionMilliseconds = 0d;
+                    var stateCheckMilliseconds = 0d;
+                    var releaseMilliseconds = 0d;
                     try
                     {
+                        var admissionTimer = varianceDiagnosticsEnabled ? Stopwatch.StartNew() : null;
                         progress = await unitProvider.LoadEligibleGamesAsync(unitLease!, SupportedGameTypes,
                             DateTimeOffset.UtcNow, TimeSpan.FromDays(30), TimeSpan.FromDays(7), unit, unitDeadline.Token);
+                        admissionTimer?.Stop();
+                        if (admissionTimer is not null)
+                            admissionMilliseconds = admissionTimer.Elapsed.TotalMilliseconds;
                         progress.Blocked.Should().BeFalse();
                         loaded += progress.LoadedRows;
+                        var stateCheckTimer = varianceDiagnosticsEnabled ? Stopwatch.StartNew() : null;
                         var leaseState = await unitDb.Set<IgdbImportState>().AsNoTracking().SingleAsync(unitDeadline.Token);
                         var headroom = (long)(leaseState.ClaimedUntil!.Value - DateTimeOffset.UtcNow).TotalMilliseconds;
                         leaseHeadroom = Math.Min(leaseHeadroom ?? long.MaxValue, headroom);
+                        stateCheckTimer?.Stop();
+                        if (stateCheckTimer is not null)
+                            stateCheckMilliseconds = stateCheckTimer.Elapsed.TotalMilliseconds;
                     }
                     finally
                     {
+                        var releaseTimer = varianceDiagnosticsEnabled ? Stopwatch.StartNew() : null;
                         using var release = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                         await unitProvider.ReleaseLeaseAsync(unitLease!, release.Token);
+                        releaseTimer?.Stop();
+                        if (releaseTimer is not null)
+                            releaseMilliseconds = releaseTimer.Elapsed.TotalMilliseconds;
                     }
                     units++;
                     maxUnitMilliseconds = Math.Max(maxUnitMilliseconds, unitTimer.ElapsedMilliseconds);
+                    if (unitTimings is not null)
+                        unitTimings.Add(new(units, acquisitionTimer!.Elapsed.TotalMilliseconds, admissionMilliseconds,
+                            stateCheckMilliseconds, releaseMilliseconds, unitTimer.Elapsed.TotalMilliseconds,
+                            progress.LoadedRows, progress.Completed, unit.StopReason.ToString()));
                     if (progress.Completed) break;
                     unit.StopReason.Should().Be(ImportStopReason.UnitAdmissionLimit);
                 }
@@ -534,16 +572,103 @@ internal sealed class BulkCatalogMeasurementRunner
         catch (Exception exception)
         {
             coverageGaps.Add($"Admission scenario {stagingRows}/{eligiblePercentage}/{state} recorded failure {exception.GetType().Name}; target behavior was not changed by the harness.");
+            throw;
         }
         timer.Stop();
         var after = CaptureResources();
+        var varianceAfter = varianceDiagnosticsEnabled ? await CaptureVarianceTableStatsAsync(ct) : null;
+        var notes = new List<string>
+        {
+            $"eligible rows admitted: {loaded}",
+            $"staging distribution: {stagingRows} rows, {eligiblePercentage}% currently eligible",
+            $"bounded candidate units: {units}; maximum unit milliseconds: {maxUnitMilliseconds}",
+            "Candidate drains 500-row units with fresh contexts/leases under one cumulative allowance; baseline uses the checkpoint admission entry point. Neither includes an inter-unit scheduler yield."
+        };
+        if (varianceDiagnosticsEnabled)
+        {
+            notes.Add("Variance diagnostics use a separate connection outside the sample timer and EF command instrumentation; pg_stat_user_tables tuple counts are estimates and no ANALYZE is run.");
+            notes.Add($"varianceDiagnostics={JsonSerializer.Serialize(new AdmissionVarianceDiagnostic(varianceBefore, varianceAfter, unitTimings!), DiagnosticJsonOptions)}");
+        }
         return BuildRecord(
             $"igdb-admission-{state}", temperature, stagingRows, eligiblePercentage, 0, 0, timer.Elapsed, instrumentation, fake, before, after,
             leaseHeadroom, endpointP50: null, endpointP95: null,
-            notes: [$"eligible rows admitted: {loaded}", $"staging distribution: {stagingRows} rows, {eligiblePercentage}% currently eligible",
-                $"bounded candidate units: {units}; maximum unit milliseconds: {maxUnitMilliseconds}",
-                "Candidate drains 500-row units with fresh contexts/leases under one cumulative allowance; baseline uses the checkpoint admission entry point. Neither includes an inter-unit scheduler yield."]);
+            notes: notes);
     }
+
+    private static readonly JsonSerializerOptions DiagnosticJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    private async Task<VarianceTableStatsSnapshot> CaptureVarianceTableStatsAsync(CancellationToken ct)
+    {
+        try
+        {
+            await using var connection = new NpgsqlConnection(connectionString);
+            await connection.OpenAsync(ct);
+            await using var command = new NpgsqlCommand("""
+                SELECT relname::text, n_live_tup, n_dead_tup, last_autoanalyze,
+                       pg_relation_size(relid), pg_indexes_size(relid), pg_total_relation_size(relid)
+                FROM pg_stat_user_tables
+                WHERE schemaname = current_schema() AND relname::text = ANY(@relation_names)
+                ORDER BY relname
+                """, connection)
+            {
+                CommandTimeout = (int)CommandTimeout.TotalSeconds
+            };
+            command.Parameters.AddWithValue("relation_names", VarianceDiagnosticTables);
+            var tables = new List<VarianceTableStats>();
+            await using var reader = await command.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                tables.Add(new(
+                    reader.GetString(0),
+                    reader.IsDBNull(1) ? null : reader.GetInt64(1),
+                    reader.IsDBNull(2) ? null : reader.GetInt64(2),
+                    reader.IsDBNull(3) ? null : reader.GetFieldValue<DateTimeOffset>(3),
+                    reader.GetInt64(4),
+                    reader.GetInt64(5),
+                    reader.GetInt64(6)));
+            }
+
+            var missing = VarianceDiagnosticTables.Except(tables.Select(table => table.Table), StringComparer.Ordinal).ToArray();
+            return new(tables, missing, null);
+        }
+        catch (Exception exception)
+        {
+            return new([], VarianceDiagnosticTables, exception.GetType().Name);
+        }
+    }
+
+    private sealed record VarianceTableStatsSnapshot(
+        IReadOnlyList<VarianceTableStats> Tables,
+        IReadOnlyList<string> MissingTables,
+        string? FailureCategory);
+
+    private sealed record VarianceTableStats(
+        string Table,
+        long? EstimatedLiveTuples,
+        long? EstimatedDeadTuples,
+        DateTimeOffset? LastAutoanalyze,
+        long HeapBytes,
+        long IndexBytes,
+        long TotalBytes);
+
+    private sealed record AdmissionVarianceDiagnostic(
+        VarianceTableStatsSnapshot? Before,
+        VarianceTableStatsSnapshot? After,
+        IReadOnlyList<AdmissionUnitTiming> Units);
+
+    private sealed record AdmissionUnitTiming(
+        int Unit,
+        double AcquisitionMilliseconds,
+        double AdmissionMilliseconds,
+        double StateCheckMilliseconds,
+        double ReleaseMilliseconds,
+        double TotalMilliseconds,
+        int LoadedRows,
+        bool Completed,
+        string StopReason);
 
     private async Task<IReadOnlyList<BulkCatalogMeasurementRecord>> MeasureArtworkScenariosAsync(CancellationToken ct)
     {
@@ -589,6 +714,7 @@ internal sealed class BulkCatalogMeasurementRunner
         catch (Exception exception)
         {
             coverageGaps.Add($"Artwork scenario {targets}/{state} recorded failure {exception.GetType().Name}; target behavior was not changed by the harness.");
+            throw;
         }
         timer.Stop();
         var after = CaptureResources();
@@ -607,7 +733,8 @@ internal sealed class BulkCatalogMeasurementRunner
             using var response = await endpointClient.GetAsync("/api/Reviews/byMediaType/-3", ct);
             timer.Stop();
             var body = await response.Content.ReadAsStringAsync(ct);
-            if (!response.IsSuccessStatusCode) failures++;
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException("Measurement endpoint returned an unsuccessful status.");
             else
             {
                 using var document = JsonDocument.Parse(body);
@@ -647,6 +774,8 @@ internal sealed class BulkCatalogMeasurementRunner
         for (var i = 0; i < options.EndpointRepetitions; i++)
         {
             using var response = await endpointClient.GetAsync("/api/Reviews/byMediaType/-3", ct);
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException("Measurement warmup endpoint returned an unsuccessful status.");
             _ = await response.Content.ReadAsStringAsync(ct);
         }
     }
@@ -675,6 +804,7 @@ internal sealed class BulkCatalogMeasurementRunner
         catch (Exception exception)
         {
             coverageGaps.Add($"Mixed importer/artwork fake traffic recorded failure {exception.GetType().Name}.");
+            throw;
         }
         timer.Stop();
         var after = CaptureResources();

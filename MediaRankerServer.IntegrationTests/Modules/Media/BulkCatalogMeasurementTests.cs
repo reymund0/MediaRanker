@@ -1,4 +1,5 @@
 using System.Text.Json;
+using FluentAssertions;
 using MediaRankerServer.IntegrationTests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,40 @@ public sealed class BulkCatalogMeasurementTests(
     LocalStackContainerFixture localStackFixture)
     : IntegrationTestBase(postgresFixture, localStackFixture)
 {
+    [Fact]
+    public async Task FailedAdmissionFailsTheRunAndPreservesSanitizedPartialArtifact()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MediaRankerServer.Shared.Data.PostgreSQLContext>();
+        var outputPath = Path.Combine(Path.GetTempPath(), $"bulk-measurement-failure-{Guid.NewGuid():N}.json");
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE FUNCTION reject_measured_admission() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN RAISE EXCEPTION 'private fixture payload must not enter artifact'; END $$;
+            CREATE TRIGGER reject_measured_admission BEFORE INSERT ON media
+            FOR EACH ROW EXECUTE FUNCTION reject_measured_admission();
+            """);
+        try
+        {
+            var options = new BulkCatalogMeasurementOptions(outputPath, "admission", "candidate", 1, 1,
+                [1], [100], ["baseline"]);
+            var runner = new BulkCatalogMeasurementRunner(db.Database.GetDbConnection().ConnectionString, Client, options);
+            Func<Task> run = async () => await runner.RunAsync(CancellationToken.None);
+
+            await run.Should().ThrowAsync<Exception>();
+
+            var json = await File.ReadAllTextAsync(outputPath);
+            using var artifact = JsonDocument.Parse(json);
+            artifact.RootElement.GetProperty("failureCategory").GetString().Should().NotBeNullOrWhiteSpace();
+            artifact.RootElement.GetProperty("measurements").GetArrayLength().Should().Be(0);
+            json.Should().NotContain("private fixture payload");
+        }
+        finally
+        {
+            await db.Database.ExecuteSqlRawAsync("DROP TRIGGER reject_measured_admission ON media; DROP FUNCTION reject_measured_admission();");
+            File.Delete(outputPath);
+        }
+    }
+
     [Fact]
     public async Task OptInMeasurement_WritesSanitizedArtifact()
     {

@@ -1,6 +1,7 @@
 namespace MediaRankerServer.Modules.Media.Data;
 
-public record ImdbImportResult(int Inserted, int Skipped);
+public record ImdbImportResult(int Affected, int Skipped);
+public record ImdbCleanupBatchResult(int Affected, long? NextId, bool HasMore);
 
 public interface IImdbImportProvider
 {
@@ -12,6 +13,7 @@ public interface IImdbImportProvider
     Task<int> DeleteFutureImportsAsync(int maxRows, CancellationToken ct);
     Task<int> DeleteTvPilotImportsAsync(int maxRows, CancellationToken ct);
     Task<int> DeleteOrphanEpisodesAsync(int maxRows, CancellationToken ct);
+    Task<ImdbCleanupBatchResult> DeleteOrphanEpisodesBatchAsync(long? afterId, int maxRows, CancellationToken ct);
     Task<int> DeleteStaleRatingsAsync(DateTimeOffset cutoffUtc, int maxRows, CancellationToken ct);
 
     // Compatibility overloads for existing callers. New ingestion uses bounded overloads.
