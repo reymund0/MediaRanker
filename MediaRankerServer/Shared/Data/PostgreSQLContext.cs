@@ -13,7 +13,6 @@ public class PostgreSQLContext : DbContext
     public PostgreSQLContext(DbContextOptions<PostgreSQLContext> options) : base(options) { }
 
 
-    public DbSet<MediaType> MediaTypes => Set<MediaType>();
     public DbSet<MediaEntity> Media => Set<MediaEntity>();
     public DbSet<MediaCollection> MediaCollections => Set<MediaCollection>();
     public DbSet<MediaCover> MediaCovers => Set<MediaCover>();

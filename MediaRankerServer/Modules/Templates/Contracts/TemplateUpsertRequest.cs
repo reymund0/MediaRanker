@@ -1,11 +1,12 @@
 using FluentValidation;
+using MediaRankerServer.Shared.Data;
 
 namespace MediaRankerServer.Modules.Templates.Contracts;
 
 public class TemplateUpsertRequest
 {
     public long? Id {get; set;}
-    public long MediaTypeId {get; set;}
+    public string MediaType { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public List<TemplateFieldUpsertRequest> Fields { get; set; } = [];
@@ -23,9 +24,9 @@ public class TemplateUpsertRequestValidator : AbstractValidator<TemplateUpsertRe
 {
     public TemplateUpsertRequestValidator()
     {
-        RuleFor(request => request.MediaTypeId)
-            .NotEmpty()
-            .WithMessage("Media type is required.");
+        RuleFor(request => request.MediaType)
+            .Must(MediaTypes.IsValid)
+            .WithMessage("Media type not found.");
 
         RuleFor(request => request.Name)
             .Must(name => !string.IsNullOrWhiteSpace(name))

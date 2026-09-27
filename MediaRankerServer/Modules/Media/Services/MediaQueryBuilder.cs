@@ -16,7 +16,6 @@ internal static class MediaQueryBuilder
     internal static IQueryable<MediaEntity> BaseQuery(PostgreSQLContext db)
         => db.Media
             .AsNoTracking()
-            .Include(m => m.MediaType)
             .Include(m => m.Cover);
 
     internal static IQueryable<MediaEntity> ApplySearch(

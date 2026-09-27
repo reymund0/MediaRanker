@@ -11,8 +11,7 @@ public class MediaDto
     public DateOnly? ReleaseDate { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
-    public long MediaTypeId { get; set; }
-    public string MediaTypeName { get; set; } = string.Empty;
+    public string MediaType { get; set; } = string.Empty;
     public string? CoverImageUrl { get; set; }
     public string CoverStatus { get; set; } = "unsupported";
 }
@@ -27,8 +26,7 @@ public static class MediaDtoMapper
         {
             Id = media.Id,
             Title = media.Title,
-            MediaTypeId = media.MediaTypeId,
-            MediaTypeName = media.MediaType.Name,
+            MediaType = media.MediaType,
             ReleaseDate = media.ReleaseDate,
             CreatedAt = media.CreatedAt,
             UpdatedAt = media.UpdatedAt,

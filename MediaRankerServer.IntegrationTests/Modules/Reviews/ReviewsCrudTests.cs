@@ -43,7 +43,7 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
             var reviewedMedia = new MediaEntity
             {
                 Title = "Test Media",
-                MediaTypeId = _testTemplate.MediaTypeId,
+                MediaType = _testTemplate.MediaType,
                 ReleaseDate = new DateOnly(2024, 1, 1),
             };
             dbContext.Media.Add(reviewedMedia);
@@ -66,7 +66,7 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
             var unreviewedMedia = new MediaEntity
             {
                 Title = "Unreviewed Media",
-                MediaTypeId = _testTemplate.MediaTypeId,
+                MediaType = _testTemplate.MediaType,
                 ReleaseDate = new DateOnly(2024, 1, 1),
             };
             dbContext.Media.Add(unreviewedMedia);
@@ -81,7 +81,7 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
     [Fact]
     public async Task GetReviewsByMediaType_ReturnsExistingRows()
     {
-        var response = await Client.GetAsync($"{basePath}/byMediaType/{_testMedia.MediaTypeId}");
+        var response = await Client.GetAsync($"{basePath}/byMediaType/{_testMedia.MediaType}");
         TestUtils.AssertSuccessResponse(response);
 
         var Reviews = await response.Content.ReadFromJsonAsync<List<ReviewDto>>();
@@ -96,7 +96,7 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
     [Fact]
     public async Task GetUnreviewedMedia_ReturnsUnreviewedMedia()
     {
-        var response = await Client.GetAsync($"{basePath}/unreviewedByType?mediaTypeId={_testUnreviewedMedia.MediaTypeId}&includeTotalCount=true");
+        var response = await Client.GetAsync($"{basePath}/unreviewedByType?mediaType={_testUnreviewedMedia.MediaType}&includeTotalCount=true");
         TestUtils.AssertSuccessResponse(response);
 
         var result = await response.Content.ReadFromJsonAsync<PageResult<UnreviewedMediaDto>>();
@@ -115,12 +115,12 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
         db.Media.AddRange(
-            new MediaEntity { Title = "PagingTestAlpha", MediaTypeId = _testTemplate.MediaTypeId, ReleaseDate = new DateOnly(2020, 1, 1) },
-            new MediaEntity { Title = "PagingTestBeta",  MediaTypeId = _testTemplate.MediaTypeId, ReleaseDate = new DateOnly(2021, 1, 1) }
+            new MediaEntity { Title = "PagingTestAlpha", MediaType = _testTemplate.MediaType, ReleaseDate = new DateOnly(2020, 1, 1) },
+            new MediaEntity { Title = "PagingTestBeta",  MediaType = _testTemplate.MediaType, ReleaseDate = new DateOnly(2021, 1, 1) }
         );
         await db.SaveChangesAsync();
 
-        var response = await Client.GetAsync($"{basePath}/unreviewedByType?mediaTypeId={_testTemplate.MediaTypeId}&searchField=title&searchTerm=PagingTest&sortField=releaseDate&sortDirection=desc&page=0&pageSize=1&includeTotalCount=true");
+        var response = await Client.GetAsync($"{basePath}/unreviewedByType?mediaType={_testTemplate.MediaType}&searchField=title&searchTerm=PagingTest&sortField=releaseDate&sortDirection=desc&page=0&pageSize=1&includeTotalCount=true");
         TestUtils.AssertSuccessResponse(response);
         var result = await response.Content.ReadFromJsonAsync<PageResult<UnreviewedMediaDto>>();
 
@@ -167,14 +167,14 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
         var incompatibleTemplate = new Template
         {
             Name = "TV review template",
-            MediaTypeId = -4,
+            MediaType = "TvShow",
             UserId = TestAuthHandler.DefaultUserId,
             Fields = [new TemplateField { Name = "Story", Position = 1 }]
         };
         var movie = new MediaEntity
         {
             Title = "Movie rejected by TV template",
-            MediaTypeId = -3,
+            MediaType = "Movie",
             ExternalSource = MediaExternalSource.Imdb,
             ExternalId = "tt0133093"
         };
@@ -203,7 +203,7 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
         });
 
         await act.Should().ThrowAsync<DomainException>()
-            .Where(exception => exception.Type == "review_insert_validation_error");
+            .Where(exception => exception.Type == "review_media_type_mismatch");
         artwork.MediaRequests.Should().BeEmpty();
         (await db.MediaCovers.CountAsync()).Should().Be(0);
     }

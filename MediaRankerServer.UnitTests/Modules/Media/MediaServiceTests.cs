@@ -55,7 +55,7 @@ public class MediaServiceTests : IDisposable
         var media = new MediaEntity
         {
             Title = "The Matrix",
-            MediaTypeId = -3,
+            MediaType = "Movie",
             ReleaseDate = new DateOnly(1999, 3, 31)
         };
         _context.Media.Add(media);
@@ -82,7 +82,7 @@ public class MediaServiceTests : IDisposable
         var media = new MediaEntity
         {
             Title = "Review Validation Movie",
-            MediaTypeId = -3,
+            MediaType = "Movie",
             ReleaseDate = new DateOnly(1999, 3, 31),
             ExternalSource = MediaExternalSource.Imdb,
             ExternalId = "tt0133093"
@@ -107,7 +107,7 @@ public class MediaServiceTests : IDisposable
         {
             Id = 1,
             Title = "Inception",
-            MediaTypeId = -3,
+            MediaType = "Movie",
             ReleaseDate = new DateOnly(2010, 7, 16),
         });
         await _context.SaveChangesAsync();
@@ -115,7 +115,7 @@ public class MediaServiceTests : IDisposable
         var act = () => _service.CreateMediaAsync(DefaultUserId, new MediaUpsertRequest
         {
             Title = "Inception",
-            MediaTypeId = -3,
+            MediaType = "Movie",
             ReleaseDate = new DateOnly(2010, 7, 16),
         });
 
@@ -129,7 +129,7 @@ public class MediaServiceTests : IDisposable
         var act = () => _service.UpdateMediaAsync(DefaultUserId, 999, new MediaUpsertRequest
         {
             Title = "Unknown",
-            MediaTypeId = -3,
+            MediaType = "Movie",
             ReleaseDate = new DateOnly(2020, 1, 1),
         });
 
@@ -157,7 +157,7 @@ public class MediaServiceTests : IDisposable
         var act = () => _service.CreateMediaAsync(DefaultUserId, new MediaUpsertRequest
         {
             Title = "",
-            MediaTypeId = -3,
+            MediaType = "Movie",
             ReleaseDate = new DateOnly(2020, 1, 1),
         });
 
@@ -183,7 +183,7 @@ public class MediaServiceTests : IDisposable
         var existingMedia = new MediaEntity
         {
             Title = "Interstellar",
-            MediaTypeId = -3,
+            MediaType = "Movie",
             ReleaseDate = new DateOnly(2014, 11, 7),
             CoverId = cover.Id
         };
@@ -194,7 +194,7 @@ public class MediaServiceTests : IDisposable
         {
             Id = existingMedia.Id,
             Title = "Interstellar Updated",
-            MediaTypeId = -3,
+            MediaType = "Movie",
             ReleaseDate = new DateOnly(2014, 11, 7),
         };
 
@@ -214,7 +214,7 @@ public class MediaServiceTests : IDisposable
         var media = new MediaEntity
         {
             Title = "To Delete",
-            MediaTypeId = -3,
+            MediaType = "Movie",
             ReleaseDate = new DateOnly(2020, 1, 1),
             CoverId = 100
         };
@@ -235,7 +235,7 @@ public class MediaServiceTests : IDisposable
         var media = new MediaEntity
         {
             Title = "Event Test",
-            MediaTypeId = -3,
+            MediaType = "Movie",
             ReleaseDate = new DateOnly(2021, 1, 1)
         };
         _context.Media.Add(media);
@@ -266,13 +266,13 @@ public class MediaServiceTests : IDisposable
     // --- Validation tests ---
 
     [Fact]
-    public async Task CreateMediaAsync_WhenMediaTypeNotFound_ThrowsDomainException()
+    public async Task CreateMediaAsync_WhenMediaTypeIsUnknown_ThrowsDomainException()
     {
         // Arrange
         var request = new MediaUpsertRequest
         {
             Title = "New Movie",
-            MediaTypeId = 99999,  // Non-existent
+            MediaType = "Unknown",
             ReleaseDate = new DateOnly(2020, 1, 1),
         };
 

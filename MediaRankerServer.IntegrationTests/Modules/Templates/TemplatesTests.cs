@@ -16,7 +16,7 @@ namespace MediaRankerServer.IntegrationTests.Modules.Templates;
 public class TemplatesTests(PostgresContainerFixture postgresFixture, LocalStackContainerFixture localStackFixture) 
     : IntegrationTestBase(postgresFixture, localStackFixture)
 {
-    private const long VideoGameMediaTypeId = -1;
+    private const string VideoGameMediaType = "VideoGame";
 
   [Fact]
     public async Task GetTemplates_ReturnsSystemTemplatesAndUserTemplatesOnly()
@@ -33,14 +33,14 @@ public class TemplatesTests(PostgresContainerFixture postgresFixture, LocalStack
             { 
                 UserId = userId, 
                 Name = "User Template", 
-                MediaTypeId = VideoGameMediaTypeId
+                MediaType = VideoGameMediaType
             });
             
             db.Templates.Add(new Template 
             { 
                 UserId = otherUserId, 
                 Name = "Other User Template", 
-                MediaTypeId = VideoGameMediaTypeId
+                MediaType = VideoGameMediaType
             });
 
             await db.SaveChangesAsync();
@@ -74,14 +74,14 @@ public class TemplatesTests(PostgresContainerFixture postgresFixture, LocalStack
             { 
                 UserId = userId, 
                 Name = "User Template", 
-                MediaTypeId = VideoGameMediaTypeId
+                MediaType = VideoGameMediaType
             });
             
             await db.SaveChangesAsync();
         }
 
         // Act
-        var response = await Client.GetAsync($"/api/templates/{VideoGameMediaTypeId}");
+        var response = await Client.GetAsync($"/api/templates/{VideoGameMediaType}");
 
         // Assert
         response.EnsureSuccessStatusCode();
@@ -89,7 +89,32 @@ public class TemplatesTests(PostgresContainerFixture postgresFixture, LocalStack
         
         templates.Should().NotBeNull();
         templates.Should().Contain(t => t.UserId == userId);
-        templates.Should().Contain(t => t.MediaTypeId == VideoGameMediaTypeId);
+        templates.Should().Contain(t => t.MediaType == VideoGameMediaType);
+    }
+
+    [Theory]
+    [InlineData("Unknown")]
+    [InlineData("-1")]
+    [InlineData("Video Game")]
+    public async Task CreateTemplate_WithInvalidMediaType_RejectsWithoutPersisting(string mediaType)
+    {
+        var request = new TemplateUpsertRequest
+        {
+            MediaType = mediaType,
+            Name = "Invalid type template",
+            Fields = [new() { Name = "Story", Position = 1 }]
+        };
+
+        var response = await Client.PostAsJsonAsync("/api/templates", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var problem = await response.Content.ReadFromJsonAsync<Microsoft.AspNetCore.Mvc.ValidationProblemDetails>();
+        problem.Should().NotBeNull();
+        problem!.Status.Should().Be(400);
+        problem.Errors.Should().ContainKey("MediaType");
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+        (await db.Templates.AnyAsync(template => template.Name == request.Name)).Should().BeFalse();
     }
 
     [Fact]
@@ -98,7 +123,7 @@ public class TemplatesTests(PostgresContainerFixture postgresFixture, LocalStack
         // Arrange
         var request = new TemplateUpsertRequest
         {
-            MediaTypeId = VideoGameMediaTypeId,
+            MediaType = VideoGameMediaType,
             Name = "New Integration Template",
             Description = "Test Description",
             Fields = new List<TemplateFieldUpsertRequest>
@@ -117,7 +142,7 @@ public class TemplatesTests(PostgresContainerFixture postgresFixture, LocalStack
         
         result.Should().NotBeNull();
         result!.Name.Should().Be(request.Name);
-        result.MediaTypeId.Should().Be(VideoGameMediaTypeId);
+        result.MediaType.Should().Be(VideoGameMediaType);
         result.Fields.Should().HaveCount(2);
 
         using var scope = Factory.Services.CreateScope();

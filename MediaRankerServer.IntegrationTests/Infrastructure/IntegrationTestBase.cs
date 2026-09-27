@@ -46,7 +46,6 @@ public abstract class IntegrationTestBase : IAsyncLifetime
             TablesToIgnore = 
             [ 
                 "__EFMigrationsHistory",
-                "media_types",
                 "templates",
                 "template_fields"
             ]

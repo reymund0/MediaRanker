@@ -4,8 +4,7 @@ export interface MediaDto {
   releaseDate: string | null;
   createdAt: string;
   updatedAt: string;
-  mediaTypeId: number;
-  mediaTypeName: string;
+  mediaType: string;
   coverImageUrl?: string | null;
   coverStatus: CoverStatus;
 }
@@ -21,6 +20,6 @@ export type CoverStatus =
 export interface MediaUpsertRequest {
   id: number | null;
   title: string;
-  mediaTypeId: number;
+  mediaType: string;
   releaseDate: string;
 }

@@ -37,7 +37,7 @@ Integration tests use a hybrid configuration strategy to ensure that settings re
     - **Respawn**: Automatically resets most tables between tests.
     - **Manual Cleanup**: Tables with mixed system-seeded data (negative IDs) and test data (positive IDs) are cleaned manually in `IntegrationTestBase.ResetMutableDataAsync()`.
 - **Seeded Data**:
-    - `media_types`, `templates`, and `template_fields` contain system-seeded data with **negative IDs**.
+    - `templates` and `template_fields` contain system-seeded data with **negative IDs**. Media types use canonical strings (`VideoGame`, `Book`, `Movie`, `TvShow`, `Album`, `Concert`) rather than a seeded table.
     - These rows persist across all tests.
     - Test-created rows (ID > 0) in these tables are deleted before and after each test.
 - **Cleanup Timing**: Data is reset in both `InitializeAsync` (pre-test) and `DisposeAsync` (post-test) to maintain a consistent state.

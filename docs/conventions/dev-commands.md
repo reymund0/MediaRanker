@@ -39,6 +39,8 @@ Open `http://localhost:3000/auth/login` and select **Use local test user**. Refr
 
 ## EF Core Migrations
 
+The catalog-bootstrap branch integrates MR-51's canonical media types with the automatic-cover-art schema. Its approved compatibility correction maps all six legacy types before removing their IDs and handles databases where automatic cover art was already applied before MR-51. Unknown type mappings fail rather than discard data. Back up the intended database before applying this combined history; local verification uses disposable databases and does not upgrade the loaded application database. A database that already ran the original destructive MR-51 migration cannot recover lost type values from this correction alone.
+
 From `MediaRankerServer`:
 
 - List migrations:

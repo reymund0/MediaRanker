@@ -6,6 +6,7 @@ using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
 using MediaRankerServer.Shared.Paging;
 using Microsoft.EntityFrameworkCore;
+using SharedMediaType = MediaRankerServer.Shared.Data.MediaType;
 
 namespace MediaRankerServer.Modules.Media.Services;
 
@@ -52,7 +53,7 @@ public class MediaCollectionService(
         {
             Title = normalizedTitle,
             CollectionType = request.CollectionType,
-            MediaTypeId = request.MediaTypeId,
+            MediaType = request.MediaType,
             ParentMediaCollectionId = request.ParentMediaCollectionId,
             ReleaseDate = request.ReleaseDate
         };
@@ -78,7 +79,7 @@ public class MediaCollectionService(
 
         collection.Title = normalizedTitle;
         collection.CollectionType = request.CollectionType;
-        collection.MediaTypeId = request.MediaTypeId;
+        collection.MediaType = request.MediaType;
         collection.ParentMediaCollectionId = request.ParentMediaCollectionId;
         collection.ReleaseDate = request.ReleaseDate;
         
@@ -118,7 +119,7 @@ public class MediaCollectionService(
         ValidateCollectionParent(request, parent!);
         
         // Validate collection type specific rules.
-        await ValidateCollectionTypeAsync(request, parent, cancellationToken);
+        ValidateCollectionType(request, parent);
     }
 
     private static void ValidateCollectionParent(MediaCollectionUpsertRequest request, MediaCollection parent)
@@ -130,21 +131,18 @@ public class MediaCollectionService(
         }
 
         // Validate parent media type matches child media type.
-        if (parent != null && parent.MediaTypeId != request.MediaTypeId)
+        if (parent != null && parent.MediaType != request.MediaType)
         {
             throw new DomainException("Parent collection media type does not match child media type.", "collection_parent_media_type_mismatch");
         }
     }
 
-    private async Task ValidateCollectionTypeAsync(MediaCollectionUpsertRequest request, MediaCollection? parent, CancellationToken cancellationToken)
+    private static void ValidateCollectionType(MediaCollectionUpsertRequest request, MediaCollection? parent)
     {
-        var mediaType = await dbContext.MediaTypes
-            .AsNoTracking()
-            .FirstOrDefaultAsync(mt => mt.Id == request.MediaTypeId, cancellationToken)
-            ?? throw new DomainException("Media type not found.", "media_type_not_found");
+        var parsed = MediaTypes.Parse(request.MediaType);
 
         // Validate TV show collection type business rules.
-        if (mediaType.Name == "TV Show")
+        if (parsed == SharedMediaType.TvShow)
         {
             if (request.CollectionType == MediaCollectionType.Season)
             {
@@ -171,7 +169,8 @@ public class MediaCollectionService(
                     "collection_series_cannot_have_parent");
             }
         }
-        else {
+        else
+        {
             // For other media types, we only are supporting series collections for now.
             if (request.CollectionType != MediaCollectionType.Series)
             {

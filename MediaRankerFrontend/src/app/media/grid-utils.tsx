@@ -10,6 +10,7 @@ import { format, parseISO } from "date-fns";
 import { MediaDto } from "./contracts";
 import { DateTimeCell } from "@/lib/components/data-grid/datetime-cell";
 import { CoverImage } from "@/lib/components/data-display/cover-image";
+import { MEDIA_TYPE_LABELS, MediaType } from "@/lib/contracts/shared";
 
 export type MediaRow = Omit<
   MediaDto,
@@ -85,7 +86,7 @@ export function buildMediaColumns({
         >
           <Typography noWrap>{params.value}</Typography>
           <Chip
-            label={params.row.mediaTypeName}
+            label={MEDIA_TYPE_LABELS[params.row.mediaType as MediaType] ?? params.row.mediaType}
             size="small"
             variant="outlined"
           />

@@ -448,9 +448,10 @@ namespace MediaRankerServer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("external_source");
 
-                    b.Property<long>("MediaTypeId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("media_type_id");
+                    b.Property<string>("MediaType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("media_type");
 
                     b.Property<long?>("ParentMediaCollectionId")
                         .HasColumnType("bigint")
@@ -480,8 +481,8 @@ namespace MediaRankerServer.Migrations
                     b.HasIndex("ExternalId")
                         .HasDatabaseName("ix_media_collections_external_id");
 
-                    b.HasIndex("MediaTypeId")
-                        .HasDatabaseName("ix_media_collections_media_type_id");
+                    b.HasIndex("MediaType")
+                        .HasDatabaseName("ix_media_collections_media_type");
 
                     b.HasIndex("ParentMediaCollectionId")
                         .HasDatabaseName("ix_media_collections_parent_id");
@@ -491,7 +492,7 @@ namespace MediaRankerServer.Migrations
                         .HasDatabaseName("uq_media_collections_external_id_source_series")
                         .HasFilter("external_id IS NOT NULL AND collection_type = 'Series'");
 
-                    b.HasIndex("Title", "CollectionType", "MediaTypeId", "ParentMediaCollectionId")
+                    b.HasIndex("Title", "CollectionType", "MediaType", "ParentMediaCollectionId")
                         .IsUnique()
                         .HasDatabaseName("uq_media_collections_title_type_mediatype_parent")
                         .HasFilter("parent_media_collection_id IS NOT NULL");
@@ -632,9 +633,10 @@ namespace MediaRankerServer.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("media_collection_id");
 
-                    b.Property<long>("MediaTypeId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("media_type_id");
+                    b.Property<string>("MediaType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("media_type");
 
                     b.Property<DateOnly?>("ReleaseDate")
                         .HasColumnType("date")
@@ -663,8 +665,8 @@ namespace MediaRankerServer.Migrations
                     b.HasIndex("MediaCollectionId")
                         .HasDatabaseName("ix_media_media_collection_id");
 
-                    b.HasIndex("MediaTypeId")
-                        .HasDatabaseName("ix_media_media_type_id");
+                    b.HasIndex("MediaType")
+                        .HasDatabaseName("ix_media_media_type");
 
                     b.HasIndex("ReleaseDate")
                         .HasDatabaseName("ix_media_release_date");
@@ -678,63 +680,6 @@ namespace MediaRankerServer.Migrations
                         .HasFilter("external_id IS NOT NULL");
 
                     b.ToTable("media", (string)null);
-                });
-
-            modelBuilder.Entity("MediaRankerServer.Modules.Media.Data.Entities.MediaType", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("name");
-
-                    b.HasKey("Id")
-                        .HasName("pk_media_types");
-
-                    b.HasIndex("Name")
-                        .IsUnique()
-                        .HasDatabaseName("uq_media_types_name");
-
-                    b.ToTable("media_types", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = -1L,
-                            Name = "Video Game"
-                        },
-                        new
-                        {
-                            Id = -2L,
-                            Name = "Book"
-                        },
-                        new
-                        {
-                            Id = -3L,
-                            Name = "Movie"
-                        },
-                        new
-                        {
-                            Id = -4L,
-                            Name = "TV Show"
-                        },
-                        new
-                        {
-                            Id = -5L,
-                            Name = "Album"
-                        },
-                        new
-                        {
-                            Id = -6L,
-                            Name = "Concert"
-                        });
                 });
 
             modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Data.Entities.Review", b =>
@@ -865,14 +810,10 @@ namespace MediaRankerServer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("media_title");
 
-                    b.Property<long>("MediaTypeId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("media_type_id");
-
-                    b.Property<string>("MediaTypeName")
+                    b.Property<string>("MediaType")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("media_type_name");
+                        .HasColumnName("media_type");
 
                     b.Property<string>("Notes")
                         .HasColumnType("text")
@@ -928,9 +869,10 @@ namespace MediaRankerServer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
-                    b.Property<long>("MediaTypeId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("media_type_id");
+                    b.Property<string>("MediaType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("media_type");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -955,8 +897,8 @@ namespace MediaRankerServer.Migrations
                         .HasDatabaseName("uq_templates_is_system")
                         .HasFilter("id < 0");
 
-                    b.HasIndex("MediaTypeId")
-                        .HasDatabaseName("ix_templates_media_type_id");
+                    b.HasIndex("MediaType")
+                        .HasDatabaseName("ix_templates_media_type");
 
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_templates_user_id");
@@ -973,7 +915,7 @@ namespace MediaRankerServer.Migrations
                             Id = -1L,
                             CreatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             Description = "Default review template for video games.",
-                            MediaTypeId = -1L,
+                            MediaType = "VideoGame",
                             Name = "Video Games",
                             UpdatedAt = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             UserId = "system"
@@ -1068,13 +1010,6 @@ namespace MediaRankerServer.Migrations
                         .HasForeignKey("CoverId")
                         .HasConstraintName("fk_media_collections_media_covers_cover_id");
 
-                    b.HasOne("MediaRankerServer.Modules.Media.Data.Entities.MediaType", "MediaType")
-                        .WithMany()
-                        .HasForeignKey("MediaTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_media_collections_media_types_media_type_id");
-
                     b.HasOne("MediaRankerServer.Modules.Media.Data.Entities.MediaCollection", "ParentMediaCollection")
                         .WithMany("ChildCollections")
                         .HasForeignKey("ParentMediaCollectionId")
@@ -1082,8 +1017,6 @@ namespace MediaRankerServer.Migrations
                         .HasConstraintName("fk_media_collections_media_collections_parent_media_collection");
 
                     b.Navigation("Cover");
-
-                    b.Navigation("MediaType");
 
                     b.Navigation("ParentMediaCollection");
                 });
@@ -1101,18 +1034,9 @@ namespace MediaRankerServer.Migrations
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_media_media_collections_media_collection_id");
 
-                    b.HasOne("MediaRankerServer.Modules.Media.Data.Entities.MediaType", "MediaType")
-                        .WithMany()
-                        .HasForeignKey("MediaTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_media_media_types_media_type_id");
-
                     b.Navigation("Cover");
 
                     b.Navigation("MediaCollection");
-
-                    b.Navigation("MediaType");
                 });
 
             modelBuilder.Entity("MediaRankerServer.Modules.Reviews.Data.Entities.ReviewField", b =>

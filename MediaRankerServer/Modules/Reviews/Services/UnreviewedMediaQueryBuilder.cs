@@ -14,11 +14,10 @@ internal static class UnreviewedMediaQueryBuilder
         ["title"];
 
     internal static IQueryable<MediaEntity> BaseQuery(
-        PostgreSQLContext db, long mediaTypeId, List<long> reviewedMediaIds)
+        PostgreSQLContext db, string mediaType, List<long> reviewedMediaIds)
         => db.Media
             .AsNoTracking()
-            .Where(m => m.MediaTypeId == mediaTypeId && !reviewedMediaIds.Contains(m.Id))
-            .Include(m => m.MediaType)
+            .Where(m => m.MediaType == mediaType && !reviewedMediaIds.Contains(m.Id))
             .Include(m => m.Cover);
 
     internal static IQueryable<MediaEntity> ApplySearch(

@@ -272,7 +272,7 @@ public sealed class BulkCatalogMixedWorkloadTests(
     private async Task<ArtworkMeasurement> RunArtworkAsync(
         PostgreSQLContext db, CancellationToken ct)
     {
-        var ids = await db.Media.AsNoTracking().Where(x => x.MediaTypeId == -3).OrderBy(x => x.Id)
+        var ids = await db.Media.AsNoTracking().Where(x => x.MediaType == "Movie").OrderBy(x => x.Id)
             .Take(ArtworkTargets).Select(x => x.Id).ToListAsync(ct);
         var service = new ArtworkService(
             db,
@@ -315,7 +315,7 @@ public sealed class BulkCatalogMixedWorkloadTests(
             if (repetition == 0) firstRequestStarted?.TrySetResult(true);
             using var requestTimeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
             requestTimeout.CancelAfter(TimeSpan.FromSeconds(MaxSqlSeconds));
-            using var response = await Client.GetAsync("/api/Reviews/byMediaType/-3", requestTimeout.Token);
+            using var response = await Client.GetAsync("/api/Reviews/byMediaType/Movie", requestTimeout.Token);
             var body = await response.Content.ReadAsStringAsync(requestTimeout.Token);
             timer.Stop();
             elapsed.Add(timer.ElapsedMilliseconds);
@@ -393,7 +393,7 @@ public sealed class BulkCatalogMixedWorkloadTests(
             Title = $"Mixed review movie {index + 1}",
             ExternalId = $"mixed-imdb-{index + 1}",
             ExternalSource = MediaExternalSource.Imdb,
-            MediaTypeId = -3,
+            MediaType = "Movie",
             ReleaseDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-10))
         }).ToArray();
         db.Media.AddRange(media);

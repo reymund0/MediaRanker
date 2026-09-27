@@ -357,7 +357,7 @@ public sealed class BulkCatalogMeasurementValidationTests(
     {
         await using var db = CreateDb(connectionString, new BulkCatalogActualSqlCapture());
         await db.Database.ExecuteSqlRawAsync("DELETE FROM media; DELETE FROM media_collections; DELETE FROM media_covers;", ct);
-        db.Media.Add(new MediaEntity { Title = "Claim fixture", ExternalId = "900001", ExternalSource = MediaExternalSource.Igdb, MediaTypeId = -1 });
+        db.Media.Add(new MediaEntity { Title = "Claim fixture", ExternalId = "900001", ExternalSource = MediaExternalSource.Igdb, MediaType = "VideoGame" });
         db.MediaCovers.Add(new MediaCover
         {
             Provider = ArtworkProvider.Igdb, LookupKind = CoverLookupKind.IgdbGame, LookupId = "900001", Outcome = CoverOutcome.Pending,

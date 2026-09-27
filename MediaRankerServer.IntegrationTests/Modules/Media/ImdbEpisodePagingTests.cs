@@ -69,7 +69,7 @@ public sealed class ImdbEpisodePagingTests(
             Title = "Old title",
             ExternalId = "tt9200001",
             ExternalSource = MediaExternalSource.Imdb,
-            MediaTypeId = -4,
+            MediaType = "TvShow",
             MediaCollectionId = oldSeason.Id
         };
         db.Media.Add(existing);
@@ -108,7 +108,7 @@ public sealed class ImdbEpisodePagingTests(
             Title = "1",
             CollectionType = MediaCollectionType.Season,
             ParentMediaCollectionId = series.Id,
-            MediaTypeId = -3
+            MediaType = "Movie"
         });
         db.ImdbImports.Add(EpisodeImport("tt9300001", "Bounded episode"));
         db.ImdbImportEpisodes.Add(EpisodeLink("tt9300001", series.ExternalId!, 1));
@@ -138,7 +138,7 @@ public sealed class ImdbEpisodePagingTests(
             CollectionType = MediaCollectionType.Series,
             ExternalId = tconst,
             ExternalSource = MediaExternalSource.Imdb,
-            MediaTypeId = -4
+            MediaType = "TvShow"
         };
         db.MediaCollections.Add(series);
         await db.SaveChangesAsync();
@@ -152,7 +152,7 @@ public sealed class ImdbEpisodePagingTests(
                 ParentMediaCollectionId = series.Id,
                 ExternalId = tconst,
                 ExternalSource = MediaExternalSource.Imdb,
-                MediaTypeId = -4
+                MediaType = "TvShow"
             }
         };
         if (includeOldSeason)
@@ -163,7 +163,7 @@ public sealed class ImdbEpisodePagingTests(
                 ParentMediaCollectionId = series.Id,
                 ExternalId = tconst,
                 ExternalSource = MediaExternalSource.Imdb,
-                MediaTypeId = -4
+                MediaType = "TvShow"
             });
         db.MediaCollections.AddRange(seasons);
         await db.SaveChangesAsync();

@@ -23,6 +23,7 @@ export interface TemplateFieldDisplay {
 export interface ReviewCardEditProps {
   review: ReviewFormValues;
   mediaTitle: string;
+  mediaType: string;
   templateFields: TemplateFieldDisplay[];
   isNew: boolean;
   onInsert: (newReview: ReviewDto) => void;
@@ -33,6 +34,7 @@ export interface ReviewCardEditProps {
 export function ReviewCardEdit({
   review,
   mediaTitle,
+  mediaType,
   templateFields,
   isNew,
   onInsert,
@@ -72,6 +74,7 @@ export function ReviewCardEdit({
   const handleInsert = (data: ReviewFormValues) => {
     const request: ReviewInsertRequest = {
       mediaId: data.mediaId!,
+      mediaType,
       templateId: data.templateId!,
       reviewTitle: data.reviewTitle?.trim() || null,
       notes: data.notes?.trim() || null,

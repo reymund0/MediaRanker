@@ -25,7 +25,7 @@ public class ArtworkServiceTests : IDisposable
     [Fact]
     public async Task GetMediaArtworkAsync_ManualMedia_ReturnsUnsupportedWithoutCreatingWork()
     {
-        var media = await AddMediaAsync("Manual title", externalId: null, externalSource: null, mediaTypeId: -3);
+        var media = await AddMediaAsync("Manual title", externalId: null, externalSource: null, mediaType: "Movie");
 
         var result = await CreateService(tmdbEnabled: true).GetMediaArtworkAsync([media.Id]);
 
@@ -36,7 +36,7 @@ public class ArtworkServiceTests : IDisposable
     [Fact]
     public async Task GetMediaArtworkAsync_WhenTmdbIsDisabled_ReturnsDisabledWithoutCreatingWork()
     {
-        var media = await AddMediaAsync("Imported movie", "tt0133093", MediaExternalSource.Imdb, -3);
+        var media = await AddMediaAsync("Imported movie", "tt0133093", MediaExternalSource.Imdb, "Movie");
 
         var result = await CreateService(tmdbEnabled: false).GetMediaArtworkAsync([media.Id]);
 
@@ -47,7 +47,7 @@ public class ArtworkServiceTests : IDisposable
     [Fact]
     public async Task GetMediaArtworkAsync_RepeatedMovieDemand_CreatesOneCanonicalPendingCover()
     {
-        var media = await AddMediaAsync("The Matrix", "tt0133093", MediaExternalSource.Imdb, -3);
+        var media = await AddMediaAsync("The Matrix", "tt0133093", MediaExternalSource.Imdb, "Movie");
         var service = CreateService(tmdbEnabled: true);
 
         var first = await service.GetMediaArtworkAsync([media.Id]);
@@ -65,12 +65,11 @@ public class ArtworkServiceTests : IDisposable
     [Fact]
     public async Task GetMediaArtworkAsync_EpisodesInOneSeries_ShareSeriesCoverWork()
     {
-        var tvType = await _context.MediaTypes.SingleAsync(type => type.Id == -4);
         var series = new MediaCollection
         {
             Title = "Example Series",
             CollectionType = MediaCollectionType.Series,
-            MediaTypeId = tvType.Id,
+            MediaType = "TvShow",
             ExternalSource = MediaExternalSource.Imdb,
             ExternalId = "tt0903747"
         };
@@ -78,7 +77,7 @@ public class ArtworkServiceTests : IDisposable
         {
             Title = "Season 1",
             CollectionType = MediaCollectionType.Season,
-            MediaTypeId = tvType.Id,
+            MediaType = "TvShow",
             ParentMediaCollection = series
         };
         _context.MediaCollections.Add(season);
@@ -87,7 +86,7 @@ public class ArtworkServiceTests : IDisposable
         var firstEpisode = new MediaEntity
         {
             Title = "Episode 1",
-            MediaTypeId = tvType.Id,
+            MediaType = "TvShow",
             MediaCollectionId = season.Id,
             ExternalSource = MediaExternalSource.Imdb,
             ExternalId = "tt0959621"
@@ -95,7 +94,7 @@ public class ArtworkServiceTests : IDisposable
         var secondEpisode = new MediaEntity
         {
             Title = "Episode 2",
-            MediaTypeId = tvType.Id,
+            MediaType = "TvShow",
             MediaCollectionId = season.Id,
             ExternalSource = MediaExternalSource.Imdb,
             ExternalId = "tt1054724"
@@ -111,12 +110,12 @@ public class ArtworkServiceTests : IDisposable
         cover.LookupId.Should().Be(series.ExternalId);
     }
 
-    private async Task<MediaEntity> AddMediaAsync(string title, string? externalId, MediaExternalSource? externalSource, long mediaTypeId)
+    private async Task<MediaEntity> AddMediaAsync(string title, string? externalId, MediaExternalSource? externalSource, string mediaType)
     {
         var media = new MediaEntity
         {
             Title = title,
-            MediaTypeId = mediaTypeId,
+            MediaType = mediaType,
             ExternalId = externalId,
             ExternalSource = externalSource,
             ReleaseDate = new DateOnly(2024, 1, 1)

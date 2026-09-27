@@ -38,8 +38,8 @@ public class ArtworkAuthorizationIntegrationTests(PostgresContainerFixture postg
         }));
         using var anonymousClient = anonymousFactory.CreateClient();
 
-        var mediaResponse = await anonymousClient.GetAsync("/api/media?mediaTypeId=-3");
-        var reviewsResponse = await anonymousClient.GetAsync("/api/reviews/byMediaType/-3");
+        var mediaResponse = await anonymousClient.GetAsync("/api/media?mediaType=Movie");
+        var reviewsResponse = await anonymousClient.GetAsync("/api/reviews/byMediaType/Movie");
 
         mediaResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         reviewsResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -64,13 +64,13 @@ public class ArtworkAuthorizationIntegrationTests(PostgresContainerFixture postg
             {
                 UserId = "other-user",
                 Name = "Other user movie template",
-                MediaTypeId = -3,
+                MediaType = "Movie",
                 Fields = [new TemplateField { Name = "Story", Position = 1 }]
             };
             var movie = new MediaEntity
             {
                 Title = "Other user's imported movie",
-                MediaTypeId = -3,
+                MediaType = "Movie",
                 ExternalSource = MediaExternalSource.Imdb,
                 ExternalId = "tt0133093"
             };
@@ -87,7 +87,7 @@ public class ArtworkAuthorizationIntegrationTests(PostgresContainerFixture postg
             await db.SaveChangesAsync();
 
             using var client = factory.CreateClient();
-            var response = await client.GetAsync("/api/reviews/byMediaType/-3");
+            var response = await client.GetAsync("/api/reviews/byMediaType/Movie");
 
             response.StatusCode.Should().Be(HttpStatusCode.OK);
             var reviews = await response.Content.ReadFromJsonAsync<List<ReviewDto>>();

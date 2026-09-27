@@ -20,7 +20,7 @@ public class ArtworkService(
         var ids = mediaIds.Distinct().ToArray();
         try
         {
-        var records = await db.Media.AsNoTracking().Include(x => x.MediaType)
+        var records = await db.Media.AsNoTracking()
             .Include(x => x.MediaCollection)!.ThenInclude(x => x!.ParentMediaCollection)
             .Where(x => ids.Contains(x.Id)).ToListAsync(ct);
         var targets = records.ToDictionary(x => x.Id, x => GetTarget(x));
@@ -54,13 +54,13 @@ public class ArtworkService(
     private static Target? GetTarget(MediaEntity media)
     {
         if (string.IsNullOrWhiteSpace(media.ExternalId)) return null;
-        if (media.ExternalSource == MediaExternalSource.Igdb && media.MediaType.Name == "Video Game")
+        if (media.ExternalSource == MediaExternalSource.Igdb && media.MediaType == "VideoGame")
             return new(ArtworkProvider.Igdb, CoverLookupKind.IgdbGame, media.ExternalId, media.Id, null);
         if (media.ExternalSource != MediaExternalSource.Imdb) return null;
-        return media.MediaType.Name switch
+        return media.MediaType switch
         {
             "Movie" => new(ArtworkProvider.Tmdb, CoverLookupKind.MovieImdb, media.ExternalId, media.Id, null),
-            "TV Show" => SeriesTarget(media.MediaCollection),
+            "TvShow" => SeriesTarget(media.MediaCollection),
             _ => null
         };
     }

@@ -495,11 +495,6 @@ public sealed class IgdbImportSqlProvider(
             || ownedState.ClaimedUntil <= await GetDatabaseNowAsync(ct))
             throw new InvalidOperationException("IGDB import lease was lost before eligible games could load.");
 
-        var gameMediaTypeId = await dbContext.Set<MediaType>()
-            .Where(x => x.Name == "Video Game")
-            .Select(x => x.Id)
-            .SingleAsync(ct);
-
         var externalIds = eligible.Select(x => x.IgdbGameId.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToArray();
         var mediaByExternalId = await dbContext.Set<MediaEntity>()
             .Where(x => x.ExternalSource == MediaExternalSource.Igdb && x.ExternalId != null && externalIds.Contains(x.ExternalId))
@@ -513,7 +508,7 @@ public sealed class IgdbImportSqlProvider(
             var externalId = staged.IgdbGameId.ToString(System.Globalization.CultureInfo.InvariantCulture);
             if (!mediaByExternalId.TryGetValue(externalId, out var media))
             {
-                media = new MediaEntity { ExternalId = externalId, ExternalSource = MediaExternalSource.Igdb, MediaTypeId = gameMediaTypeId };
+                media = new MediaEntity { ExternalId = externalId, ExternalSource = MediaExternalSource.Igdb, MediaType = nameof(MediaType.VideoGame) };
                 dbContext.Set<MediaEntity>().Add(media);
                 mediaByExternalId.Add(externalId, media);
             }

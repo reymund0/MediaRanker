@@ -8,7 +8,6 @@ import { usePaginatedDatagrid } from "@/lib/components/data-grid/use-paginated-d
 import { useQueryClient } from "@tanstack/react-query";
 import { useMutation } from "@/lib/api/use-mutation";
 import { usePagedQuery } from "@/lib/api/use-paged-query";
-import { useQuery } from "@/lib/api/use-query";
 import { useUser } from "@/lib/auth/user-provider";
 import { BaseDataGrid } from "@/lib/components/data-grid/base-data-grid";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
@@ -16,7 +15,7 @@ import { BaseDialog } from "@/lib/components/feedback/dialog/base-dialog";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { BaseSelect } from "@/lib/components/inputs/select/base-select";
 import { MediaDto, MediaUpsertRequest } from "./contracts";
-import { MediaTypeDto } from "@/lib/contracts/shared";
+import { ALL_MEDIA_TYPES, MEDIA_TYPE_LABELS, MediaType } from "@/lib/contracts/shared";
 import { buildMediaColumns, MediaRow, mapMediaToRow } from "./grid-utils";
 import { MediaEditModal } from "./media-edit-modal";
 import { PageCard } from "@/lib/components/layout/page-card";
@@ -27,9 +26,7 @@ export default function MediaPage() {
   const { userId } = useUser();
   const queryClient = useQueryClient();
 
-  const [selectedMediaTypeId, setSelectedMediaTypeId] = useState<
-    number | undefined
-  >(undefined);
+  const [selectedMediaType, setSelectedMediaType] = useState<MediaType>(ALL_MEDIA_TYPES[0]);
   const [draftRow, setDraftRow] = useState<MediaRow | undefined>(undefined);
   const [deleteRowId, setDeleteRowId] = useState<number | undefined>(undefined);
 
@@ -39,18 +36,6 @@ export default function MediaPage() {
   });
 
   const {
-    data: mediaTypes,
-    isLoading: isMediaTypesLoading,
-    isError: isMediaTypesError,
-  } = useQuery<MediaTypeDto[]>({
-    route: "/api/mediaTypes",
-    queryKey: ["mediaTypes"],
-    enabled: !!userId,
-  });
-
-  const activeMediaTypeId = selectedMediaTypeId ?? mediaTypes?.[0]?.id;
-
-  const {
     items,
     totalCount,
     isLoading: isMediaLoading,
@@ -58,9 +43,9 @@ export default function MediaPage() {
     refetch: refetchMedia,
   } = usePagedQuery<MediaDto>({
     route: "/api/media",
-    routeParams: { mediaTypeId: activeMediaTypeId },
-    queryKey: ["media", activeMediaTypeId],
-    enabled: !!userId && activeMediaTypeId != null,
+    routeParams: { mediaType: selectedMediaType },
+    queryKey: ["media", selectedMediaType],
+    enabled: !!userId,
     pageSize: dataGridProps.paginationModel.pageSize,
     pageRequest,
   });
@@ -68,10 +53,10 @@ export default function MediaPage() {
   const rows = items.map(mapMediaToRow);
 
   usePendingCoverRefresh({
-    viewKey: `${activeMediaTypeId}:${items.map((media) => media.id).join(",")}`,
+    viewKey: `${selectedMediaType}:${items.map((media) => media.id).join(",")}`,
     hasPendingCovers: items.some((media) => media.coverStatus === "pending"),
     refetch: refetchMedia,
-    enabled: !!userId && activeMediaTypeId != null,
+    enabled: !!userId,
   });
 
   const { mutate: upsertMedia } = useMutation<MediaUpsertRequest, MediaDto>({
@@ -106,15 +91,10 @@ export default function MediaPage() {
   };
 
   const addMedia = () => {
-    const activeTypeId = activeMediaTypeId ?? 0;
-    const activeTypeName =
-      mediaTypes?.find((mt) => mt.id === activeTypeId)?.name ?? "";
-
     setDraftRow({
       id: undefined,
       title: "",
-      mediaTypeId: activeTypeId,
-      mediaTypeName: activeTypeName,
+      mediaType: selectedMediaType,
       releaseDate: null,
       createdAt: null,
       updatedAt: null,
@@ -147,17 +127,12 @@ export default function MediaPage() {
   return (
     <PageCard sx={{ maxWidth: "1100px" }}>
       <Stack
-        direction={{ xs: "column", sm: "row" }}
-        alignItems={{ xs: "stretch", sm: "center" }}
+        direction="row"
+        alignItems="center"
         justifyContent="space-between"
-        gap={2}
         sx={{ mb: 2 }}
       >
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          alignItems={{ xs: "stretch", sm: "center" }}
-          gap={{ xs: 2, sm: 4 }}
-        >
+        <Stack direction="row" alignItems="center" gap={4}>
           <Box>
             <Typography variant="h4" component="h1">
               Media
@@ -169,19 +144,11 @@ export default function MediaPage() {
           <Box sx={{ minWidth: 180 }}>
             <BaseSelect
               label="Media Type"
-              value={activeMediaTypeId ?? ""}
-              options={(mediaTypes ?? []).map((mt) => ({
-                id: mt.id,
-                label: mt.name,
-              }))}
-              isLoading={isMediaTypesLoading}
+              value={selectedMediaType}
+              options={ALL_MEDIA_TYPES.map((mt) => ({ id: mt, label: MEDIA_TYPE_LABELS[mt] }))}
               onChange={(e) => {
-                const next = Number(e.target.value);
-                setSelectedMediaTypeId(next);
-                dataGridProps.onPaginationModelChange({
-                  ...dataGridProps.paginationModel,
-                  page: 0,
-                });
+                setSelectedMediaType(e.target.value as MediaType);
+                dataGridProps.onPaginationModelChange({ ...dataGridProps.paginationModel, page: 0 });
               }}
             />
           </Box>
@@ -201,8 +168,8 @@ export default function MediaPage() {
       >
         <NoSsr>
           <BaseDataGrid
-            loading={isMediaLoading || isMediaTypesLoading}
-            error={!!mediaError || isMediaTypesError}
+            loading={isMediaLoading}
+            error={!!mediaError}
             rows={rows}
             columns={columns}
             rowCount={totalCount}
@@ -215,7 +182,6 @@ export default function MediaPage() {
         <MediaEditModal
           open={true}
           row={draftRow}
-          mediaTypes={mediaTypes || []}
           onSubmit={submitEditing}
           onCancel={cancelEditing}
         />

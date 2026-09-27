@@ -21,11 +21,12 @@ import { usePendingCoverRefresh } from "@/lib/api/use-pending-cover-refresh";
 const SCROLL_AMOUNT = (CARD_WIDTH + CARD_GAP) * 3;
 
 export interface ReviewRowProps {
-  label: string;
-  mediaTypeId: number;
+  mediaType: string;
+  mediaTypeLabel: string;
+  userId: string;
 }
 
-export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
+export function ReviewRow({ mediaType, mediaTypeLabel, userId }: ReviewRowProps) {
   const queryClient = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasOverflow, setHasOverflow] = useState(false);
@@ -41,8 +42,9 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
     error,
     refetch,
   } = useQuery<ReviewDto[]>({
-    route: `/api/reviews/byMediaType/${mediaTypeId}`,
-    queryKey: ["reviews", mediaTypeId],
+    route: `/api/reviews/byMediaType/${mediaType}`,
+    queryKey: ["reviews", mediaType],
+    enabled: !!userId,
   });
 
   useEffect(() => {
@@ -72,11 +74,12 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
   }, [reviewsData]);
 
   usePendingCoverRefresh({
-    viewKey: `${mediaTypeId}:${reviews.map((review) => review.id).join(",")}`,
+    viewKey: `${mediaType}:${reviews.map((review) => review.id).join(",")}`,
     hasPendingCovers: reviews.some(
       (review) => review.coverStatus === "pending",
     ),
     refetch,
+    enabled: !!userId,
   });
 
   const updateScrollState = useCallback(() => {
@@ -119,7 +122,7 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
   const reconcileSavedReviews = async (
     update: (current: ReviewDto[]) => ReviewDto[],
   ) => {
-    const queryKey = ["reviews", mediaTypeId];
+    const queryKey = ["reviews", mediaType];
     // Discard an older artwork refresh before publishing a successful mutation.
     await queryClient.cancelQueries({ queryKey, exact: true });
     queryClient.setQueryData<ReviewDto[]>(queryKey, (current) =>
@@ -155,11 +158,13 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
   return (
     <Stack direction="column" gap={1.5}>
       <Stack direction="row" alignItems="center" gap={1}>
-        <Typography variant="h6">{label}</Typography>
+        <Typography variant="h6" gutterBottom>
+          {mediaTypeLabel}
+        </Typography>
         <IconButton
           size="small"
           onClick={handleAddReview}
-          aria-label={`Add ${label} review`}
+          aria-label={`Add ${mediaTypeLabel} review`}
           disabled={hasNewCard}
           color="primary"
           sx={{
@@ -179,7 +184,7 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
           <IconButton
             size="small"
             onClick={scrollLeft}
-            aria-label={`Scroll ${label} reviews left`}
+            aria-label={`Scroll ${mediaTypeLabel} reviews left`}
             disabled={!canScrollLeft}
           >
             <ArrowBackIosNewIcon fontSize="small" />
@@ -211,7 +216,8 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
             <>
               {hasNewCard && (
                 <ReviewCard
-                  mediaTypeId={mediaTypeId}
+                  mediaType={mediaType}
+                  onRefresh={refetch}
                   onInsertReview={handleNewCardSave}
                   onCancelInsertReview={handleNewCardCancel}
                   onUpdateReview={() => {}}
@@ -222,7 +228,8 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
                 <ReviewCard
                   key={review.id}
                   review={review}
-                  mediaTypeId={mediaTypeId}
+                  mediaType={mediaType}
+                  onRefresh={refetch}
                   onInsertReview={() => {}}
                   onCancelInsertReview={() => {}}
                   onUpdateReview={handleReviewUpdate}
@@ -242,7 +249,7 @@ export function ReviewRow({ label, mediaTypeId }: ReviewRowProps) {
           <IconButton
             size="small"
             onClick={scrollRight}
-            aria-label={`Scroll ${label} reviews right`}
+            aria-label={`Scroll ${mediaTypeLabel} reviews right`}
             disabled={!canScrollRight}
           >
             <ArrowForwardIosIcon fontSize="small" />

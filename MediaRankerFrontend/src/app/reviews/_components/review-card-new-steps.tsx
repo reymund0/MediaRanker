@@ -19,7 +19,7 @@ import { CoverImage } from "@/lib/components/data-display/cover-image";
 import { usePendingCoverRefresh } from "@/lib/api/use-pending-cover-refresh";
 
 type ReviewCardNewStepsProps = {
-  mediaTypeId: number;
+  mediaType: string;
   onNewReview: (
     review: ReviewFormValues,
     mediaTitle: string,
@@ -31,7 +31,7 @@ type ReviewCardNewStepsProps = {
 type NewReviewStep = "select-media" | "select-template";
 
 export function ReviewCardNewSteps({
-  mediaTypeId,
+  mediaType,
   onCancel,
   onNewReview,
 }: ReviewCardNewStepsProps) {
@@ -45,15 +45,19 @@ export function ReviewCardNewSteps({
 
   const {
     items: unreviewedMedia,
-    isLoading: unreviewedLoading,
+    isLoading: isUnreviewedMediaLoading,
     error: unreviewedError,
     refetch: refetchUnreviewed,
   } = usePagedQuery<UnreviewedMediaDto>({
     route: "/api/reviews/unreviewedByType",
-    routeParams: { mediaTypeId },
-    pageRequest: { searchTerm: searchInput, searchField: "title" },
-    queryKey: ["unreviewed", mediaTypeId],
-    enabled: !!userId,
+    routeParams: { mediaType },
+    queryKey: ["unreviewedMedia", mediaType],
+    enabled: !!userId && currentStep === "select-media",
+    pageSize: 10,
+    pageRequest: {
+      searchField: "title",
+      searchTerm: searchInput,
+    },
   });
 
   useEffect(() => {
@@ -63,7 +67,7 @@ export function ReviewCardNewSteps({
   }, [unreviewedError, showError]);
 
   usePendingCoverRefresh({
-    viewKey: `${mediaTypeId}:${unreviewedMedia.map((media) => media.id).join(",")}`,
+    viewKey: `${mediaType}:${unreviewedMedia.map((media) => media.id).join(",")}`,
     hasPendingCovers: unreviewedMedia.some(
       (media) => media.coverStatus === "pending",
     ),
@@ -74,9 +78,9 @@ export function ReviewCardNewSteps({
   const { data: templates, isLoading: templatesLoading } = useQuery<
     TemplateDto[]
   >({
-    route: `/api/templates/${mediaTypeId ?? 0}`,
-    queryKey: ["templates-by-type", mediaTypeId],
-    enabled: !!userId && !!selectedMedia,
+    route: `/api/templates/${mediaType}`,
+    queryKey: ["templates", mediaType],
+    enabled: !!userId && currentStep === "select-template",
   });
 
   if (currentStep === "select-media") {
@@ -95,7 +99,7 @@ export function ReviewCardNewSteps({
             label: m.title,
             metadata: m,
           }))}
-          isLoading={unreviewedLoading}
+          isLoading={isUnreviewedMediaLoading}
           searchInput={searchInput}
           onSearchChange={setSearchInput}
           onSelectOption={(option) => {

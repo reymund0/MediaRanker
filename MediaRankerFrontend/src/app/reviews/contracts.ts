@@ -12,8 +12,7 @@ export interface ReviewDto {
   templateName: string;
   mediaId: number;
   mediaTitle: string;
-  mediaTypeId: number;
-  mediaTypeName: string;
+  mediaType: string;
   mediaCoverImageUrl: string | null;
   coverStatus: CoverStatus;
 }
@@ -49,6 +48,7 @@ export interface ReviewFieldUpsertRequest {
 
 export interface ReviewInsertRequest {
   mediaId: number;
+  mediaType: string;
   templateId: number;
   reviewTitle: string | null;
   notes: string | null;

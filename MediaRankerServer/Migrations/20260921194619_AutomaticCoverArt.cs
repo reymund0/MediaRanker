@@ -201,17 +201,15 @@ SELECT
     r.media_id,
     r.template_id,
     m.title AS media_title,
-    CASE WHEN m.external_source = 'Imdb' AND mt.name = 'TV Show'
+    CASE WHEN m.external_source = 'Imdb' AND m.media_type = 'TvShow'
         THEN CASE WHEN collection.collection_type = 'Series' THEN collection.cover_id ELSE series.cover_id END
         ELSE m.cover_id END AS media_cover_id,
-    m.media_type_id,
-    mt.name AS media_type_name,
+    m.media_type,
     t.name AS template_name
 FROM reviews r
 INNER JOIN media m ON r.media_id = m.id
 LEFT JOIN media_collections collection ON m.media_collection_id = collection.id
 LEFT JOIN media_collections series ON collection.parent_media_collection_id = series.id AND series.collection_type = 'Series'
-INNER JOIN media_types mt ON m.media_type_id = mt.id
 INNER JOIN templates t ON r.template_id = t.id;
 " );
         }
@@ -316,16 +314,39 @@ INNER JOIN templates t ON r.template_id = t.id;
                 type: "boolean",
                 nullable: false,
                 defaultValue: false);
-            migrationBuilder.Sql(@"CREATE VIEW review_details AS
+            migrationBuilder.Sql(@"
+DO $migration$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = current_schema() AND table_name = 'media' AND column_name = 'media_type'
+    ) THEN
+        EXECUTE $view$
+CREATE VIEW review_details AS
+SELECT r.id, r.user_id, r.overall_score, r.review_title, r.notes, r.consumed_at,
+       r.created_at, r.updated_at, r.media_id, r.template_id, m.title AS media_title,
+       mc.file_key AS media_cover_file_key, m.media_type, t.name AS template_name
+FROM reviews r
+INNER JOIN media m ON r.media_id = m.id
+LEFT JOIN media_covers mc ON mc.id = m.cover_id
+INNER JOIN templates t ON r.template_id = t.id
+        $view$;
+    ELSE
+        EXECUTE $view$
+CREATE VIEW review_details AS
 SELECT r.id, r.user_id, r.overall_score, r.review_title, r.notes, r.consumed_at,
        r.created_at, r.updated_at, r.media_id, r.template_id, m.title AS media_title,
        mc.file_key AS media_cover_file_key, m.media_type_id, mt.name AS media_type_name,
        t.name AS template_name
 FROM reviews r
 INNER JOIN media m ON r.media_id = m.id
-LEFT JOIN media_covers mc ON m.cover_id = mc.id
+LEFT JOIN media_covers mc ON mc.id = m.cover_id
 INNER JOIN media_types mt ON m.media_type_id = mt.id
-INNER JOIN templates t ON r.template_id = t.id;" );
+INNER JOIN templates t ON r.template_id = t.id
+        $view$;
+    END IF;
+END
+$migration$;");
         }
     }
 }

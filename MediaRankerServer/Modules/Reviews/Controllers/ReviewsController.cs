@@ -10,19 +10,19 @@ namespace MediaRankerServer.Modules.Reviews.Controllers;
 [ApiController]
 public class ReviewsController(IReviewService reviewService) : ControllerBase
 {
-    [HttpGet("byMediaType/{mediaTypeId:long}")]
-    public async Task<IActionResult> GetReviewsByMediaType(long mediaTypeId, CancellationToken cancellationToken)
+    [HttpGet("byMediaType/{mediaType}")]
+    public async Task<IActionResult> GetReviewsByMediaType(string mediaType, CancellationToken cancellationToken)
     {
       var userId = User.GetAuthenticatedUserId();
-      var reviews = await reviewService.GetReviewsByMediaTypeAsync(userId, mediaTypeId, cancellationToken);
+      var reviews = await reviewService.GetReviewsByMediaTypeAsync(userId, mediaType, cancellationToken);
       return Ok(reviews);
     }
 
     [HttpGet("unreviewedByType")]
-    public async Task<IActionResult> GetUnreviewedMediaByType(long mediaTypeId, [FromQuery] PageRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetUnreviewedMediaByType([FromQuery] string mediaType, [FromQuery] PageRequest request, CancellationToken cancellationToken)
     {
       var userId = User.GetAuthenticatedUserId();
-      var unreviewedMedia = await reviewService.GetUnreviewedMediaByTypeAsync(userId, mediaTypeId, request, cancellationToken);
+      var unreviewedMedia = await reviewService.GetUnreviewedMediaByTypeAsync(userId, mediaType, request, cancellationToken);
       return Ok(unreviewedMedia);
     }
 

@@ -34,13 +34,13 @@
 ## 6. Review, operating profile and handoff
 
 - [x] 6.1 Obtain data/performance reviews of actual measured results and reconcile findings against evidence; verify that no static review or five-game smoke is used as bulk readiness proof and that any required schema/architecture expansion is amended before implementation.
-- [ ] 6.2 Complete focused correctness/OpenSpec coverage and independent new-change review checkpoints, preserving the accepted automatic-cover-art waiver; verify task-owned working-tree/untracked coverage and record incomplete reviews honestly rather than reopening the prior gate.
+- [x] 6.2 Complete focused correctness/OpenSpec coverage and independent new-change review checkpoints, preserving the accepted automatic-cover-art waiver; verify task-owned working-tree/untracked coverage and record incomplete reviews honestly rather than reopening the prior gate.
 
 - [x] 6.3 Document the tested start/stop/restart procedure, per-provider recovery semantics, effective flag precedence, process-local limits, sanitized progress and measured finite profile/forecast; verify commands/configuration against implemented options without enabling the running original app.
 - [x] 6.4 Validate the new OpenSpec change strictly and deliver measured results plus any unrun gates; verify accepted cover-art artifacts remain unchanged and provider flags remain disabled. Present a required separately authorized IMDb calibration plan for one bounded download per required feed and full-size isolated measurements, with exact HTTP/byte/disk/time limits and target; IMDb readiness remains unproven until that gate passes. Present an IGDB live sample plan only if needed. Do not run live bulk import, reset/migrate the original database, deploy, commit or open a PR as part of this task.
 
 ## 7. Authorized closeout integration
 
-- [ ] 7.1 Integrate upstream MR-51 canonical media types across import/artwork, API/frontend and test fixtures, preserving cover behavior and existing selection policies.
-- [ ] 7.2 Correct the two incompatible migrations under the user's explicit history exception; verify type preservation, rejected unknown mappings, fresh and previously imported histories, and rollback using disposable databases only.
+- [x] 7.1 Integrate upstream MR-51 canonical media types across import/artwork, API/frontend and test fixtures, preserving cover behavior and existing selection policies.
+- [x] 7.2 Correct the two incompatible migrations under the user's explicit history exception; verify type preservation, rejected unknown mappings, fresh and previously imported histories, and rollback using disposable databases only.
 - [ ] 7.3 Reconcile final reviews and their actual coverage, verify the combined branch, commit, sync/archive this change and publish the requested PR. Scheduled imports and the loaded local database remain untouched.

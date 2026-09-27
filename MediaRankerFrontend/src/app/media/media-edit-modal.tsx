@@ -7,14 +7,14 @@ import { FormSelect } from "@/lib/components/inputs/select/form-select";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
 import { FormDatePicker } from "@/lib/components/date-picker/form-date-picker";
 import { MediaUpsertRequest } from "./contracts";
-import { MediaTypeDto } from "@/lib/contracts/shared";
+import { ALL_MEDIA_TYPES, MEDIA_TYPE_LABELS, MediaType } from "@/lib/contracts/shared";
 import { MediaRow } from "./grid-utils";
 
 const mediaEditSchema = z.object({
   id: z.number().optional(),
   title: z.string().trim().min(1, "Media title is required"),
-  mediaTypeId: z.number("Media type is required"),
-  releaseDate: z.date("Valid release date is required"),
+  mediaType: z.nativeEnum(MediaType, { message: "Media type is required" }),
+  releaseDate: z.date({ message: "Valid release date is required" }),
 });
 
 type MediaEditFormValues = z.infer<typeof mediaEditSchema>;
@@ -22,7 +22,6 @@ type MediaEditFormValues = z.infer<typeof mediaEditSchema>;
 type MediaEditModalProps = {
   open: boolean;
   row: MediaRow;
-  mediaTypes: MediaTypeDto[];
   onSubmit: (data: MediaUpsertRequest) => void;
   onCancel: () => void;
 };
@@ -30,7 +29,6 @@ type MediaEditModalProps = {
 export function MediaEditModal({
   open,
   row,
-  mediaTypes,
   onSubmit,
   onCancel,
 }: MediaEditModalProps) {
@@ -39,7 +37,7 @@ export function MediaEditModal({
     defaultValues: {
       id: row.id,
       title: row.title,
-      mediaTypeId: row.mediaTypeId,
+      mediaType: row.mediaType as MediaType,
       releaseDate: row.releaseDate ?? undefined,
     },
     mode: "onChange",
@@ -50,7 +48,7 @@ export function MediaEditModal({
     onSubmit({
       id: data.id || null,
       title: data.title.trim(),
-      mediaTypeId: data.mediaTypeId,
+      mediaType: data.mediaType,
       releaseDate: data.releaseDate.toISOString().slice(0, 10),
     });
   };
@@ -72,11 +70,11 @@ export function MediaEditModal({
             disableFuture
           />
           <FormSelect<MediaEditFormValues>
-            name="mediaTypeId"
+            name="mediaType"
             label="Media type"
-            options={mediaTypes.map((mediaType) => ({
-              id: mediaType.id,
-              label: mediaType.name,
+            options={ALL_MEDIA_TYPES.map((mt) => ({
+              id: mt,
+              label: MEDIA_TYPE_LABELS[mt],
             }))}
           />
         </Stack>

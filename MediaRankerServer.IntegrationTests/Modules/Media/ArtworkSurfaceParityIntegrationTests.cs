@@ -25,18 +25,18 @@ public class ArtworkSurfaceParityIntegrationTests(
     {
         await SeedFixtureAsync();
 
-        var reviewedMovie = await GetMediaAsync(-3, "Parity reviewed movie");
-        var unreviewedMovie = await GetMediaAsync(-3, "Parity unreviewed movie");
-        var game = await GetMediaAsync(-1, "Parity game");
-        var reviewedEpisode = await GetMediaAsync(-4, "Parity reviewed episode");
-        var unreviewedEpisode = await GetMediaAsync(-4, "Parity unreviewed episode");
+        var reviewedMovie = await GetMediaAsync("Movie", "Parity reviewed movie");
+        var unreviewedMovie = await GetMediaAsync("Movie", "Parity unreviewed movie");
+        var game = await GetMediaAsync("VideoGame", "Parity game");
+        var reviewedEpisode = await GetMediaAsync("TvShow", "Parity reviewed episode");
+        var unreviewedEpisode = await GetMediaAsync("TvShow", "Parity unreviewed episode");
         var series = await GetCollectionAsync("Parity TV series");
 
-        var unreviewedMovieSurface = await GetUnreviewedAsync(-3, "Parity unreviewed movie");
-        var unreviewedGameSurface = await GetUnreviewedAsync(-1, "Parity game");
-        var unreviewedEpisodeSurface = await GetUnreviewedAsync(-4, "Parity unreviewed episode");
-        var movieReviewSurface = (await GetReviewsAsync(-3)).Single(review => review.MediaTitle == "Parity reviewed movie");
-        var tvReviewSurface = (await GetReviewsAsync(-4)).Single(review => review.MediaTitle == "Parity reviewed episode");
+        var unreviewedMovieSurface = await GetUnreviewedAsync("Movie", "Parity unreviewed movie");
+        var unreviewedGameSurface = await GetUnreviewedAsync("VideoGame", "Parity game");
+        var unreviewedEpisodeSurface = await GetUnreviewedAsync("TvShow", "Parity unreviewed episode");
+        var movieReviewSurface = (await GetReviewsAsync("Movie")).Single(review => review.MediaTitle == "Parity reviewed movie");
+        var tvReviewSurface = (await GetReviewsAsync("TvShow")).Single(review => review.MediaTitle == "Parity reviewed episode");
 
         AssertCover(reviewedMovie.CoverImageUrl, reviewedMovie.CoverStatus,
             "https://image.tmdb.org/t/p/w342/movie-reviewed.jpg", "ready");
@@ -77,7 +77,7 @@ public class ArtworkSurfaceParityIntegrationTests(
         var movieReviewed = new MediaEntity
         {
             Title = "Parity reviewed movie",
-            MediaTypeId = -3,
+            MediaType = "Movie",
             ExternalSource = MediaExternalSource.Imdb,
             ExternalId = "tt1000001",
             ReleaseDate = new DateOnly(2020, 1, 1),
@@ -86,7 +86,7 @@ public class ArtworkSurfaceParityIntegrationTests(
         var movieUnreviewed = new MediaEntity
         {
             Title = "Parity unreviewed movie",
-            MediaTypeId = -3,
+            MediaType = "Movie",
             ExternalSource = MediaExternalSource.Imdb,
             ExternalId = "tt1000002",
             ReleaseDate = new DateOnly(2020, 1, 2),
@@ -95,7 +95,7 @@ public class ArtworkSurfaceParityIntegrationTests(
         var game = new MediaEntity
         {
             Title = "Parity game",
-            MediaTypeId = -1,
+            MediaType = "VideoGame",
             ExternalSource = MediaExternalSource.Igdb,
             ExternalId = "42",
             ReleaseDate = new DateOnly(2020, 1, 3),
@@ -105,7 +105,7 @@ public class ArtworkSurfaceParityIntegrationTests(
         {
             Title = "Parity TV series",
             CollectionType = MediaCollectionType.Series,
-            MediaTypeId = -4,
+            MediaType = "TvShow",
             ExternalSource = MediaExternalSource.Imdb,
             ExternalId = "tt1000003",
             Cover = tvCover
@@ -114,13 +114,13 @@ public class ArtworkSurfaceParityIntegrationTests(
         {
             Title = "Parity TV season",
             CollectionType = MediaCollectionType.Season,
-            MediaTypeId = -4,
+            MediaType = "TvShow",
             ParentMediaCollection = series
         };
         var reviewedEpisode = new MediaEntity
         {
             Title = "Parity reviewed episode",
-            MediaTypeId = -4,
+            MediaType = "TvShow",
             MediaCollection = season,
             ExternalSource = MediaExternalSource.Imdb,
             ExternalId = "tt1000004",
@@ -129,15 +129,15 @@ public class ArtworkSurfaceParityIntegrationTests(
         var unreviewedEpisode = new MediaEntity
         {
             Title = "Parity unreviewed episode",
-            MediaTypeId = -4,
+            MediaType = "TvShow",
             MediaCollection = season,
             ExternalSource = MediaExternalSource.Imdb,
             ExternalId = "tt1000005",
             ReleaseDate = new DateOnly(2020, 1, 5)
         };
 
-        var movieTemplate = CreateTemplate("Parity movie template", -3, "Movie score");
-        var tvTemplate = CreateTemplate("Parity TV template", -4, "TV score");
+        var movieTemplate = CreateTemplate("Parity movie template", "Movie", "Movie score");
+        var tvTemplate = CreateTemplate("Parity TV template", "TvShow", "TV score");
         db.AddRange(movieReviewed, movieUnreviewed, game, reviewedEpisode, unreviewedEpisode,
             series, season, movieReviewedCover, movieUnreviewedCover, gameCover, tvCover,
             movieTemplate, tvTemplate);
@@ -163,10 +163,10 @@ public class ArtworkSurfaceParityIntegrationTests(
         await db.SaveChangesAsync();
     }
 
-    private async Task<MediaDto> GetMediaAsync(long mediaTypeId, string title)
+    private async Task<MediaDto> GetMediaAsync(string mediaType, string title)
     {
         var response = await Client.GetAsync(
-            $"/api/media?mediaTypeId={mediaTypeId}&searchField=title&searchTerm={Uri.EscapeDataString(title)}&page=0&pageSize=10&sortField=title&sortDirection=asc");
+            $"/api/media?mediaType={mediaType}&searchField=title&searchTerm={Uri.EscapeDataString(title)}&page=0&pageSize=10&sortField=title&sortDirection=asc");
         response.IsSuccessStatusCode.Should().BeTrue();
         var page = await response.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
         return page!.Items.Single(item => item.Title == title);
@@ -181,27 +181,27 @@ public class ArtworkSurfaceParityIntegrationTests(
         return page!.Items.Single(item => item.Title == title);
     }
 
-    private async Task<UnreviewedMediaDto> GetUnreviewedAsync(long mediaTypeId, string title)
+    private async Task<UnreviewedMediaDto> GetUnreviewedAsync(string mediaType, string title)
     {
         var response = await Client.GetAsync(
-            $"/api/reviews/unreviewedByType?mediaTypeId={mediaTypeId}&searchField=title&searchTerm={Uri.EscapeDataString(title)}&page=0&pageSize=10&sortField=title&sortDirection=asc");
+            $"/api/reviews/unreviewedByType?mediaType={mediaType}&searchField=title&searchTerm={Uri.EscapeDataString(title)}&page=0&pageSize=10&sortField=title&sortDirection=asc");
         response.IsSuccessStatusCode.Should().BeTrue();
         var page = await response.Content.ReadFromJsonAsync<PageResult<UnreviewedMediaDto>>();
         return page!.Items.Single(item => item.Title == title);
     }
 
-    private async Task<List<ReviewDto>> GetReviewsAsync(long mediaTypeId)
+    private async Task<List<ReviewDto>> GetReviewsAsync(string mediaType)
     {
-        var response = await Client.GetAsync($"/api/reviews/byMediaType/{mediaTypeId}");
+        var response = await Client.GetAsync($"/api/reviews/byMediaType/{mediaType}");
         response.IsSuccessStatusCode.Should().BeTrue();
         return (await response.Content.ReadFromJsonAsync<List<ReviewDto>>())!;
     }
 
-    private static Template CreateTemplate(string name, long mediaTypeId, string fieldName) => new()
+    private static Template CreateTemplate(string name, string mediaType, string fieldName) => new()
     {
         UserId = UserId,
         Name = name,
-        MediaTypeId = mediaTypeId,
+        MediaType = mediaType,
         Fields = [new TemplateField { Name = fieldName, Position = 0 }]
     };
 

@@ -18,6 +18,9 @@ public static class ProblemDetailsExtensions
 
                 problemDetails.Instance = httpContext.Request.Path;
 
+                // Framework validation responses already have their intended status and errors.
+                if (exception is null) return;
+
                 if (exception is DomainException domainException)
                 {
                     problemDetails.Status = StatusCodes.Status400BadRequest;

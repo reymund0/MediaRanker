@@ -251,7 +251,7 @@ public sealed class IgdbBootstrapRecoveryIntegrationTests(
             Title = "Fresh title",
             ExternalId = "1001",
             ExternalSource = MediaExternalSource.Igdb,
-            MediaTypeId = -1,
+            MediaType = "VideoGame",
             ReleaseDate = DateOnly.FromDateTime(staleFetch.AddDays(-1).UtcDateTime),
             CreatedAt = freshCover,
             UpdatedAt = freshCover
@@ -363,7 +363,7 @@ public sealed class IgdbBootstrapRecoveryIntegrationTests(
                 Title = "On-demand title",
                 ExternalId = "1051",
                 ExternalSource = MediaExternalSource.Igdb,
-                MediaTypeId = -1,
+                MediaType = "VideoGame",
                 ReleaseDate = DateOnly.FromDateTime(DateTimeOffset.UtcNow.AddDays(-2).UtcDateTime),
                 CreatedAt = completionAt,
                 UpdatedAt = completionAt,
@@ -695,7 +695,7 @@ public sealed class IgdbBootstrapRecoveryIntegrationTests(
         using var endpointClient = endpointFactory.CreateClient();
 
         var browseResponse = await endpointClient.GetAsync(
-            "/api/media?mediaTypeId=-1&searchField=title&searchTerm=Metadata%20game&page=0&pageSize=10&sortField=title&sortDirection=asc");
+            "/api/media?mediaType=VideoGame&searchField=title&searchTerm=Metadata%20game&page=0&pageSize=10&sortField=title&sortDirection=asc");
         browseResponse.IsSuccessStatusCode.Should().BeTrue();
         var browsePage = await browseResponse.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
         var browsedGame = browsePage!.Items.Should().ContainSingle().Which;
@@ -704,7 +704,7 @@ public sealed class IgdbBootstrapRecoveryIntegrationTests(
         browsedGame.CoverImageUrl.Should().Be("https://images.igdb.com/igdb/image/upload/t_cover_big/metadata-cover.jpg");
         browsedGame.CoverStatus.Should().Be("ready");
 
-        var reviewResponse = await endpointClient.GetAsync("/api/reviews/byMediaType/-1");
+        var reviewResponse = await endpointClient.GetAsync("/api/reviews/byMediaType/VideoGame");
         reviewResponse.IsSuccessStatusCode.Should().BeTrue();
         var reviews = await reviewResponse.Content.ReadFromJsonAsync<List<ReviewDto>>();
         var gameReview = reviews!.Should().ContainSingle(review => review.MediaId == importedGame.Id).Which;

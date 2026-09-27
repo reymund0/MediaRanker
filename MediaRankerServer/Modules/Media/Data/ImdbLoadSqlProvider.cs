@@ -57,14 +57,14 @@ public class ImdbLoadSqlProvider(
                 ORDER BY i.tconst
                 LIMIT {maxRows}
             ), upsert AS (
-                INSERT INTO media (title, release_date, external_id, external_source, media_type_id, created_at, updated_at)
+                INSERT INTO media (title, release_date, external_id, external_source, media_type, created_at, updated_at)
                 SELECT primary_title,
                        CASE WHEN start_year IS NULL THEN NULL ELSE make_date(start_year, 7, 1) END,
-                       tconst, '{nameof(MediaExternalSource.Imdb)}', -3, now(), now()
+                       tconst, '{nameof(MediaExternalSource.Imdb)}', 'Movie', now(), now()
                 FROM selected
                 ON CONFLICT (external_id, external_source) WHERE external_id IS NOT NULL
                 DO UPDATE SET title = EXCLUDED.title, release_date = EXCLUDED.release_date,
-                              media_type_id = EXCLUDED.media_type_id, updated_at = now()
+                              media_type = EXCLUDED.media_type, updated_at = now()
                 RETURNING external_id
             ) SELECT external_id AS "Value" FROM upsert ORDER BY external_id;
             """;
@@ -87,14 +87,14 @@ public class ImdbLoadSqlProvider(
             ), upsert AS (
                 INSERT INTO media_collections
                     (title, release_date, external_id, external_source, collection_type,
-                     media_type_id, parent_media_collection_id, created_at, updated_at)
+                     media_type, parent_media_collection_id, created_at, updated_at)
                 SELECT primary_title,
                        CASE WHEN start_year IS NULL THEN NULL ELSE make_date(start_year, 7, 1) END,
-                       tconst, '{nameof(MediaExternalSource.Imdb)}', 'Series', -4, NULL, now(), now()
+                       tconst, '{nameof(MediaExternalSource.Imdb)}', 'Series', 'TvShow', NULL, now(), now()
                 FROM selected
                 ON CONFLICT (external_id, external_source) WHERE external_id IS NOT NULL AND collection_type = 'Series'
                 DO UPDATE SET title = EXCLUDED.title, release_date = EXCLUDED.release_date,
-                              media_type_id = EXCLUDED.media_type_id, updated_at = now()
+                              media_type = EXCLUDED.media_type, updated_at = now()
                 RETURNING external_id
             ) SELECT external_id AS "Value" FROM upsert ORDER BY external_id;
             """;
@@ -121,12 +121,12 @@ public class ImdbLoadSqlProvider(
             ), upsert AS (
                 INSERT INTO media_collections
                     (title, release_date, external_id, external_source, collection_type,
-                     media_type_id, parent_media_collection_id, created_at, updated_at)
+                     media_type, parent_media_collection_id, created_at, updated_at)
                 SELECT CASE WHEN season_number = -1 THEN 'Unknown' ELSE season_number::text END,
                        CASE WHEN season_start_year IS NULL THEN NULL ELSE make_date(season_start_year, 7, 1) END,
-                       parent_tconst, '{nameof(MediaExternalSource.Imdb)}', 'Season', -4, parent_id, now(), now()
+                       parent_tconst, '{nameof(MediaExternalSource.Imdb)}', 'Season', 'TvShow', parent_id, now(), now()
                 FROM groups
-                ON CONFLICT (title, collection_type, media_type_id, parent_media_collection_id)
+                ON CONFLICT (title, collection_type, media_type, parent_media_collection_id)
                     WHERE parent_media_collection_id IS NOT NULL
                 DO UPDATE SET release_date = EXCLUDED.release_date, external_id = EXCLUDED.external_id,
                               external_source = EXCLUDED.external_source, updated_at = now()
@@ -164,18 +164,18 @@ public class ImdbLoadSqlProvider(
                                                     AND series.collection_type = 'Series'
                 INNER JOIN media_collections season ON season.parent_media_collection_id = series.id
                                                     AND season.collection_type = 'Season'
-                                                    AND season.media_type_id = -4
+                                                    AND season.media_type = 'TvShow'
                                                     AND season.title = CASE WHEN e.season_number = -1 THEN 'Unknown' ELSE e.season_number::text END
             ), upsert AS (
                 INSERT INTO media (title, release_date, external_id, external_source,
-                                   media_type_id, media_collection_id, created_at, updated_at)
+                                   media_type, media_collection_id, created_at, updated_at)
                 SELECT s.primary_title,
                        CASE WHEN s.start_year IS NULL THEN NULL ELSE make_date(s.start_year, 7, 1) END,
-                       s.tconst, '{nameof(MediaExternalSource.Imdb)}', -4, s.season_id, now(), now()
+                       s.tconst, '{nameof(MediaExternalSource.Imdb)}', 'TvShow', s.season_id, now(), now()
                 FROM selected s
                 ON CONFLICT (external_id, external_source) WHERE external_id IS NOT NULL
                 DO UPDATE SET title = EXCLUDED.title, release_date = EXCLUDED.release_date,
-                              media_type_id = EXCLUDED.media_type_id, media_collection_id = EXCLUDED.media_collection_id,
+                              media_type = EXCLUDED.media_type, media_collection_id = EXCLUDED.media_collection_id,
                               updated_at = now()
                 RETURNING external_id
             ), scanned AS (

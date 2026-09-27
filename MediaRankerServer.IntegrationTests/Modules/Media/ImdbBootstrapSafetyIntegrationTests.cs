@@ -174,7 +174,7 @@ public class ImdbBootstrapSafetyIntegrationTests(
             CollectionType = MediaCollectionType.Series,
             ExternalId = "tt8200000",
             ExternalSource = MediaExternalSource.Imdb,
-            MediaTypeId = -4
+            MediaType = "TvShow"
         };
         db.MediaCollections.Add(series);
         await db.SaveChangesAsync();
@@ -185,7 +185,7 @@ public class ImdbBootstrapSafetyIntegrationTests(
             ParentMediaCollectionId = series.Id,
             ExternalId = series.ExternalId,
             ExternalSource = MediaExternalSource.Imdb,
-            MediaTypeId = -4
+            MediaType = "TvShow"
         };
         var season = new MediaCollection
         {
@@ -194,7 +194,7 @@ public class ImdbBootstrapSafetyIntegrationTests(
             ParentMediaCollectionId = series.Id,
             ExternalId = series.ExternalId,
             ExternalSource = MediaExternalSource.Imdb,
-            MediaTypeId = -4
+            MediaType = "TvShow"
         };
         db.MediaCollections.AddRange(oldSeason, season);
         await db.SaveChangesAsync();
@@ -214,7 +214,7 @@ public class ImdbBootstrapSafetyIntegrationTests(
             Title = "Preserved Domain Title",
             ExternalId = "tt8200001",
             ExternalSource = MediaExternalSource.Imdb,
-            MediaTypeId = -4,
+            MediaType = "TvShow",
             MediaCollectionId = oldSeason.Id
         });
         await db.SaveChangesAsync();
@@ -324,7 +324,7 @@ public class ImdbBootstrapSafetyIntegrationTests(
             CollectionType = MediaCollectionType.Series,
             ExternalId = "tt8000002",
             ExternalSource = MediaExternalSource.Imdb,
-            MediaTypeId = -4
+            MediaType = "TvShow"
         });
         await db.SaveChangesAsync();
     }

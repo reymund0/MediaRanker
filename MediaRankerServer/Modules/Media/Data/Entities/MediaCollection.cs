@@ -23,14 +23,12 @@ public class MediaCollection : ITimestampedEntity
     public string? ExternalId { get; set; }
     public MediaExternalSource? ExternalSource { get; set; }
     
+    public string MediaType { get; set; } = null!;
+
     // Foreign keys
     public long? CoverId { get; set; }
-    public long MediaTypeId { get; set; }
-
 
     // Navigation properties
-    public MediaType MediaType { get; set; } = null!;
-
     public MediaCollection? ParentMediaCollection { get; set; }
     public ICollection<MediaCollection> ChildCollections { get; set; } = [];
     public ICollection<MediaEntity> MediaItems { get; set; } = [];
@@ -53,7 +51,7 @@ public class MediaCollection : ITimestampedEntity
                 .HasConversion<string>()
                 .IsRequired();
 
-            builder.Property(mc => mc.MediaTypeId)
+            builder.Property(mc => mc.MediaType)
                 .IsRequired();
 
             builder.Property(mc => mc.ParentMediaCollectionId);
@@ -69,10 +67,6 @@ public class MediaCollection : ITimestampedEntity
                 .HasConversion<string>();
 
             // Relationships
-            builder.HasOne(mc => mc.MediaType)
-                .WithMany()
-                .HasForeignKey(mc => mc.MediaTypeId);
-
             builder.HasOne(mc => mc.ParentMediaCollection)
                 .WithMany(mc => mc.ChildCollections)
                 .HasForeignKey(mc => mc.ParentMediaCollectionId)
@@ -83,8 +77,8 @@ public class MediaCollection : ITimestampedEntity
                 .HasForeignKey(mc => mc.CoverId);
 
             // Indexes
-            builder.HasIndex(mc => mc.MediaTypeId)
-                .HasDatabaseName("ix_media_collections_media_type_id");
+            builder.HasIndex(mc => mc.MediaType)
+                .HasDatabaseName("ix_media_collections_media_type");
 
             builder.HasIndex(mc => mc.ParentMediaCollectionId)
                 .HasDatabaseName("ix_media_collections_parent_id");
@@ -93,7 +87,7 @@ public class MediaCollection : ITimestampedEntity
                 .HasDatabaseName("ix_media_collections_external_id");
 
             // Partial unique indexes to prevent duplicate collections. One with parent included, one without.
-            builder.HasIndex(mc => new { mc.Title, mc.CollectionType, mc.MediaTypeId, mc.ParentMediaCollectionId })
+            builder.HasIndex(mc => new { mc.Title, mc.CollectionType, mc.MediaType, mc.ParentMediaCollectionId })
                 .IsUnique()
                 .HasDatabaseName("uq_media_collections_title_type_mediatype_parent")
                 .HasFilter("parent_media_collection_id IS NOT NULL");

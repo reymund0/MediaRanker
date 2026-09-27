@@ -29,7 +29,7 @@ public class ArtworkDemandIntegrationTests(
             var returned = new MediaEntity
             {
                 Title = "Demand page A returned movie",
-                MediaTypeId = -3,
+                MediaType = "Movie",
                 ExternalSource = MediaExternalSource.Imdb,
                 ExternalId = "tt0000001",
                 ReleaseDate = new DateOnly(2020, 1, 1)
@@ -37,7 +37,7 @@ public class ArtworkDemandIntegrationTests(
             var excluded = new MediaEntity
             {
                 Title = "Demand page Z excluded movie",
-                MediaTypeId = -3,
+                MediaType = "Movie",
                 ExternalSource = MediaExternalSource.Imdb,
                 ExternalId = "tt0000002",
                 ReleaseDate = new DateOnly(2020, 1, 2)
@@ -57,7 +57,7 @@ public class ArtworkDemandIntegrationTests(
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync(
-            "/api/media?mediaTypeId=-3&searchField=title&searchTerm=Demand%20page&page=0&pageSize=1&sortField=title&sortDirection=asc&includeTotalCount=true");
+            "/api/media?mediaType=Movie&searchField=title&searchTerm=Demand%20page&page=0&pageSize=1&sortField=title&sortDirection=asc&includeTotalCount=true");
 
         response.IsSuccessStatusCode.Should().BeTrue();
         var page = await response.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
@@ -85,7 +85,7 @@ public class ArtworkDemandIntegrationTests(
             var media = new MediaEntity
             {
                 Title = "Concurrent demand movie",
-                MediaTypeId = -3,
+                MediaType = "Movie",
                 ExternalSource = MediaExternalSource.Imdb,
                 ExternalId = "tt0000042",
                 ReleaseDate = new DateOnly(2020, 1, 1)
@@ -104,8 +104,8 @@ public class ArtworkDemandIntegrationTests(
         using var client = factory.CreateClient();
 
         var requests = await Task.WhenAll(
-            client.GetAsync("/api/media?mediaTypeId=-3&searchField=title&searchTerm=Concurrent%20demand&page=0&pageSize=10"),
-            client.GetAsync("/api/media?mediaTypeId=-3&searchField=title&searchTerm=Concurrent%20demand&page=0&pageSize=10"));
+            client.GetAsync("/api/media?mediaType=Movie&searchField=title&searchTerm=Concurrent%20demand&page=0&pageSize=10"),
+            client.GetAsync("/api/media?mediaType=Movie&searchField=title&searchTerm=Concurrent%20demand&page=0&pageSize=10"));
 
         requests.Should().OnlyContain(response => response.IsSuccessStatusCode);
         var pages = await Task.WhenAll(requests.Select(response => response.Content.ReadFromJsonAsync<PageResult<MediaDto>>()));

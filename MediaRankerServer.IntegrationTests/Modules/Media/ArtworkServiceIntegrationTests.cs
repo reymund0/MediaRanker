@@ -23,7 +23,7 @@ public class ArtworkServiceIntegrationTests(PostgresContainerFixture postgresFix
             {
                 Title = "Example Series",
                 CollectionType = MediaCollectionType.Series,
-                MediaTypeId = -4,
+                MediaType = "TvShow",
                 ExternalSource = MediaExternalSource.Imdb,
                 ExternalId = "tt0903747"
             };
@@ -31,7 +31,7 @@ public class ArtworkServiceIntegrationTests(PostgresContainerFixture postgresFix
             {
                 Title = "Season 1",
                 CollectionType = MediaCollectionType.Season,
-                MediaTypeId = -4,
+                MediaType = "TvShow",
                 ParentMediaCollection = series
             };
             db.MediaCollections.Add(season);
@@ -51,7 +51,7 @@ public class ArtworkServiceIntegrationTests(PostgresContainerFixture postgresFix
             var firstEpisode = new MediaEntity
             {
                 Title = "Episode 1",
-                MediaTypeId = -4,
+                MediaType = "TvShow",
                 MediaCollectionId = season.Id,
                 ExternalSource = MediaExternalSource.Imdb,
                 ExternalId = "tt0959621"
@@ -59,7 +59,7 @@ public class ArtworkServiceIntegrationTests(PostgresContainerFixture postgresFix
             var secondEpisode = new MediaEntity
             {
                 Title = "Episode 2",
-                MediaTypeId = -4,
+                MediaType = "TvShow",
                 MediaCollectionId = season.Id,
                 ExternalSource = MediaExternalSource.Imdb,
                 ExternalId = "tt1054724"
@@ -90,7 +90,7 @@ public class ArtworkServiceIntegrationTests(PostgresContainerFixture postgresFix
             var media = new MediaEntity
             {
                 Title = "Imported Movie",
-                MediaTypeId = -3,
+                MediaType = "Movie",
                 ExternalSource = MediaExternalSource.Imdb,
                 ExternalId = "tt0133093"
             };

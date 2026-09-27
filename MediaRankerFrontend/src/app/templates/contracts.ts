@@ -10,7 +10,7 @@ export interface TemplateFieldUpsertRequest {
 
 export interface TemplateUpsertRequest {
   id: number | null;
-  mediaTypeId: number;
+  mediaType: string;
   name: string;
   description: string | null;
   fields: TemplateFieldUpsertRequest[];

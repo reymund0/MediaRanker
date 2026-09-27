@@ -730,7 +730,7 @@ internal sealed class BulkCatalogMeasurementRunner
         {
             ct.ThrowIfCancellationRequested();
             var timer = Stopwatch.StartNew();
-            using var response = await endpointClient.GetAsync("/api/Reviews/byMediaType/-3", ct);
+            using var response = await endpointClient.GetAsync("/api/Reviews/byMediaType/Movie", ct);
             timer.Stop();
             var body = await response.Content.ReadAsStringAsync(ct);
             if (!response.IsSuccessStatusCode)
@@ -773,7 +773,7 @@ internal sealed class BulkCatalogMeasurementRunner
     {
         for (var i = 0; i < options.EndpointRepetitions; i++)
         {
-            using var response = await endpointClient.GetAsync("/api/Reviews/byMediaType/-3", ct);
+            using var response = await endpointClient.GetAsync("/api/Reviews/byMediaType/Movie", ct);
             if (!response.IsSuccessStatusCode)
                 throw new InvalidOperationException("Measurement warmup endpoint returned an unsuccessful status.");
             _ = await response.Content.ReadAsStringAsync(ct);
@@ -914,8 +914,8 @@ internal sealed class BulkCatalogMeasurementRunner
                     AND first_release_date < date_trunc('day', now() AT TIME ZONE 'UTC') + interval '1 day';
                 """, ct);
                 await db.Database.ExecuteSqlInterpolatedAsync($"""
-                INSERT INTO media (title, release_date, external_id, external_source, media_type_id, cover_id, created_at, updated_at)
-                SELECT i.name, (i.first_release_date AT TIME ZONE 'UTC')::date, i.igdb_game_id::text, 'Igdb', -1, c.id, i.fetched_at, i.fetched_at
+                INSERT INTO media (title, release_date, external_id, external_source, media_type, cover_id, created_at, updated_at)
+                SELECT i.name, (i.first_release_date AT TIME ZONE 'UTC')::date, i.igdb_game_id::text, 'Igdb', 'VideoGame', c.id, i.fetched_at, i.fetched_at
                 FROM igdb_imports i JOIN media_covers c ON c.provider = 'Igdb' AND c.lookup_kind = 'IgdbGame' AND c.lookup_id = i.igdb_game_id::text
                 WHERE i.igdb_game_id > {offset} AND i.igdb_game_id <= {upper};
                 """, ct);
@@ -929,12 +929,11 @@ internal sealed class BulkCatalogMeasurementRunner
 
         if (state == "backlog" && stagingRows > 0)
         {
-            var gameTypeId = -1L;
-            var backlog = Math.Min(500, stagingRows);
+                        var backlog = Math.Min(500, stagingRows);
             db.Media.AddRange(Enumerable.Range(1, backlog).Select(id => new MediaEntity
             {
                 Title = $"Existing game {id}", ExternalId = id.ToString(CultureInfo.InvariantCulture), ExternalSource = MediaExternalSource.Igdb,
-                MediaTypeId = gameTypeId, ReleaseDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-2))
+                MediaType = "VideoGame", ReleaseDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-2))
             }));
             await db.SaveChangesAsync(ct);
         }
@@ -963,7 +962,7 @@ internal sealed class BulkCatalogMeasurementRunner
                 CollectionType = MediaCollectionType.Series,
                 ExternalId = "tt9999000",
                 ExternalSource = MediaExternalSource.Imdb,
-                MediaTypeId = -4,
+                MediaType = "TvShow",
                 ReleaseDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-100))
             };
             db.MediaCollections.Add(series);
@@ -977,7 +976,7 @@ internal sealed class BulkCatalogMeasurementRunner
                 Title = $"Artwork fixture {i + 1}",
                 ExternalId = state == "shared-tv" ? $"tt{2000000 + i + 1}" : $"tt{1000000 + i + 1}",
                 ExternalSource = MediaExternalSource.Imdb,
-                MediaTypeId = state == "shared-tv" ? -4 : -3,
+                MediaType = state == "shared-tv" ? "TvShow" : "Movie",
                 MediaCollection = series,
                 ReleaseDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-10))
             });

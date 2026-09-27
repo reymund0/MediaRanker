@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Modules.Reviews.Data.Entities;
 using MediaRankerServer.Shared.Data.Interfaces;
 
@@ -16,8 +15,7 @@ public class Template : ITimestampedEntity
     public DateTimeOffset UpdatedAt { get; set; }
     public ICollection<TemplateField> Fields { get; set; } = [];
 
-    // Related entities.
-    public long MediaTypeId { get; set; }
+    public string MediaType { get; set; } = null!;
 
 
     public class Configuration : IEntityTypeConfiguration<Template>
@@ -33,7 +31,8 @@ public class Template : ITimestampedEntity
             builder.Property(t => t.UserId)
                 .IsRequired();
 
-            builder.Property(t => t.MediaTypeId);
+            builder.Property(t => t.MediaType)
+                .IsRequired();
 
             builder.Property(t => t.Name)
                 .IsRequired();
@@ -59,15 +58,15 @@ public class Template : ITimestampedEntity
                 .HasFilter("id < 0");
             
             // Index for related entities
-            builder.HasIndex(t => t.MediaTypeId)
-                .HasDatabaseName("ix_templates_media_type_id");
+            builder.HasIndex(t => t.MediaType)
+                .HasDatabaseName("ix_templates_media_type");
 
             // Seed system template for Video Games
             builder.HasData(
                 new Template
                 {
                     Id = -1,
-                    MediaTypeId = -1,
+                    MediaType = "VideoGame",
                     UserId = "system",
                     Name = "Video Games",
                     Description = "Default review template for video games."

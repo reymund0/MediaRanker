@@ -350,13 +350,13 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         var tvMiniSeriesEp = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == "tt2100002");
 
         tvSeriesEp.Should().NotBeNull();
-        tvSeriesEp!.MediaTypeId.Should().Be(-4L);
+        tvSeriesEp!.MediaType.Should().Be("TvShow");
         tvSeriesEp.ExternalSource.Should().Be(MediaExternalSource.Imdb);
         tvSeriesEp.ReleaseDate.Should().Be(new DateOnly(2001, 7, 1));
         tvSeriesEp.MediaCollectionId.Should().Be(tvSeriesSeason.Id);
 
         tvMiniSeriesEp.Should().NotBeNull();
-        tvMiniSeriesEp!.MediaTypeId.Should().Be(-4L);
+        tvMiniSeriesEp!.MediaType.Should().Be("TvShow");
         tvMiniSeriesEp.MediaCollectionId.Should().Be(tvMiniSeriesSeason.Id);
     }
 

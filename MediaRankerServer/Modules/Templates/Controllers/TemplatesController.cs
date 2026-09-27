@@ -17,11 +17,11 @@ public class TemplatesController(ITemplateService templateService) : ControllerB
         return Ok(templates);
     }
 
-    [HttpGet("{mediaTypeId:long}")]
-    public async Task<IActionResult> GetTemplatesByMediaType(long mediaTypeId, CancellationToken cancellationToken)
+    [HttpGet("{mediaType}")]
+    public async Task<IActionResult> GetTemplatesByMediaType(string mediaType, CancellationToken cancellationToken)
     {
         var userId = User.GetAuthenticatedUserId();
-        var templates = await templateService.GetTemplatesByMediaTypeAsync(userId, mediaTypeId, cancellationToken);
+        var templates = await templateService.GetTemplatesByMediaTypeAsync(userId, mediaType, cancellationToken);
         return Ok(templates);
     }
 
