@@ -14,7 +14,12 @@ import {
   LOCAL_TEST_USERNAME,
 } from "./local-test-auth";
 
-const AUTH_PATHS = ["/auth/login", "/auth/signup", "/auth/confirm-signup"];
+const AUTH_PATHS = [
+  "/auth/login",
+  "/auth/signup",
+  "/auth/confirm-signup",
+  "/auth/reset-password",
+];
 const PUBLIC_PATHS = [...AUTH_PATHS];
 
 interface UserContextType {
@@ -22,6 +27,8 @@ interface UserContextType {
   username: string | undefined;
   sessionToken: string | undefined;
   isAuthenticated: boolean;
+  isLocalTestUser: boolean;
+  authResolved: boolean;
 }
 
 const UserContext = createContext<UserContextType>({
@@ -29,6 +36,8 @@ const UserContext = createContext<UserContextType>({
   username: undefined,
   sessionToken: undefined,
   isAuthenticated: false,
+  isLocalTestUser: false,
+  authResolved: false,
 });
 
 export const useUser = () => useContext(UserContext);
@@ -37,6 +46,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [localTestAuth, setLocalTestAuth] = useState(false);
+  const [authResolved, setAuthResolved] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -47,6 +57,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
           setLocalTestAuth(true);
           setUser(null);
           setSession(null);
+          setAuthResolved(true);
           if (AUTH_PATHS.includes(pathname)) {
             router.replace("/reviews");
           }
@@ -58,6 +69,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         const currentSession = await fetchAuthSession();
         setUser(currentUser);
         setSession(currentSession);
+        setAuthResolved(true);
         // If user is authenticated and trying to access auth pages, redirect to home.
         if (AUTH_PATHS.includes(pathname)) {
           router.replace("/reviews");
@@ -66,6 +78,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setLocalTestAuth(false);
         setUser(null);
         setSession(null);
+        setAuthResolved(true);
         // If user is not authenticated and trying to access non-public pages, redirect to login.
         if (!PUBLIC_PATHS.includes(pathname)) {
           router.replace("/auth/login");
@@ -85,6 +98,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
           ? LOCAL_TEST_AUTH_TOKEN
           : session?.tokens?.idToken?.toString(),
         isAuthenticated: localTestAuth || !!user,
+        isLocalTestUser: localTestAuth,
+        authResolved,
       }}
     >
       {children}

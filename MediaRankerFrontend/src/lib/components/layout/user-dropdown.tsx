@@ -1,6 +1,7 @@
 "use client";
 
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import Logout from "@mui/icons-material/Logout";
 import { handleSignOut } from "@/app/auth/helpers";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
@@ -19,7 +20,8 @@ import { useUser } from "@/lib/auth/user-provider";
 
 export function UserDropdown() {
   const router = useRouter();
-  const { username } = useUser();
+  const { authResolved, isAuthenticated, isLocalTestUser, username } =
+    useUser();
   const { showError, closeAlert } = useAlert();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -77,6 +79,19 @@ export function UserDropdown() {
           Hi, {username}!
         </ListItemText>
         <Divider />
+        {authResolved && isAuthenticated && !isLocalTestUser && (
+          <MenuItem
+            onClick={() => {
+              onCloseMenu();
+              router.push("/account/change-password");
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <LockOutlinedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Change password</ListItemText>
+          </MenuItem>
+        )}
         <MenuItem onClick={onLogout}>
           <ListItemIcon sx={{ minWidth: 36 }}>
             <Logout fontSize="small" />

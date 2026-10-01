@@ -7,16 +7,25 @@ import {
   signUp,
   confirmSignUp,
   resendSignUpCode,
+  resetPassword,
+  confirmResetPassword,
+  updatePassword,
   SignUpOutput,
   SignInOutput,
   ConfirmSignUpOutput,
   ResendSignUpCodeOutput,
+  ResetPasswordOutput,
 } from "aws-amplify/auth";
 import {
   clearLocalTestAuth,
   isLocalTestAuthActive,
   LOCAL_TEST_AUTH_TOKEN,
 } from "@/lib/auth/local-test-auth";
+import {
+  getPasswordUpdateError,
+  getRecoveryRequestErrorOutcome,
+  getResetConfirmationError,
+} from "@/lib/auth/password-decisions";
 
 export type AuthResult<T> = {
   success: boolean;
@@ -138,6 +147,72 @@ export async function handleSignOut(): Promise<AuthResult<void>> {
     return {
       success: false,
       error: err?.message || "Failed to sign out. Please try again.",
+    };
+  }
+}
+
+function getErrorName(error: unknown): string | undefined {
+  if (typeof error === "object" && error !== null && "name" in error) {
+    return typeof error.name === "string" ? error.name : undefined;
+  }
+  return undefined;
+}
+
+export async function handleResetPassword(
+  identifier: string,
+): Promise<AuthResult<ResetPasswordOutput | undefined>> {
+  try {
+    const result = await resetPassword({ username: identifier });
+    return { success: true, data: result };
+  } catch (error: unknown) {
+    if (getRecoveryRequestErrorOutcome(getErrorName(error)) === "neutral") {
+      return { success: true };
+    }
+    return {
+      success: false,
+      error: "We couldn't start password recovery. Please try again.",
+    };
+  }
+}
+
+export async function handleConfirmResetPassword(
+  identifier: string,
+  code: string,
+  newPassword: string,
+): Promise<AuthResult<void>> {
+  try {
+    await confirmResetPassword({
+      username: identifier,
+      confirmationCode: code,
+      newPassword,
+    });
+    return { success: true };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: getResetConfirmationError(getErrorName(error)),
+    };
+  }
+}
+
+export async function handleUpdatePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<AuthResult<void>> {
+  if (isLocalTestAuthActive()) {
+    return {
+      success: false,
+      error: "Password changes aren't available for the local test user.",
+    };
+  }
+
+  try {
+    await updatePassword({ oldPassword: currentPassword, newPassword });
+    return { success: true };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: getPasswordUpdateError(getErrorName(error)),
     };
   }
 }

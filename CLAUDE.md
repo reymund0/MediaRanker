@@ -16,6 +16,7 @@ Use optional docs under `docs/conventions/` for deeper details.
 - Authorization model: any authenticated user (no roles/scopes yet).
 - An opt-in localhost-only development test identity is available; production and ordinary login use Cognito. Never weaken its environment, explicit-flag, or loopback guards. Setup is in `docs/conventions/dev-commands.md`.
 - Architecture: Modular Monolith (Option A - feature folders in single project).
+- This is an OpenSpec repository. Change proposals and specs live under `openspec/`; follow the applicable OpenSpec skill and the selected change's artifacts for feature work.
 
 ## Repo Layout (updated)
 
@@ -38,6 +39,15 @@ Do not edit build artifacts:
 - `MediaRankerFrontend/.next/`
 - `**/bin/`
 - `**/obj/`
+
+---
+
+## AWS CLI Access for Agents
+
+- Use `--profile mediaranker-read` for routine AWS inspection. It uses AWS `ReadOnlyAccess`, including data reads such as S3 objects where resource policies allow. If its session expires, run `aws login --profile mediaranker-read` and select the `MediaRankerCli` IAM user.
+- Use `--profile mediaranker-write` only for an approved AWS change. This profile assumes the `MediaRankerCliWrite` role from `mediaranker-read`. Before any AWS write, describe the specific resources, intended commands, and expected impact, then obtain the user's explicit approval.
+- Do not use a root account session for routine agent access. If the read profile is unavailable, ask for access setup instead of silently using a more privileged profile.
+- Keep AWS credentials and CLI configuration local; never commit them to this repository.
 
 ---
 

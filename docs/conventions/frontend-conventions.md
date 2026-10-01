@@ -35,7 +35,14 @@ This document contains non-always-on frontend details for MediaRanker.
   - `/reviews`
   - `/credits` (TMDB branding/disclaimer and IGDB attribution)
 - User menu includes:
+  - Change password for signed-in Cognito users
   - logout action
+
+## Password management
+
+- `/auth/reset-password` is public for signed-out recovery. A required-reset sign-in step opens its request form with only the submitted identifier handed off through short-lived session storage.
+- `/account/change-password` is available only after Cognito authentication resolves. The local test user has no Cognito password: hide the menu action and redirect a direct visit to `/reviews`.
+- Keep passwords and recovery codes out of URLs, browser storage, and logs. Show neutral recovery-request responses for account-related failures, and map Cognito password errors to safe, actionable messages instead of displaying raw provider text.
 
 ## Alerts
 
