@@ -1,6 +1,9 @@
 "use client";
 
 import { mapReviewScoreFields } from "./review-score-values";
+import { buildReviewTarget } from "./review-tv-utils.mjs";
+import { TvSeriesPicker } from "./tv-series-picker";
+import { getEpisodeContextLine } from "./review-utils";
 
 import AddIcon from "@mui/icons-material/Add";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -35,7 +38,7 @@ import { BaseSelect } from "@/lib/components/inputs/select/base-select";
 import { CoverTile } from "@/lib/components/data-display/cover-tile";
 import { MediaTypeChips } from "@/lib/components/inputs/media-type-chips";
 import { ReviewDto, ReviewInsertRequest } from "../contracts";
-import { MediaDto } from "../../media/contracts";
+import { MediaCollectionDto, MediaDto } from "../../media/contracts";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import {
   getMediaTypeDisplayLabel,
@@ -50,26 +53,32 @@ import {
 
 interface NewReviewDialogProps {
   initialMedia?: MediaDto;
+  initialSeries?: MediaCollectionDto;
   onClose: () => void;
   onCreated: (review: ReviewDto) => void;
 }
 
 export function NewReviewDialog({
   initialMedia,
+  initialSeries,
   onClose,
   onCreated,
 }: NewReviewDialogProps) {
   const { userId, authResolved } = useUser();
   const { showSuccess, showError } = useAlert();
   const [mediaType, setMediaType] = useState<MediaType>(
-    (initialMedia?.mediaType as MediaType | undefined) ?? MediaType.VideoGame,
+    (initialMedia?.mediaType as MediaType | undefined) ??
+      (initialSeries ? MediaType.TvShow : MediaType.VideoGame),
   );
   const [searchInput, setSearchInput] = useState("");
   const [selectedMedia, setSelectedMedia] = useState<MediaDto | null>(
     initialMedia ?? null,
   );
+  const [selectedSeriesTarget, setSelectedSeriesTarget] = useState<MediaCollectionDto | null>(initialMedia ? null : initialSeries ?? null);
+  const [seriesContext, setSeriesContext] = useState<MediaCollectionDto | null>(initialSeries ?? null);
+  const [browsingSeries, setBrowsingSeries] = useState<MediaCollectionDto | null>(null);
   const [step, setStep] = useState<"choose" | "score">(
-    initialMedia ? "score" : "choose",
+    initialMedia || initialSeries ? "score" : "choose",
   );
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
     null,
@@ -85,7 +94,7 @@ export function NewReviewDialog({
     route: "/api/media",
     routeParams: { mediaType },
     queryKey: ["media", mediaType],
-    enabled: authResolved && !!userId && step === "choose",
+    enabled: authResolved && !!userId && step === "choose" && mediaType !== MediaType.TvShow,
     pageSize: 10,
     minSearchChars: 1,
     pageRequest: {
@@ -111,7 +120,7 @@ export function NewReviewDialog({
   } = useQuery<TemplateDto[]>({
     route: `/api/templates/${mediaType}`,
     queryKey: ["templates", mediaType],
-    enabled: authResolved && !!userId && step === "score" && !!selectedMedia,
+    enabled: authResolved && !!userId && step === "score" && (!!selectedMedia || !!selectedSeriesTarget),
   });
   const isMediaLoading = !authResolved || isMediaQueryLoading;
   const isReviewStatusLoading = !authResolved || isReviewStatusQueryLoading;
@@ -123,7 +132,7 @@ export function NewReviewDialog({
       (media) => media.coverStatus === "pending",
     ),
     refetch: refetchMedia,
-    enabled: authResolved && !!userId && step === "choose",
+    enabled: authResolved && !!userId && step === "choose" && mediaType !== MediaType.TvShow,
   });
 
   const { mutate: insertReview, isPending: isSaving } = useMutation<
@@ -145,17 +154,20 @@ export function NewReviewDialog({
     if (media.mediaType !== mediaType || alreadyReviewedByMediaId.has(media.id))
       return;
     setSelectedMedia(media);
+    setSelectedSeriesTarget(null);
+    setSeriesContext(null);
     setSelectedTemplateId(null);
     setStep("score");
   };
 
   const changeSelectedMedia = () => {
     setSelectedTemplateId(null);
+    if (seriesContext) setBrowsingSeries(seriesContext);
     setStep("choose");
   };
 
   const handleCreate = (values: ReviewScoreFormValues) => {
-    if (!selectedMedia || !selectedTemplate) return;
+    if ((!selectedMedia && !selectedSeriesTarget) || !selectedTemplate) return;
 
     const fields = mapReviewScoreFields(
       [...selectedTemplate.fields].sort(
@@ -167,8 +179,7 @@ export function NewReviewDialog({
 
     insertReview(
       {
-        mediaId: selectedMedia.id,
-        mediaType,
+        ...buildReviewTarget(selectedMedia, selectedSeriesTarget),
         templateId: selectedTemplate.id,
         reviewTitle: values.reviewTitle.trim() || null,
         notes: values.notes.trim() || null,
@@ -192,7 +203,8 @@ export function NewReviewDialog({
       review: alreadyReviewedByMediaId.get(media.id),
     }));
 
-  const scoreHeader = selectedMedia ? (
+  const scoreTarget = selectedMedia ?? selectedSeriesTarget;
+  const scoreHeader = scoreTarget ? (
     <>
       <Stack
         direction="row"
@@ -207,9 +219,9 @@ export function NewReviewDialog({
         }}
       >
         <CoverTile
-          title={selectedMedia.title}
-          src={selectedMedia.coverImageUrl}
-          status={selectedMedia.coverStatus}
+          title={seriesContext?.title ?? scoreTarget.title}
+          src={scoreTarget.coverImageUrl}
+          status={scoreTarget.coverStatus}
           sx={{
             width: 56,
             height: 84,
@@ -218,13 +230,20 @@ export function NewReviewDialog({
           }}
         />
         <Stack sx={{ flex: 1, minWidth: 0 }}>
+          {seriesContext && !selectedSeriesTarget ? (
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+              {getEpisodeContextLine({ kind: "Episode", seriesTitle: seriesContext.title, seasonNumber: selectedMedia?.seasonNumber, episodeNumber: selectedMedia?.episodeNumber })}
+            </Typography>
+          ) : null}
           <Typography fontWeight={700} noWrap>
-            {selectedMedia.title}
+            {scoreTarget.title}
           </Typography>
           <Typography variant="body2" color="text.secondary">
             {[
-              getReleaseYear(selectedMedia.releaseDate),
-              getMediaTypeDisplayLabel(mediaType),
+              selectedSeriesTarget
+                ? selectedSeriesTarget.startYear?.toString()
+                : getReleaseYear(selectedMedia?.releaseDate),
+              selectedSeriesTarget ? "TV series" : selectedMedia?.seriesId ? "TV episode" : getMediaTypeDisplayLabel(mediaType),
             ]
               .filter(Boolean)
               .join(" · ")}
@@ -329,6 +348,35 @@ export function NewReviewDialog({
               py: 2.5,
             }}
           >
+            {mediaType === MediaType.TvShow ? (
+              <TvSeriesPicker
+                search={searchInput}
+                onSearch={setSearchInput}
+                browsingSeries={browsingSeries}
+                onBrowse={setBrowsingSeries}
+              reviews={reviewedMedia}
+              disabled={isReviewStatusLoading || isReviewStatusError}
+              onMediaTypeChange={(nextType) => {
+                setMediaType(nextType);
+                setBrowsingSeries(null);
+              }}
+                onSelectSeries={(series) => {
+                  setSelectedMedia(null);
+                  setSelectedSeriesTarget(series);
+                  setSeriesContext(series);
+                  setSelectedTemplateId(null);
+                  setStep("score");
+                }}
+                onSelectEpisode={(episode, series) => {
+                  setSelectedSeriesTarget(null);
+                  setSelectedMedia(episode);
+                  setSeriesContext(series);
+                  setSelectedTemplateId(null);
+                  setStep("score");
+                }}
+              />
+            ) : (
+            <>
             <MediaTypeChips
               value={mediaType}
               onChange={(value) => setMediaType(value)}
@@ -457,6 +505,8 @@ export function NewReviewDialog({
                 </Stack>
               ) : null}
             </Box>
+            </>
+            )}
           </DialogContent>
           <DialogActions
             sx={{
@@ -484,9 +534,9 @@ export function NewReviewDialog({
         </>
       ) : (
         <>
-          {selectedMedia && selectedTemplate && !areTemplatesLoading ? (
+            {scoreTarget && selectedTemplate && !areTemplatesLoading ? (
             <NewReviewScoreForm
-              key={`${selectedMedia.id}-${selectedTemplate.id}`}
+              key={`${selectedSeriesTarget?.id ?? selectedMedia?.id}-${selectedTemplate.id}`}
               templateName={selectedTemplate.name}
               templateFields={selectedTemplate.fields}
               onSubmit={handleCreate}

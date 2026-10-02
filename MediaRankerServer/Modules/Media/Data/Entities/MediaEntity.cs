@@ -27,6 +27,7 @@ public class MediaEntity : ITimestampedEntity
 
     // Foreign keys
     public long? MediaCollectionId { get; set; }
+    public int? EpisodeNumber { get; set; }
     public long? CoverId { get; set; }
 
     // Navigation properties
@@ -58,6 +59,7 @@ public class MediaEntity : ITimestampedEntity
             builder.Property(m => m.ExternalSource)
                 .HasConversion<string>();
             builder.Property(m => m.MediaCollectionId);
+            builder.Property(m => m.EpisodeNumber);
 
             // Relationships
             builder.HasOne(m => m.MediaCollection)
@@ -78,6 +80,9 @@ public class MediaEntity : ITimestampedEntity
 
             builder.HasIndex(m => m.MediaCollectionId)
                 .HasDatabaseName("ix_media_media_collection_id");
+
+            builder.HasIndex(m => new { m.MediaCollectionId, m.EpisodeNumber })
+                .HasDatabaseName("ix_media_media_collection_episode_number");
 
             builder.HasIndex(m => m.ExternalId)
                 .HasDatabaseName("ix_media_external_id");

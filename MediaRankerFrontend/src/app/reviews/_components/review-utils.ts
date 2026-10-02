@@ -3,8 +3,8 @@ import {
   MediaType,
   MEDIA_TYPE_LABELS,
 } from "@/lib/contracts/shared";
-import { ReviewDto } from "../contracts";
 import { roundToEven } from "./review-rounding.mjs";
+import { buildReviewRankLookups, formatSeriesYearRange, getEpisodeContextLine, getReviewGroup, getRankLabel, rankableGroup, sortReviewsByRank } from "./review-tv-utils.mjs";
 
 export { roundToEven } from "./review-rounding.mjs";
 
@@ -43,18 +43,7 @@ export function getMediaTypePluralLabel(mediaType: string): string {
   );
 }
 
-export function sortReviewsByRank(reviews: ReviewDto[]): ReviewDto[] {
-  return [...reviews].sort((left, right) => {
-    const scoreDifference = right.overallScore - left.overallScore;
-    if (scoreDifference !== 0) return scoreDifference;
-
-    const updatedDifference =
-      new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
-    if (updatedDifference !== 0) return updatedDifference;
-
-    return left.id - right.id;
-  });
-}
+export { buildReviewRankLookups, formatSeriesYearRange, getEpisodeContextLine, getReviewGroup, getRankLabel, rankableGroup, sortReviewsByRank };
 
 export function getOverallPreview(values: Array<number | null | undefined>): {
   score: number | null;

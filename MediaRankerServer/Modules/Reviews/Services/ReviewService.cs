@@ -1,7 +1,9 @@
 using FluentValidation;
+using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Modules.Media.Services.Interfaces;
 using MediaRankerServer.Modules.Reviews.Data.Entities;
+using MediaRankerServer.Modules.Reviews.Data.Views;
 using MediaRankerServer.Modules.Templates.Services;
 using MediaRankerServer.Modules.Reviews.Contracts;
 using MediaRankerServer.Shared.Data;
@@ -9,6 +11,7 @@ using MediaRankerServer.Shared.Exceptions;
 using MediaRankerServer.Shared.Paging;
 
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 namespace MediaRankerServer.Modules.Reviews.Services;
 
 public class ReviewService(
@@ -44,18 +47,38 @@ public class ReviewService(
             select new ReviewDtoMapper.ReviewFieldDetails(rf, tf.Name, tf.Position)
         ).ToListAsync(cancellationToken);
 
-        var mediaIds = reviewDetails.Select(r => r.MediaId).Distinct().ToArray();
+        var mediaIds = reviewDetails
+            .Where(r => r.MediaId.HasValue)
+            .Select(r => r.MediaId!.Value)
+            .Distinct()
+            .ToArray();
         var mediaReleaseDates = await dbContext.Media
             .AsNoTracking()
             .Where(m => mediaIds.Contains(m.Id))
             .ToDictionaryAsync(m => m.Id, m => m.ReleaseDate, cancellationToken);
 
-        var covers = await artworkService.GetMediaArtworkAsync(reviewDetails.Select(r => r.MediaId), cancellationToken);
+        var seriesIds = reviewDetails
+            .Where(r => r.ReviewKind is "Series" or "Episode")
+            .Where(r => r.SeriesId.HasValue)
+            .Select(r => r.SeriesId!.Value)
+            .Distinct()
+            .ToArray();
+        var reviewedSeriesIds = reviewDetails
+            .Where(r => r.ReviewKind == "Series" && r.MediaCollectionId.HasValue)
+            .Select(r => r.MediaCollectionId!.Value)
+            .Distinct()
+            .ToArray();
+        var collectionCovers = await artworkService.GetCollectionArtworkAsync(seriesIds, cancellationToken);
+        var mediaCovers = await artworkService.GetMediaArtworkAsync(mediaIds, cancellationToken);
+        var collectionReleaseDates = await dbContext.MediaCollections.AsNoTracking()
+            .Where(collection => reviewedSeriesIds.Contains(collection.Id))
+            .ToDictionaryAsync(collection => collection.Id, collection => collection.ReleaseDate, cancellationToken);
         return [.. reviewDetails.Select(r => ReviewDtoMapper.Map(
-            covers?.GetValueOrDefault(r.MediaId),
+            GetCover(r, mediaCovers, collectionCovers),
             r,
             fields.Where(f => f.Field.ReviewId == r.Id),
-            mediaReleaseDates.GetValueOrDefault(r.MediaId)))];
+            r.MediaId is { } mediaId ? mediaReleaseDates.GetValueOrDefault(mediaId)
+                : r.MediaCollectionId is { } collectionId ? collectionReleaseDates.GetValueOrDefault(collectionId) : null))];
     }
     
     public async Task<PageResult<UnreviewedMediaDto>> GetUnreviewedMediaByTypeAsync(string userId, string mediaType, PageRequest request, CancellationToken cancellationToken = default)
@@ -66,6 +89,8 @@ public class ReviewService(
             .AsNoTracking()
             .Where(r => r.UserId == userId)
             .Select(r => r.MediaId)
+            .Where(mediaId => mediaId.HasValue)
+            .Select(mediaId => mediaId!.Value)
             .ToListAsync(cancellationToken);
 
         var v = PagingValidator.Validate(request, UnreviewedMediaQueryBuilder.SortFields, UnreviewedMediaQueryBuilder.SearchFields, "title");
@@ -90,13 +115,12 @@ public class ReviewService(
         await ValidateReviewInsertRequestOrThrowAsync(request, cancellationToken);
 
         // Validate user does not have an existing review for this media.
-        var existingReview = await dbContext.Reviews
-            .AsNoTracking()
-            .Where(rm => rm.UserId == userId && rm.MediaId == request.MediaId)
-            .FirstOrDefaultAsync(cancellationToken);
-        if (existingReview != null)
+        var alreadyReviewed = request.MediaId is { } mediaId
+            ? await dbContext.Reviews.AsNoTracking().AnyAsync(r => r.UserId == userId && r.MediaId == mediaId, cancellationToken)
+            : await dbContext.Reviews.AsNoTracking().AnyAsync(r => r.UserId == userId && r.MediaCollectionId == request.MediaCollectionId, cancellationToken);
+        if (alreadyReviewed)
         {
-            throw new DomainException("User already has a review for this media item", "review_insert_duplicate_review");
+            throw new DomainException("User already has a review for this item", "review_insert_duplicate_review");
         }
 
         // Normalize strings.
@@ -111,6 +135,7 @@ public class ReviewService(
         {
             UserId = userId,
             MediaId = request.MediaId,
+            MediaCollectionId = request.MediaCollectionId,
             TemplateId = request.TemplateId,
             ReviewTitle = normalizedReviewTitle,
             Notes = normalizedNotes,
@@ -123,7 +148,14 @@ public class ReviewService(
         };
 
         dbContext.Reviews.Add(review);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (IsReviewTargetUniqueViolation(exception))
+        {
+            throw new DomainException("User already has a review for this item", "review_insert_duplicate_review");
+        }
         
         return await GetReviewByIdAsync(review.Id, cancellationToken) ?? throw new DomainException("Failed to retrieve newly created Review", "reviews_load_failed");
     }
@@ -215,8 +247,26 @@ public class ReviewService(
             throw new DomainException(validationResult.Errors[0].ErrorMessage, errorType);
         }
 
-        // Validate Media exists
-        var media = await mediaService.GetMediaByIdAsync(request.MediaId, cancellationToken, requestArtwork: false) ?? throw new DomainException($"MediaId {request.MediaId} not found", errorType);
+        MediaDto? media = null;
+        if (request.MediaId is { } mediaId)
+        {
+            media = await mediaService.GetMediaByIdAsync(mediaId, cancellationToken, requestArtwork: false)
+                ?? throw new DomainException($"MediaId {mediaId} not found", errorType);
+        }
+        else if (request.MediaCollectionId is { } collectionId)
+        {
+            var collection = await dbContext.MediaCollections.AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Id == collectionId, cancellationToken);
+            if (collection is null)
+                throw new DomainException($"MediaCollectionId {collectionId} not found", errorType);
+            if (collection.MediaType != "TvShow" || collection.CollectionType != MediaCollectionType.Series)
+                throw new DomainException("Reviews can only target TV series collections.", errorType);
+            var seasons = dbContext.MediaCollections.Where(item =>
+                item.ParentMediaCollectionId == collectionId && item.CollectionType == MediaCollectionType.Season);
+            if (await seasons.AnyAsync(cancellationToken)
+                && !await seasons.AnyAsync(item => item.SeasonNumber.HasValue, cancellationToken))
+                throw new DomainException($"MediaCollectionId {collectionId} not found", errorType);
+        }
 
         // Validate Template exists
         var template = await templatesService.GetTemplateByIdAsync(request.TemplateId, cancellationToken) ?? throw new DomainException($"TemplateId {request.TemplateId} not found", errorType);
@@ -229,10 +279,12 @@ public class ReviewService(
         }
 
         // Validate media type
-        if (media.MediaType != template.MediaType)
+        if (media is not null && media.MediaType != template.MediaType)
         {
             throw new DomainException("Media type does not match template media type.", "review_media_type_mismatch");
         }
+        if (request.MediaCollectionId.HasValue && template.MediaType != "TvShow")
+            throw new DomainException("TV series reviews require a TV template.", "review_media_type_mismatch");
     }
 
     private static short CalculateOverallScore(IEnumerable<double> scores)
@@ -255,13 +307,47 @@ public class ReviewService(
             select new ReviewDtoMapper.ReviewFieldDetails(rf, tf.Name, tf.Position)
         ).ToListAsync(cancellationToken);
 
-        var mediaReleaseDate = await dbContext.Media
-            .AsNoTracking()
-            .Where(m => m.Id == review.MediaId)
-            .Select(m => m.ReleaseDate)
-            .FirstOrDefaultAsync(cancellationToken);
+        var mediaReleaseDate = review.MediaId is { } mediaId
+            ? await dbContext.Media
+                .AsNoTracking()
+                .Where(m => m.Id == mediaId)
+                .Select(m => m.ReleaseDate)
+                .FirstOrDefaultAsync(cancellationToken)
+            : review.MediaCollectionId is { } collectionId
+                ? await dbContext.MediaCollections.AsNoTracking()
+                    .Where(collection => collection.Id == collectionId)
+                    .Select(collection => collection.ReleaseDate)
+                    .FirstOrDefaultAsync(cancellationToken)
+                : null;
 
-        var covers = await artworkService.GetMediaArtworkAsync([review.MediaId], cancellationToken);
-        return ReviewDtoMapper.Map(covers?.GetValueOrDefault(review.MediaId), review, fields, mediaReleaseDate);
+        var mediaCovers = review.MediaId is { } mediaIdForCover
+            ? await artworkService.GetMediaArtworkAsync([mediaIdForCover], cancellationToken)
+            : null;
+        var collectionCovers = review.SeriesId is { } seriesId
+            && review.ReviewKind is "Series" or "Episode"
+            ? await artworkService.GetCollectionArtworkAsync([seriesId], cancellationToken)
+            : null;
+        return ReviewDtoMapper.Map(
+            GetCover(review, mediaCovers, collectionCovers),
+            review,
+            fields,
+            mediaReleaseDate);
     }
+
+    private static CoverPresentation? GetCover(
+        ReviewDetailView review,
+        IReadOnlyDictionary<long, CoverPresentation>? mediaCovers,
+        IReadOnlyDictionary<long, CoverPresentation>? collectionCovers)
+    {
+        if (review.ReviewKind is "Series" or "Episode" && review.SeriesId is { } seriesId)
+            return collectionCovers?.GetValueOrDefault(seriesId);
+        return review.MediaId is { } mediaId ? mediaCovers?.GetValueOrDefault(mediaId) : null;
+    }
+
+    private static bool IsReviewTargetUniqueViolation(DbUpdateException exception)
+        => exception.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation,
+            ConstraintName: "uq_reviews_user_media" or "uq_reviews_user_media_collection"
+        };
 }

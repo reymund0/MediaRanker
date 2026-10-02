@@ -226,7 +226,7 @@ public class ImdbImportSqlProvider(
             sb.Append($"('{EscapeSql(row.Tconst)}', '{EscapeSql(row.ParentTconst)}', {row.SeasonNumber}, {row.EpisodeNumber}, '{EscapeSql(row.RawLine)}')");
             sb.AppendLine(i == rows.Count - 1 ? string.Empty : ",");
         }
-        sb.Append("ON CONFLICT (tconst) DO NOTHING");
+        sb.Append("ON CONFLICT (tconst) DO UPDATE SET parent_tconst = EXCLUDED.parent_tconst, season_number = EXCLUDED.season_number, episode_number = EXCLUDED.episode_number, raw_line = EXCLUDED.raw_line, updated_at = now()");
         return sb.ToString();
     }
 

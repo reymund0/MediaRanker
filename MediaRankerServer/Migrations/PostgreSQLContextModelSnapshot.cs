@@ -461,6 +461,10 @@ namespace MediaRankerServer.Migrations
                         .HasColumnType("date")
                         .HasColumnName("release_date");
 
+                    b.Property<int?>("SeasonNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("season_number");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text")
@@ -491,6 +495,9 @@ namespace MediaRankerServer.Migrations
                         .IsUnique()
                         .HasDatabaseName("uq_media_collections_external_id_source_series")
                         .HasFilter("external_id IS NOT NULL AND collection_type = 'Series'");
+
+                    b.HasIndex("ParentMediaCollectionId", "SeasonNumber")
+                        .HasDatabaseName("ix_media_collections_parent_season_number");
 
                     b.HasIndex("Title", "CollectionType", "MediaType", "ParentMediaCollectionId")
                         .IsUnique()
@@ -621,6 +628,10 @@ namespace MediaRankerServer.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("NOW()");
 
+                    b.Property<int?>("EpisodeNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("episode_number");
+
                     b.Property<string>("ExternalId")
                         .HasColumnType("text")
                         .HasColumnName("external_id");
@@ -679,6 +690,9 @@ namespace MediaRankerServer.Migrations
                         .HasDatabaseName("uq_media_external_id_source")
                         .HasFilter("external_id IS NOT NULL");
 
+                    b.HasIndex("MediaCollectionId", "EpisodeNumber")
+                        .HasDatabaseName("ix_media_media_collection_episode_number");
+
                     b.ToTable("media", (string)null);
                 });
 
@@ -701,7 +715,11 @@ namespace MediaRankerServer.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("NOW()");
 
-                    b.Property<long>("MediaId")
+                    b.Property<long?>("MediaCollectionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("media_collection_id");
+
+                    b.Property<long?>("MediaId")
                         .HasColumnType("bigint")
                         .HasColumnName("media_id");
 
@@ -735,6 +753,9 @@ namespace MediaRankerServer.Migrations
                     b.HasKey("Id")
                         .HasName("pk_reviews");
 
+                    b.HasIndex("MediaCollectionId")
+                        .HasDatabaseName("ix_reviews_media_collection_id");
+
                     b.HasIndex("MediaId")
                         .HasDatabaseName("ix_reviews_media_id");
 
@@ -743,6 +764,11 @@ namespace MediaRankerServer.Migrations
 
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_reviews_user");
+
+                    b.HasIndex("UserId", "MediaCollectionId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_reviews_user_media_collection")
+                        .HasFilter("media_collection_id IS NOT NULL");
 
                     b.HasIndex("UserId", "MediaId")
                         .IsUnique()
@@ -754,6 +780,8 @@ namespace MediaRankerServer.Migrations
                     b.ToTable("reviews", null, t =>
                         {
                             t.HasCheckConstraint("ck_reviews_overall_score", "overall_score BETWEEN 1 AND 10");
+
+                            t.HasCheckConstraint("ck_reviews_target", "(media_id IS NOT NULL) <> (media_collection_id IS NOT NULL)");
                         });
                 });
 
@@ -793,15 +821,27 @@ namespace MediaRankerServer.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<int?>("EpisodeCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("episode_count");
+
+                    b.Property<int?>("EpisodeNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("episode_number");
+
                     b.Property<long>("Id")
                         .HasColumnType("bigint")
                         .HasColumnName("id");
+
+                    b.Property<long?>("MediaCollectionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("media_collection_id");
 
                     b.Property<long?>("MediaCoverId")
                         .HasColumnType("bigint")
                         .HasColumnName("media_cover_id");
 
-                    b.Property<long>("MediaId")
+                    b.Property<long?>("MediaId")
                         .HasColumnType("bigint")
                         .HasColumnName("media_id");
 
@@ -823,9 +863,38 @@ namespace MediaRankerServer.Migrations
                         .HasColumnType("smallint")
                         .HasColumnName("overall_score");
 
+                    b.Property<string>("ReviewKind")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("review_kind");
+
                     b.Property<string>("ReviewTitle")
                         .HasColumnType("text")
                         .HasColumnName("review_title");
+
+                    b.Property<int?>("SeasonCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("season_count");
+
+                    b.Property<int?>("SeasonNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("season_number");
+
+                    b.Property<int?>("SeriesEndYear")
+                        .HasColumnType("integer")
+                        .HasColumnName("series_end_year");
+
+                    b.Property<long?>("SeriesId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("series_id");
+
+                    b.Property<int?>("SeriesStartYear")
+                        .HasColumnType("integer")
+                        .HasColumnName("series_start_year");
+
+                    b.Property<string>("SeriesTitle")
+                        .HasColumnType("text")
+                        .HasColumnName("series_title");
 
                     b.Property<long>("TemplateId")
                         .HasColumnType("bigint")

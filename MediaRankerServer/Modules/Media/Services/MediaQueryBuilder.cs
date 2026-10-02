@@ -8,7 +8,7 @@ namespace MediaRankerServer.Modules.Media.Services;
 internal static class MediaQueryBuilder
 {
     internal static readonly IReadOnlyCollection<string> SortFields =
-        ["title", "releaseDate", "createdAt", "updatedAt"];
+        ["title", "releaseDate", "createdAt", "updatedAt", "episodeNumber"];
 
     internal static readonly IReadOnlyCollection<string> SearchFields =
         ["title"];
@@ -16,6 +16,8 @@ internal static class MediaQueryBuilder
     internal static IQueryable<MediaEntity> BaseQuery(PostgreSQLContext db)
         => db.Media
             .AsNoTracking()
+            .Include(m => m.MediaCollection)!
+            .ThenInclude(collection => collection!.ParentMediaCollection)
             .Include(m => m.Cover);
 
     internal static IQueryable<MediaEntity> ApplySearch(
@@ -26,9 +28,18 @@ internal static class MediaQueryBuilder
         return query;
     }
 
+    internal static IQueryable<MediaEntity> ApplyVisibility(IQueryable<MediaEntity> query)
+        => query.Where(m => m.MediaType != "TvShow" || m.MediaCollection == null
+            || m.MediaCollection.CollectionType != MediaCollectionType.Season
+            || m.MediaCollection.SeasonNumber.HasValue);
+
     internal static IQueryable<MediaEntity> ApplySort(
         IQueryable<MediaEntity> query, PagingValidationResult v)
     {
+        if (v.SortField == "episodeNumber")
+            return query.OrderBy(m => m.EpisodeNumber == null)
+                .ThenBy(m => m.EpisodeNumber).ThenBy(m => m.Title).ThenBy(m => m.Id);
+
         if (v.SearchPattern is { Length: >= 2 } searchPattern)
         {
             // SearchPattern contains the escaped term wrapped in '%' wildcards.

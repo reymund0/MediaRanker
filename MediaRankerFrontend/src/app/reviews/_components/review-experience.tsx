@@ -11,6 +11,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/lib/auth/user-provider";
 import { MediaDto } from "@/app/media/contracts";
+import { MediaCollectionDto } from "@/app/media/contracts";
 import { ReviewDto } from "../contracts";
 import { NewReviewDialog } from "./new-review-dialog";
 import { ReviewDetailDrawer } from "./review-detail-drawer";
@@ -19,7 +20,7 @@ import { sortReviewsByRank } from "./review-utils";
 
 type ReviewExperienceContextValue = {
   isReviewOpen: boolean;
-  openNewReview: (media?: MediaDto) => void;
+  openNewReview: (media?: MediaDto, series?: MediaCollectionDto) => void;
   openReview: (review: ReviewDto, edit?: boolean) => void;
 };
 
@@ -65,15 +66,17 @@ function ReviewExperienceState({
 }) {
   const queryClient = useQueryClient();
   const [newReviewMedia, setNewReviewMedia] = useState<MediaDto | undefined>();
+  const [newReviewSeries, setNewReviewSeries] = useState<MediaCollectionDto | undefined>();
   const [isNewReviewOpen, setIsNewReviewOpen] = useState(false);
   const [activeReview, setActiveReview] = useState<ReviewDto | null>(null);
   const [isEditingReview, setIsEditingReview] = useState(false);
 
   const openNewReview = useCallback(
-    (media?: MediaDto) => {
+    (media?: MediaDto, series?: MediaCollectionDto) => {
       if (!enabled) return;
       setActiveReview(null);
       setNewReviewMedia(media);
+      setNewReviewSeries(series);
       setIsNewReviewOpen(true);
     },
     [enabled],
@@ -116,6 +119,7 @@ function ReviewExperienceState({
       ]);
       setIsNewReviewOpen(false);
       setNewReviewMedia(undefined);
+      setNewReviewSeries(undefined);
     },
     [reconcileReview],
   );
@@ -153,9 +157,11 @@ function ReviewExperienceState({
       {enabled && isNewReviewOpen ? (
         <NewReviewDialog
           initialMedia={newReviewMedia}
+          initialSeries={newReviewSeries}
           onClose={() => {
             setIsNewReviewOpen(false);
             setNewReviewMedia(undefined);
+            setNewReviewSeries(undefined);
           }}
           onCreated={handleCreated}
         />
@@ -169,6 +175,10 @@ function ReviewExperienceState({
           onClose={closeReview}
           onUpdated={handleUpdated}
           onDeleted={handleDeleted}
+          onOpenRelatedReview={(review) => {
+            setActiveReview(review);
+            setIsEditingReview(false);
+          }}
         />
       ) : null}
     </ReviewExperienceContext.Provider>

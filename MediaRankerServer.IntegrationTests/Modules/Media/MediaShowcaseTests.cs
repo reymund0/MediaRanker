@@ -97,7 +97,7 @@ public class MediaShowcaseTests(PostgresContainerFixture postgresFixture, LocalS
     }
 
     [Fact]
-    public async Task Showcase_ExcludesIntradayExpiryAndCachesFewerThanTwentyReadyItems()
+    public async Task Showcase_ExcludesIntradayExpiryAndUnknownSeasonsAndCachesFewerThanTwentyReadyItems()
     {
         var now = AtTodayUtc(9);
         using var anonymousFactory = CreateAnonymousFactory(now);
@@ -112,6 +112,24 @@ public class MediaShowcaseTests(PostgresContainerFixture postgresFixture, LocalS
         }
         var intradayCover = CreateReadyCover("showcase-intraday", "/intraday.jpg", now.AddHours(6));
         db.Media.Add(new MediaEntity { Title = "Intraday expiry showcase", MediaType = "Movie", Cover = intradayCover });
+        db.Media.Add(new MediaEntity
+        {
+            Title = "Hidden unknown season showcase",
+            MediaType = "TvShow",
+            Cover = CreateReadyCover("showcase-unknown-season", "/unknown-season.jpg", now.AddDays(2)),
+            MediaCollection = new MediaCollection
+            {
+                Title = "Unknown",
+                MediaType = "TvShow",
+                CollectionType = MediaCollectionType.Season,
+                ParentMediaCollection = new MediaCollection
+                {
+                    Title = "Unknown season showcase series",
+                    MediaType = "TvShow",
+                    CollectionType = MediaCollectionType.Series
+                }
+            }
+        });
         await db.SaveChangesAsync();
 
         using var firstResponse = await anonymousClient.GetAsync("/api/media/showcase");

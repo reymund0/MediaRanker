@@ -7,8 +7,7 @@ namespace MediaRankerServer.Modules.Media.Data.Entities;
 /// <summary>
 /// Represents an IMDB episode import record from title.episode.tsv.gz.
 /// IMDB documentation: https://developer.imdb.com/non-commercial-datasets/
-/// Note: SeasonNumber/EpisodeNumber use 0 for both unknown (\N) values and "Specials" episodes,
-/// as per IMDB convention. This loses the distinction but keeps the data non-nullable.
+/// The import parser uses -1 for unknown (\N) season and episode numbers; zero remains a valid value.
 /// </summary>
 public class ImdbImportEpisode : ITimestampedEntity
 {

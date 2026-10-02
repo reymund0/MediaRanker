@@ -11,11 +11,22 @@ namespace MediaRankerServer.Modules.Media.Controllers;
 public class MediaCollectionController(IMediaCollectionService mediaCollectionService) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetCollections([FromQuery] PageRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetCollections([FromQuery] PageRequest request, [FromQuery] string? mediaType, [FromQuery] string? collectionType, [FromQuery] long? parentId, CancellationToken cancellationToken)
     {
-        var collections = await mediaCollectionService.GetAllCollectionsAsync(request, cancellationToken);
+        var collections = await mediaCollectionService.GetAllCollectionsAsync(request, cancellationToken, mediaType, collectionType, parentId);
         return Ok(collections);
     }
+
+    [HttpGet("{id:long}")]
+    public async Task<IActionResult> GetCollectionById(long id, CancellationToken cancellationToken)
+    {
+        var collection = await mediaCollectionService.GetCollectionByIdAsync(id, cancellationToken);
+        return collection is null ? NotFound() : Ok(collection);
+    }
+
+    [HttpGet("{id:long}/removal-counts")]
+    public async Task<IActionResult> GetRemovalCounts(long id, CancellationToken cancellationToken)
+        => Ok(await mediaCollectionService.GetSeriesRemovalCountsAsync(id, cancellationToken));
 
     [HttpPost]
     public async Task<IActionResult> UpsertCollection([FromBody] MediaCollectionUpsertRequest request, CancellationToken cancellationToken)

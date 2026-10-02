@@ -106,6 +106,7 @@ public sealed class ImdbEpisodePagingTests(
         db.MediaCollections.Add(new MediaCollection
         {
             Title = "1",
+            SeasonNumber = 1,
             CollectionType = MediaCollectionType.Season,
             ParentMediaCollectionId = series.Id,
             MediaType = "Movie"
@@ -121,6 +122,38 @@ public sealed class ImdbEpisodePagingTests(
         page.NextKey.Should().Be("tt9300001");
         var episode = await db.Media.AsNoTracking().SingleAsync(media => media.ExternalId == "tt9300001");
         episode.MediaCollectionId.Should().Be(tvSeason.Id);
+    }
+
+    [Fact]
+    public async Task AliasSeasonNumberDoesNotMultiplyEpisodeUpsert()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+        var series = await AddSeriesWithSeasonAsync(db, "tt9400000");
+        var canonicalSeason = await db.MediaCollections.SingleAsync(collection =>
+            collection.ParentMediaCollectionId == series.Id && collection.Title == "1");
+        db.MediaCollections.Add(new MediaCollection
+        {
+            Title = "01",
+            SeasonNumber = 1,
+            CollectionType = MediaCollectionType.Season,
+            ParentMediaCollectionId = series.Id,
+            ExternalSource = MediaExternalSource.Imdb,
+            ExternalId = series.ExternalId,
+            MediaType = "TvShow"
+        });
+        db.ImdbImports.Add(EpisodeImport("tt9400001", "Canonical season episode"));
+        db.ImdbImportEpisodes.Add(EpisodeLink("tt9400001", series.ExternalId!, 1));
+        await db.SaveChangesAsync();
+
+        var provider = CreateProvider(db, batchSize: 1);
+        var first = await provider.LoadEpisodeMediaBatchAsync(null, 1, CancellationToken.None);
+        var replay = await provider.LoadEpisodeMediaBatchAsync(null, 1, CancellationToken.None);
+
+        first.Affected.Should().Be(1);
+        replay.Affected.Should().Be(1);
+        var episode = await db.Media.AsNoTracking().SingleAsync(media => media.ExternalId == "tt9400001");
+        episode.MediaCollectionId.Should().Be(canonicalSeason.Id);
     }
 
     private static ImdbLoadSqlProvider CreateProvider(PostgreSQLContext db, int batchSize) =>
@@ -148,6 +181,7 @@ public sealed class ImdbEpisodePagingTests(
             new()
             {
                 Title = "1",
+                SeasonNumber = 1,
                 CollectionType = MediaCollectionType.Season,
                 ParentMediaCollectionId = series.Id,
                 ExternalId = tconst,
@@ -159,6 +193,7 @@ public sealed class ImdbEpisodePagingTests(
             seasons.Add(new MediaCollection
             {
                 Title = "9",
+                SeasonNumber = 9,
                 CollectionType = MediaCollectionType.Season,
                 ParentMediaCollectionId = series.Id,
                 ExternalId = tconst,

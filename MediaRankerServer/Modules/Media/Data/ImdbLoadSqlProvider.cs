@@ -3,6 +3,8 @@ using MediaRankerServer.Modules.Media.Jobs;
 using MediaRankerServer.Shared.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Npgsql;
+using NpgsqlTypes;
 
 namespace MediaRankerServer.Modules.Media.Data;
 
@@ -114,22 +116,24 @@ public class ImdbLoadSqlProvider(
                 INNER JOIN media_collections mc ON mc.external_id = e.parent_tconst
                                                 AND mc.external_source = '{nameof(MediaExternalSource.Imdb)}'
                                                 AND mc.collection_type = 'Series'
-                WHERE {after}
+                WHERE e.season_number <> -1
+                  AND {after}
                 GROUP BY e.parent_tconst, e.season_number, mc.id
                 ORDER BY e.parent_tconst, e.season_number
                 LIMIT {maxGroups}
             ), upsert AS (
                 INSERT INTO media_collections
                     (title, release_date, external_id, external_source, collection_type,
-                     media_type, parent_media_collection_id, created_at, updated_at)
-                SELECT CASE WHEN season_number = -1 THEN 'Unknown' ELSE season_number::text END,
+                     media_type, parent_media_collection_id, season_number, created_at, updated_at)
+                SELECT season_number::text,
                        CASE WHEN season_start_year IS NULL THEN NULL ELSE make_date(season_start_year, 7, 1) END,
-                       parent_tconst, '{nameof(MediaExternalSource.Imdb)}', 'Season', 'TvShow', parent_id, now(), now()
+                       parent_tconst, '{nameof(MediaExternalSource.Imdb)}', 'Season', 'TvShow', parent_id, season_number, now(), now()
                 FROM groups
                 ON CONFLICT (title, collection_type, media_type, parent_media_collection_id)
                     WHERE parent_media_collection_id IS NOT NULL
                 DO UPDATE SET release_date = EXCLUDED.release_date, external_id = EXCLUDED.external_id,
-                              external_source = EXCLUDED.external_source, updated_at = now()
+                              external_source = EXCLUDED.external_source, season_number = EXCLUDED.season_number,
+                              updated_at = now()
                 RETURNING external_id || E'\t' || title AS "Value"
             )
             SELECT "Value" FROM upsert
@@ -156,26 +160,30 @@ public class ImdbLoadSqlProvider(
                 LIMIT {maxRows}
             ), selected AS (
                 SELECT candidates.primary_title, candidates.start_year, candidates.tconst,
-                       season.id AS season_id
+                       season.id AS season_id, e.episode_number
                 FROM candidates
                 INNER JOIN imdb_import_episodes e ON e.tconst = candidates.tconst
+                                                 AND e.season_number <> -1
                 INNER JOIN media_collections series ON series.external_id = e.parent_tconst
                                                     AND series.external_source = '{nameof(MediaExternalSource.Imdb)}'
                                                     AND series.collection_type = 'Series'
                 INNER JOIN media_collections season ON season.parent_media_collection_id = series.id
                                                     AND season.collection_type = 'Season'
                                                     AND season.media_type = 'TvShow'
-                                                    AND season.title = CASE WHEN e.season_number = -1 THEN 'Unknown' ELSE e.season_number::text END
+                                                    AND season.season_number = e.season_number
+                                                    AND season.title = e.season_number::text
             ), upsert AS (
                 INSERT INTO media (title, release_date, external_id, external_source,
-                                   media_type, media_collection_id, created_at, updated_at)
+                                   media_type, media_collection_id, episode_number, created_at, updated_at)
                 SELECT s.primary_title,
                        CASE WHEN s.start_year IS NULL THEN NULL ELSE make_date(s.start_year, 7, 1) END,
-                       s.tconst, '{nameof(MediaExternalSource.Imdb)}', 'TvShow', s.season_id, now(), now()
+                       s.tconst, '{nameof(MediaExternalSource.Imdb)}', 'TvShow', s.season_id,
+                       CASE WHEN s.episode_number >= 0 THEN s.episode_number ELSE NULL END, now(), now()
                 FROM selected s
                 ON CONFLICT (external_id, external_source) WHERE external_id IS NOT NULL
                 DO UPDATE SET title = EXCLUDED.title, release_date = EXCLUDED.release_date,
                               media_type = EXCLUDED.media_type, media_collection_id = EXCLUDED.media_collection_id,
+                              episode_number = EXCLUDED.episode_number,
                               updated_at = now()
                 RETURNING external_id
             ), scanned AS (
@@ -190,6 +198,170 @@ public class ImdbLoadSqlProvider(
             FROM scanned CROSS JOIN affected;
             """;
         return ExecuteEpisodeBatchAsync(sql, maxRows, ct);
+    }
+
+    public async Task<ImdbUnknownEpisodeCleanupBatchResult> DeleteUnknownSeasonEpisodesBatchAsync(
+        long? afterMediaId, int maxRows, CancellationToken ct)
+    {
+        ValidateLimit(maxRows);
+        const string sql = """
+            WITH candidates AS MATERIALIZED (
+                SELECT m.id
+                FROM media m
+                INNER JOIN media_collections season ON season.id = m.media_collection_id
+                INNER JOIN media_collections series ON series.id = season.parent_media_collection_id
+                WHERE (@after_media_id IS NULL OR m.id > @after_media_id)
+                  AND m.external_source = 'Imdb'
+                  AND m.media_type = 'TvShow'
+                  AND season.collection_type = 'Season'
+                  AND season.media_type = 'TvShow'
+                  AND season.season_number IS NULL
+                  AND season.external_source = 'Imdb'
+                  AND series.collection_type = 'Series'
+                  AND series.media_type = 'TvShow'
+                  AND series.external_source = 'Imdb'
+                ORDER BY m.id
+                LIMIT @max_rows
+            ), deleted AS (
+                DELETE FROM media m
+                USING candidates c
+                WHERE m.id = c.id
+                  AND NOT EXISTS (SELECT 1 FROM reviews r WHERE r.media_id = m.id)
+                RETURNING m.id
+            )
+            SELECT COUNT(c.id)::integer AS candidate_count,
+                   MAX(c.id)::bigint AS next_id,
+                   (COUNT(c.id) = @max_rows) AS has_more,
+                   (SELECT COUNT(*)::integer FROM deleted) AS deleted,
+                   (COUNT(c.id)::integer - (SELECT COUNT(*)::integer FROM deleted)) AS skipped
+            FROM candidates c;
+            """;
+
+        var timeout = dbContext.Database.GetCommandTimeout();
+        try
+        {
+            dbContext.Database.SetCommandTimeout(TimeSpan.FromSeconds(config.MaxStatementSeconds));
+            var pages = await dbContext.Database.SqlQueryRaw<UnknownEpisodeCleanupBatchPage>(
+                sql,
+                new NpgsqlParameter("after_media_id", NpgsqlDbType.Bigint) { Value = afterMediaId is null ? DBNull.Value : afterMediaId.Value },
+                new NpgsqlParameter("max_rows", NpgsqlDbType.Integer) { Value = maxRows })
+                .ToListAsync(ct);
+            var page = pages.Single();
+            var result = new ImdbUnknownEpisodeCleanupBatchResult(page.Deleted, page.Skipped, page.NextId, page.HasMore);
+            logger.LogInformation(
+                "IMDb cleanup stage {Stage} committed through media ID {NextId}; deleted {Deleted} and skipped {Skipped} reviewed episodes.",
+                "unknown-season-episodes", result.NextMediaId, result.Deleted, result.Skipped);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError("IMDb cleanup stage {Stage} failed at candidate cap {CandidateCap}. ErrorCategory: {ErrorCategory}.",
+                "unknown-season-episodes", maxRows, ex.GetType().Name);
+            throw;
+        }
+        finally
+        {
+            dbContext.Database.SetCommandTimeout(timeout);
+        }
+    }
+
+    public async Task<ImdbUnknownSeasonCleanupBatchResult> DeleteEmptyUnknownSeasonsBatchAsync(
+        long? afterSeasonId, int maxRows, CancellationToken ct)
+    {
+        ValidateLimit(maxRows);
+        const string sql = """
+            WITH candidates AS MATERIALIZED (
+                SELECT season.id, season.parent_media_collection_id
+                FROM media_collections season
+                INNER JOIN media_collections series ON series.id = season.parent_media_collection_id
+                WHERE (@after_season_id IS NULL OR season.id > @after_season_id)
+                  AND season.collection_type = 'Season'
+                  AND season.season_number IS NULL
+                  AND season.media_type = 'TvShow'
+                  AND season.external_source = 'Imdb'
+                  AND series.collection_type = 'Series'
+                  AND series.media_type = 'TvShow'
+                  AND series.external_source = 'Imdb'
+                  AND NOT EXISTS (SELECT 1 FROM media m WHERE m.media_collection_id = season.id)
+                  AND NOT EXISTS (SELECT 1 FROM media_collections child WHERE child.parent_media_collection_id = season.id)
+                ORDER BY season.id
+                LIMIT @max_rows
+            ), deleted AS (
+                DELETE FROM media_collections season
+                USING candidates c
+                WHERE season.id = c.id
+                  AND NOT EXISTS (SELECT 1 FROM media m WHERE m.media_collection_id = season.id)
+                  AND NOT EXISTS (SELECT 1 FROM media_collections child WHERE child.parent_media_collection_id = season.id)
+                RETURNING season.id, season.parent_media_collection_id
+            )
+            SELECT COUNT(c.id)::integer AS candidate_count,
+                   MAX(c.id)::bigint AS next_id,
+                   (COUNT(c.id) = @max_rows) AS has_more,
+                   COUNT(d.id)::integer AS deleted_seasons,
+                   COALESCE(array_agg(DISTINCT d.parent_media_collection_id)
+                       FILTER (WHERE d.parent_media_collection_id IS NOT NULL), ARRAY[]::bigint[]) AS parent_ids
+            FROM candidates c
+            LEFT JOIN deleted d ON d.id = c.id;
+            """;
+        const string deleteSeriesSql = """
+            WITH parents AS MATERIALIZED (
+                SELECT series.id,
+                       EXISTS (SELECT 1 FROM reviews r WHERE r.media_collection_id = series.id) AS has_review
+                FROM media_collections series
+                WHERE series.id = ANY(@parent_ids)
+                  AND series.collection_type = 'Series'
+                  AND series.media_type = 'TvShow'
+                  AND series.external_source = 'Imdb'
+                  AND NOT EXISTS (SELECT 1 FROM media_collections child WHERE child.parent_media_collection_id = series.id)
+                  AND NOT EXISTS (SELECT 1 FROM media m WHERE m.media_collection_id = series.id)
+            ), deleted AS (
+                DELETE FROM media_collections series
+                USING parents p
+                WHERE series.id = p.id AND NOT p.has_review
+                RETURNING series.id
+            )
+            SELECT COUNT(d.id)::integer AS deleted,
+                   COUNT(p.id) FILTER (WHERE p.has_review)::integer AS skipped_reviewed
+            FROM parents p
+            LEFT JOIN deleted d ON d.id = p.id;
+            """;
+
+        var timeout = dbContext.Database.GetCommandTimeout();
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(ct);
+        try
+        {
+            dbContext.Database.SetCommandTimeout(TimeSpan.FromSeconds(config.MaxStatementSeconds));
+            var pages = await dbContext.Database.SqlQueryRaw<UnknownSeasonCleanupBatchPage>(
+                sql,
+                new NpgsqlParameter("after_season_id", NpgsqlDbType.Bigint) { Value = afterSeasonId is null ? DBNull.Value : afterSeasonId.Value },
+                new NpgsqlParameter("max_rows", NpgsqlDbType.Integer) { Value = maxRows })
+                .ToListAsync(ct);
+            var page = pages.Single();
+            var seriesPage = page.ParentIds.Length == 0
+                ? new UnknownSeriesCleanupPage()
+                : (await dbContext.Database.SqlQueryRaw<UnknownSeriesCleanupPage>(
+                    deleteSeriesSql,
+                    new NpgsqlParameter("parent_ids", NpgsqlDbType.Array | NpgsqlDbType.Bigint) { Value = page.ParentIds })
+                    .ToListAsync(ct)).Single();
+            await transaction.CommitAsync(ct);
+
+            var result = new ImdbUnknownSeasonCleanupBatchResult(
+                page.DeletedSeasons, seriesPage.Deleted, seriesPage.SkippedReviewed, page.NextId, page.HasMore);
+            logger.LogInformation(
+                "IMDb cleanup stage {Stage} committed through season ID {NextId}; deleted {Seasons} seasons and {Series} series; skipped {Skipped} reviewed series.",
+                "unknown-seasons", result.NextSeasonId, result.DeletedSeasons, result.DeletedSeries, result.SkippedReviewedSeries);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError("IMDb cleanup stage {Stage} failed at candidate cap {CandidateCap}. ErrorCategory: {ErrorCategory}.",
+                "unknown-seasons", maxRows, ex.GetType().Name);
+            throw;
+        }
+        finally
+        {
+            dbContext.Database.SetCommandTimeout(timeout);
+        }
     }
 
     private async Task<ImdbLoadBatchResult> ExecuteEpisodeBatchAsync(string sql, int maxRows, CancellationToken ct)
@@ -285,5 +457,27 @@ public class ImdbLoadSqlProvider(
         public int Affected { get; set; }
         public string? NextKey { get; set; }
         public bool HasMore { get; set; }
+    }
+
+    private sealed class UnknownEpisodeCleanupBatchPage
+    {
+        public int Deleted { get; set; }
+        public int Skipped { get; set; }
+        public long? NextId { get; set; }
+        public bool HasMore { get; set; }
+    }
+
+    private sealed class UnknownSeasonCleanupBatchPage
+    {
+        public int DeletedSeasons { get; set; }
+        public long? NextId { get; set; }
+        public bool HasMore { get; set; }
+        public long[] ParentIds { get; set; } = [];
+    }
+
+    private sealed class UnknownSeriesCleanupPage
+    {
+        public int Deleted { get; set; }
+        public int SkippedReviewed { get; set; }
     }
 }

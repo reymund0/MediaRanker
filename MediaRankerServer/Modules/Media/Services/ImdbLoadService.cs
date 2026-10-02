@@ -91,8 +91,59 @@ public class ImdbLoadService
         }
     }
 
-    private Task<ImdbLoadResult> LoadEpisodeMediaCoreAsync(CancellationToken ct, ImdbImportExecution? execution = null) =>
-        DrainAsync("episodes", (provider, after, token) => provider.LoadEpisodeMediaBatchAsync(after, config.MaxLoadRowsPerUnit, token), ct, execution);
+    private async Task<ImdbLoadResult> LoadEpisodeMediaCoreAsync(CancellationToken ct, ImdbImportExecution? execution = null)
+    {
+        var result = await DrainAsync(
+            "episodes",
+            (provider, after, token) => provider.LoadEpisodeMediaBatchAsync(after, config.MaxLoadRowsPerUnit, token),
+            ct,
+            execution);
+        await CleanupUnknownSeasonDataAsync(ct, execution);
+        return result;
+    }
+
+    private async Task CleanupUnknownSeasonDataAsync(CancellationToken ct, ImdbImportExecution? execution)
+    {
+        execution?.SetStage("cleanup:unknown-season-episodes");
+        logger.LogInformation("Starting IMDb cleanup stage {Stage}.", "unknown-season-episodes");
+        var deletedEpisodes = 0;
+        var skippedEpisodes = 0;
+        long? afterMediaId = null;
+        while (true)
+        {
+            var batch = await WithProviderAsync((provider, token) =>
+                provider.DeleteUnknownSeasonEpisodesBatchAsync(afterMediaId, config.MaxCleanupRowsPerUnit, token), ct);
+            deletedEpisodes += batch.Deleted;
+            skippedEpisodes += batch.Skipped;
+            execution?.Counters.AddCleanup(batch.Deleted);
+            if (!batch.HasMore) break;
+            afterMediaId = batch.NextMediaId;
+            await YieldAsync(ct);
+        }
+        logger.LogInformation("IMDb cleanup stage {Stage} completed. Deleted {Deleted}; skipped {Skipped} reviewed episodes.",
+            "unknown-season-episodes", deletedEpisodes, skippedEpisodes);
+
+        execution?.SetStage("cleanup:unknown-seasons");
+        logger.LogInformation("Starting IMDb cleanup stage {Stage}.", "unknown-seasons");
+        var deletedSeasons = 0;
+        var deletedSeries = 0;
+        var skippedReviewedSeries = 0;
+        long? afterSeasonId = null;
+        while (true)
+        {
+            var batch = await WithProviderAsync((provider, token) =>
+                provider.DeleteEmptyUnknownSeasonsBatchAsync(afterSeasonId, config.MaxCleanupRowsPerUnit, token), ct);
+            deletedSeasons += batch.DeletedSeasons;
+            deletedSeries += batch.DeletedSeries;
+            skippedReviewedSeries += batch.SkippedReviewedSeries;
+            execution?.Counters.AddCleanup(batch.DeletedSeasons + batch.DeletedSeries);
+            if (!batch.HasMore) break;
+            afterSeasonId = batch.NextSeasonId;
+            await YieldAsync(ct);
+        }
+        logger.LogInformation("IMDb cleanup stage {Stage} completed. Deleted {Seasons} seasons and {Series} series; skipped {Skipped} reviewed series.",
+            "unknown-seasons", deletedSeasons, deletedSeries, skippedReviewedSeries);
+    }
 
     private async Task<T> RunBoundedAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken ct)
     {

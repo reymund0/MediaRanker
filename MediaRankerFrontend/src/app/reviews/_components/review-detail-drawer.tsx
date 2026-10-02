@@ -5,15 +5,18 @@ import { isReviewScore, mapReviewScoreFields } from "./review-score-values";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import {
   Box,
   Button,
+  ButtonBase,
   Divider,
   Drawer,
   IconButton,
   Stack,
   Typography,
 } from "@mui/material";
+import Link from "next/link";
 import type { Theme } from "@mui/material/styles";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { useQuery } from "@/lib/api/use-query";
@@ -28,9 +31,13 @@ import { ReviewDto, ReviewUpdateRequest } from "../contracts";
 import {
   formatReviewDate,
   getMediaTypeDisplayLabel,
-  getMediaTypePluralLabel,
+  getRankLabel,
+  getEpisodeContextLine,
+  buildReviewRankLookups,
+  formatSeriesYearRange,
   getOverallPreview,
   getReleaseYear,
+  rankableGroup,
   sortReviewsByRank,
 } from "./review-utils";
 import {
@@ -48,6 +55,7 @@ interface ReviewDetailDrawerProps {
   onClose: () => void;
   onUpdated: (review: ReviewDto) => void;
   onDeleted: (review: ReviewDto) => void;
+  onOpenRelatedReview: (review: ReviewDto) => void;
 }
 
 export function ReviewDetailDrawer({
@@ -58,6 +66,7 @@ export function ReviewDetailDrawer({
   onClose,
   onUpdated,
   onDeleted,
+  onOpenRelatedReview,
 }: ReviewDetailDrawerProps) {
   const { showSuccess, showError } = useAlert();
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -90,8 +99,18 @@ export function ReviewDetailDrawer({
     method: "DELETE",
   });
 
-  const sortedReviews = sortReviewsByRank(typeReviews);
-  const rank = sortedReviews.findIndex((item) => item.id === review.id) + 1;
+  const reviewRankLookups = buildReviewRankLookups(typeReviews);
+  const currentReviewRanks = reviewRankLookups.get(rankableGroup(review));
+  const rank = currentReviewRanks?.rankById.get(review.id) ?? 0;
+  const seriesReview = review.seriesId == null
+    ? undefined
+    : typeReviews.find((item) => item.kind === "Series" && item.mediaCollectionId === review.seriesId);
+  const relatedSeriesRanks = seriesReview
+    ? reviewRankLookups.get(rankableGroup(seriesReview))
+    : undefined;
+  const episodeReviews = review.kind === "Series"
+    ? sortReviewsByRank(typeReviews.filter((item) => item.kind === "Episode" && item.seriesId === review.mediaCollectionId))
+    : [];
   const fields = review.fields
     .map<ReviewScoreField>((field) => ({
       id: field.templateFieldId,
@@ -165,7 +184,7 @@ export function ReviewDetailDrawer({
           }}
         >
           <Typography variant="overline" color="text.secondary">
-            Review
+            {review.kind === "Series" ? "Series review" : review.kind === "Episode" ? "Episode review" : "Review"}
           </Typography>
           <IconButton aria-label="Close review" onClick={onClose}>
             <CloseIcon />
@@ -194,7 +213,8 @@ export function ReviewDetailDrawer({
               })}
             >
               <Stack direction="row" gap={3} alignItems="flex-end">
-                <CoverTile
+                  <Box sx={{ position: "relative", flexShrink: 0 }}>
+                  <CoverTile
                   title={review.mediaTitle}
                   src={review.mediaCoverImageUrl}
                   status={review.coverStatus}
@@ -202,9 +222,10 @@ export function ReviewDetailDrawer({
                     width: 128,
                     height: 192,
                     borderRadius: 2,
-                    flexShrink: 0,
                   }}
-                />
+                  />
+                  {review.kind === "Episode" ? <Box sx={{ position: "absolute", top: 8, left: 8, px: 0.75, py: 0.25, bgcolor: "background.default", borderRadius: 0.75, typography: "caption" }}>S{review.seasonNumber ?? "—"} · E{review.episodeNumber ?? "—"}</Box> : null}
+                  </Box>
                 <Stack spacing={1} sx={{ minWidth: 0, pb: 0.5 }}>
                   <Box
                     sx={{
@@ -220,9 +241,17 @@ export function ReviewDetailDrawer({
                       fontWeight: 700,
                     }}
                   >
-                    {rank > 0 ? `#${rank} in ` : ""}
-                    {getMediaTypePluralLabel(review.mediaType)}
+                    {getRankLabel(review, rank, currentReviewRanks?.totalCount ?? 0)}
                   </Box>
+                  {review.kind === "Episode" && review.seriesTitle ? (
+                    <Typography variant="body2" fontWeight={650} color="text.secondary">
+                      {seriesReview ? (
+                        <ButtonBase onClick={() => onOpenRelatedReview(seriesReview)} sx={{ color: "primary.light", font: "inherit", textAlign: "left" }}>
+                          {getEpisodeContextLine(review)}
+                        </ButtonBase>
+                      ) : getEpisodeContextLine(review)}
+                    </Typography>
+                  ) : null}
                   <Typography
                     variant="h4"
                     component="h2"
@@ -231,7 +260,9 @@ export function ReviewDetailDrawer({
                     {review.mediaTitle}
                   </Typography>
                   <Typography color="text.secondary">
-                    {[year, mediaTypeLabel].filter(Boolean).join(" · ")}
+                    {review.kind === "Series"
+                      ? `${formatSeriesYearRange(review.seriesStartYear ?? (year ? Number(year) : null), review.seriesEndYear, { includeEndOnly: true }) ?? ""} · TV series · ${review.seasonCount ?? 0} seasons, ${review.episodeCount ?? 0} episodes`
+                      : [year, review.kind === "Episode" ? "TV episode" : mediaTypeLabel].filter(Boolean).join(" · ")}
                   </Typography>
                 </Stack>
               </Stack>
@@ -298,16 +329,43 @@ export function ReviewDetailDrawer({
                       “{review.reviewTitle}”
                     </Typography>
                   ) : null}
-                  {review.notes ? (
+              {review.notes ? (
                     <Typography
                       sx={{ whiteSpace: "pre-wrap", lineHeight: 1.7 }}
                     >
                       {review.notes}
                     </Typography>
-                  ) : null}
+              ) : null}
                 </>
               )}
+              {review.kind === "Episode" && seriesReview ? (
+                <Stack spacing={1.25} sx={{ mt: 3, pt: 3, borderTop: "1px solid", borderColor: "divider" }}>
+                  <Typography variant="overline" color="text.secondary">Series review</Typography>
+                  <RelatedReviewCard review={seriesReview} subtitle={getRankLabel(seriesReview, relatedSeriesRanks?.rankById.get(seriesReview.id) ?? 0, relatedSeriesRanks?.totalCount ?? 0)} onClick={() => onOpenRelatedReview(seriesReview)} />
+                </Stack>
+              ) : null}
 
+              {review.kind === "Series" ? (
+                <Stack spacing={1.25} sx={{ mt: 3, pt: 3, borderTop: "1px solid", borderColor: "divider" }}>
+                  <Stack direction="row" alignItems="baseline" justifyContent="space-between" gap={1}>
+                    <Typography variant="overline" color="text.secondary">Episodes you’ve reviewed · {episodeReviews.length}</Typography>
+                    <Button component={Link} size="small" href={`/media?mediaType=TvShow&series=${review.mediaCollectionId}`} onClick={onClose}>Browse all episodes</Button>
+                  </Stack>
+                  {episodeReviews.map((episode) => {
+                    const episodeRanks = reviewRankLookups.get(rankableGroup(episode));
+                    const episodeRank = episodeRanks?.rankById.get(episode.id) ?? 0;
+                    return <ButtonBase key={episode.id} onClick={() => onOpenRelatedReview(episode)} sx={{ display: "grid", width: "100%", gridTemplateColumns: "64px minmax(0, 1fr) auto", gap: 1.5, alignItems: "center", px: 1.5, py: 1.25, textAlign: "left", border: "1px solid", borderColor: "divider", borderRadius: 1.5, "&:hover": { bgcolor: "action.hover" } }}>
+                      <Typography variant="numeric" color="text.secondary">S{episode.seasonNumber ?? "—"} E{episode.episodeNumber ?? "—"}</Typography>
+                      <Stack sx={{ minWidth: 0 }}>
+                        <Typography noWrap fontWeight={650}>{episode.mediaTitle}</Typography>
+                        <Typography variant="caption" color="text.secondary">{getRankLabel(episode, episodeRank, episodeRanks?.totalCount ?? 0)} · {getReleaseYear(episode.mediaReleaseDate) ?? "Year unknown"}</Typography>
+                      </Stack>
+                      <Typography variant="numeric" color="primary.light">{episode.overallScore}</Typography>
+                    </ButtonBase>;
+                  })}
+                  {episodeReviews.length === 0 ? <Typography variant="body2" color="text.secondary">No episode reviews yet.</Typography> : null}
+                </Stack>
+              ) : null}
               <Typography
                 variant="caption"
                 color="text.secondary"
@@ -471,6 +529,28 @@ function ReviewEditForm({
         </Stack>
       </Box>
     </FormProvider>
+  );
+}
+
+function RelatedReviewCard({
+  review,
+  subtitle,
+  onClick,
+}: {
+  review: ReviewDto;
+  subtitle: string;
+  onClick: () => void;
+}) {
+  return (
+    <ButtonBase onClick={onClick} sx={{ display: "flex", width: "100%", justifyContent: "flex-start", textAlign: "left", gap: 1.5, p: 1.25, border: "1px solid", borderColor: "divider", borderRadius: 1.5, bgcolor: "background.default", "&:hover": { bgcolor: "action.hover" } }}>
+      <CoverTile title={review.seriesTitle ?? review.mediaTitle} src={review.mediaCoverImageUrl} status={review.coverStatus} showTitle={false} sx={{ width: 42, height: 62, borderRadius: 1 }} />
+      <Stack sx={{ flex: 1, minWidth: 0 }}>
+        <Typography fontWeight={650} noWrap>{review.mediaTitle}</Typography>
+        <Typography variant="caption" color="text.secondary" noWrap>{subtitle}</Typography>
+      </Stack>
+      <Typography variant="numeric" color="primary.light">{review.overallScore}</Typography>
+      <ChevronRightIcon color="action" fontSize="small" />
+    </ButtonBase>
   );
 }
 

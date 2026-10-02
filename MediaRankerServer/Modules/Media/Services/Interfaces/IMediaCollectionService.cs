@@ -5,8 +5,9 @@ namespace MediaRankerServer.Modules.Media.Services.Interfaces;
 
 public interface IMediaCollectionService
 {
-    Task<PageResult<MediaCollectionDto>> GetAllCollectionsAsync(PageRequest request, CancellationToken cancellationToken = default);
+    Task<PageResult<MediaCollectionDto>> GetAllCollectionsAsync(PageRequest request, CancellationToken cancellationToken = default, string? mediaType = null, string? collectionType = null, long? parentId = null);
     Task<MediaCollectionDto?> GetCollectionByIdAsync(long id, CancellationToken cancellationToken = default);
+    Task<SeriesRemovalCountsDto> GetSeriesRemovalCountsAsync(long id, CancellationToken cancellationToken = default);
     Task<MediaCollectionDto> CreateCollectionAsync(string userId, MediaCollectionUpsertRequest request, CancellationToken cancellationToken = default);
     Task<MediaCollectionDto> UpdateCollectionAsync(string userId, long id, MediaCollectionUpsertRequest request, CancellationToken cancellationToken = default);
     Task DeleteCollectionAsync(long id, CancellationToken cancellationToken = default);

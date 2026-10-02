@@ -45,9 +45,10 @@ import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import { ReviewDto } from "../reviews/contracts";
 import { useReviewExperience } from "../reviews/_components/review-experience";
 import { sortReviewsByRank } from "../reviews/_components/review-utils";
-import { MediaDto, MediaUpsertRequest } from "./contracts";
+import { MediaCollectionDto, MediaDto, MediaUpsertRequest } from "./contracts";
 import { MediaEditModal } from "./media-edit-modal";
 import { mapMediaToRow, MediaRow } from "./grid-utils";
+import { TvSeriesList, TvSeriesListHandle } from "./_components/tv-series-list";
 
 function TypeAvailability({
   type,
@@ -58,7 +59,9 @@ function TypeAvailability({
 }) {
   const { userId } = useUser();
   const { data } = useQuery<PageResult<MediaDto>>({
-    route: `/api/media?mediaType=${type}&pageSize=1`,
+    route: type === MediaType.TvShow
+      ? "/api/MediaCollection?mediaType=TvShow&collectionType=Series&pageSize=1"
+      : `/api/media?mediaType=${type}&pageSize=1`,
     queryKey: ["media-availability", type],
     enabled: !!userId,
     staleTime: 300_000,
@@ -83,6 +86,18 @@ function Catalog() {
       : MediaType.VideoGame,
   );
   const [search, setSearch] = useState("");
+  const linkedSeriesId = searchParams.get("series");
+  const [appliedSeriesId, setAppliedSeriesId] = useState<string | null>(null);
+  const { data: linkedSeries } = useQuery<MediaCollectionDto>({
+    route: `/api/MediaCollection/${linkedSeriesId ?? "0"}`,
+    queryKey: ["tv-series-link", linkedSeriesId],
+    enabled: !!userId && !!linkedSeriesId && requestedType === MediaType.TvShow,
+  });
+  if (linkedSeries && appliedSeriesId !== linkedSeriesId) {
+    setAppliedSeriesId(linkedSeriesId);
+    setSearch(linkedSeries.title);
+    setType(MediaType.TvShow);
+  }
   const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
   const [availability, setAvailability] = useState<
@@ -91,6 +106,8 @@ function Catalog() {
   const [draft, setDraft] = useState<MediaRow>();
   const [removing, setRemoving] = useState<MediaDto>();
   const [menu, setMenu] = useState<{ anchor: HTMLElement; media: MediaDto }>();
+  const [tvRevision, setTvRevision] = useState(0);
+  const tvSeriesListRef = useRef<TvSeriesListHandle>(null);
   useEffect(() => {
     if (searchParams.has("focus")) inputRef.current?.focus();
   }, [searchParams]);
@@ -99,7 +116,7 @@ function Catalog() {
       route: "/api/media",
       routeParams: { mediaType: type },
       queryKey: ["media", type, revision],
-      enabled: !!userId,
+      enabled: !!userId && type !== MediaType.TvShow,
       minSearchChars: 0,
       pageSize: 10,
       pageRequest: {
@@ -174,7 +191,7 @@ function Catalog() {
         sx={{ mb: 4 }}
       >
         <Typography variant="h1">Find something to rank</Typography>
-        <Button variant="outlined" startIcon={<Add />} onClick={addTitle}>
+        <Button variant="outlined" startIcon={<Add />} onClick={() => type === MediaType.TvShow ? tvSeriesListRef.current?.openCreate() : addTitle()}>
           Add a title
         </Button>
       </Stack>
@@ -182,7 +199,7 @@ function Catalog() {
         id="catalog-search"
         inputRef={inputRef}
         inputProps={{ "aria-label": "Search the catalog" }}
-        placeholder="Search titles…"
+        placeholder={type === MediaType.TvShow ? "Search TV series…" : "Search titles…"}
         value={search}
         onChange={(e) => {
           setSearch(e.target.value);
@@ -221,6 +238,33 @@ function Catalog() {
           (mt) => availability[mt] === false,
         )}
       />
+      {type === MediaType.TvShow ? (
+        <Box sx={{ mt: 3.5 }}>
+          <TvSeriesList
+            ref={tvSeriesListRef}
+            key={search}
+            search={search}
+            onSearchChange={setSearch}
+            onReviewSeries={(series) => openNewReview(undefined, series)}
+            onReviewEpisode={(episode, series) => openNewReview(episode, series)}
+            reviews={reviews}
+            onReviewOpen={(id) => {
+              const review = reviews.find((item) => item.id === id);
+              if (review) openReview(review);
+            }}
+            onRefresh={() => {
+              setTvRevision((value) => value + 1);
+              queryClient.invalidateQueries({ queryKey: ["tv-series"] });
+              queryClient.invalidateQueries({ queryKey: ["tv-seasons"] });
+              queryClient.invalidateQueries({ queryKey: ["tv-episodes"] });
+              queryClient.invalidateQueries({ queryKey: ["media-availability"] });
+            }}
+            revision={tvRevision}
+            seriesId={searchParams.get("series")}
+          />
+        </Box>
+      ) : (
+      <>
       <Box
         sx={{
           mt: 3.5,
@@ -447,6 +491,8 @@ function Catalog() {
         >
           This removes the title and its reviews. This action cannot be undone.
         </BaseDialog>
+      )}
+      </>
       )}
     </PageContainer>
   );

@@ -10,7 +10,8 @@ public class ReviewFieldInsertRequest
 
 public class ReviewInsertRequest
 {
-  public long MediaId { get; set; }
+  public long? MediaId { get; set; }
+  public long? MediaCollectionId { get; set; }
   public long TemplateId { get; set; }
   public string? ReviewTitle { get; set; }
   public string? Notes { get; set; }
@@ -22,6 +23,11 @@ public class ReviewInsertRequest
 public class ReviewInsertRequestValidator : AbstractValidator<ReviewInsertRequest>
 {
   public ReviewInsertRequestValidator() {
+    RuleFor(request => request)
+      .Must(request => request.MediaId is > 0 && request.MediaCollectionId is null
+        || request.MediaCollectionId is > 0 && request.MediaId is null)
+      .WithMessage("Exactly one positive media or media collection target is required");
+
     RuleFor(request => request.ConsumedAt)
       .Must(date => date == null || date <= DateTimeOffset.Now)
       .WithMessage("Consumed at date cannot be in the future");

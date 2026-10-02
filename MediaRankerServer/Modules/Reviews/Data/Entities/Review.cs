@@ -19,7 +19,8 @@ public class Review : ITimestampedEntity
     public DateTimeOffset UpdatedAt { get; set; }
     public ICollection<ReviewField> Fields { get; set; } = [];
     // Related entities
-    public long MediaId { get; set; }
+    public long? MediaId { get; set; }
+    public long? MediaCollectionId { get; set; }
     public long TemplateId { get; set; }
 
     public class Configuration : IEntityTypeConfiguration<Review>
@@ -32,6 +33,10 @@ public class Review : ITimestampedEntity
                     "ck_reviews_overall_score",
                     "overall_score BETWEEN 1 AND 10"
                 );
+                t.HasCheckConstraint(
+                    "ck_reviews_target",
+                    "(media_id IS NOT NULL) <> (media_collection_id IS NOT NULL)"
+                );
             });
 
             builder.HasKey(rm => rm.Id);
@@ -41,8 +46,9 @@ public class Review : ITimestampedEntity
             builder.Property(rm => rm.UserId)
                 .IsRequired();
 
-            builder.Property(rm => rm.MediaId)
-                .IsRequired();
+            builder.Property(rm => rm.MediaId);
+
+            builder.Property(rm => rm.MediaCollectionId);
 
             builder.Property(rm => rm.TemplateId)
                 .IsRequired();
@@ -73,9 +79,17 @@ public class Review : ITimestampedEntity
                 .IsUnique()
                 .HasDatabaseName("uq_reviews_user_media");
 
+            builder.HasIndex(rm => new { rm.UserId, rm.MediaCollectionId })
+                .IsUnique()
+                .HasDatabaseName("uq_reviews_user_media_collection")
+                .HasFilter("media_collection_id IS NOT NULL");
+
             // Indexes for related entities
             builder.HasIndex(rm => rm.MediaId)
                 .HasDatabaseName("ix_reviews_media_id");
+
+            builder.HasIndex(rm => rm.MediaCollectionId)
+                .HasDatabaseName("ix_reviews_media_collection_id");
 
             builder.HasIndex(rm => rm.TemplateId)
                 .HasDatabaseName("ix_reviews_template_id");
