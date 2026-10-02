@@ -13,6 +13,7 @@ import {
   LOCAL_TEST_USER_ID,
   LOCAL_TEST_USERNAME,
 } from "./local-test-auth";
+import { UserQueryProvider } from "./user-query-provider";
 
 const AUTH_PATHS = [
   "/auth/login",
@@ -51,6 +52,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
+    let cancelled = false;
     const checkAuth = async () => {
       try {
         if (isLocalTestAuthActive()) {
@@ -67,6 +69,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setLocalTestAuth(false);
         const currentUser = await getCurrentUser();
         const currentSession = await fetchAuthSession();
+        if (cancelled) return;
         setUser(currentUser);
         setSession(currentSession);
         setAuthResolved(true);
@@ -75,6 +78,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
           router.replace("/reviews");
         }
       } catch {
+        if (cancelled) return;
         setLocalTestAuth(false);
         setUser(null);
         setSession(null);
@@ -87,6 +91,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     checkAuth();
+    return () => {
+      cancelled = true;
+    };
   }, [pathname, router]);
 
   return (
@@ -102,7 +109,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         authResolved,
       }}
     >
-      {children}
+      <UserQueryProvider userId={localTestAuth ? LOCAL_TEST_USER_ID : user?.userId}>
+        {children}
+      </UserQueryProvider>
     </UserContext.Provider>
   );
 };

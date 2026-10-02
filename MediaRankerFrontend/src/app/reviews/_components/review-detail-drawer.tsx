@@ -1,5 +1,7 @@
 "use client";
 
+import { isReviewScore, mapReviewScoreFields } from "./review-score-values";
+
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -15,6 +17,7 @@ import {
 import type { Theme } from "@mui/material/styles";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { useQuery } from "@/lib/api/use-query";
+import { reviewQueryOptions } from "./review-query";
 import { usePendingCoverRefresh } from "@/lib/api/use-pending-cover-refresh";
 import { useMutation } from "@/lib/api/use-mutation";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
@@ -24,7 +27,6 @@ import { ScoreBar } from "@/lib/components/data-display/score-bar";
 import { ReviewDto, ReviewUpdateRequest } from "../contracts";
 import {
   formatReviewDate,
-  getCoverTileStatus,
   getMediaTypeDisplayLabel,
   getMediaTypePluralLabel,
   getOverallPreview,
@@ -62,8 +64,7 @@ export function ReviewDetailDrawer({
   const { data: typeReviews = [], refetch: refetchReview } = useQuery<
     ReviewDto[]
   >({
-    route: `/api/reviews/byMediaType/${initialReview.mediaType}`,
-    queryKey: ["reviews", initialReview.mediaType],
+    ...reviewQueryOptions(initialReview.mediaType),
     enabled: !!initialReview,
   });
   const review =
@@ -102,25 +103,18 @@ export function ReviewDetailDrawer({
   const mediaTypeLabel = getMediaTypeDisplayLabel(review.mediaType);
 
   const handleUpdate = (values: ReviewScoreFormValues) => {
+    const scoredFields = mapReviewScoreFields(fields, values.fields);
+    if (scoredFields === null) {
+      showError("Score every field from 1 to 10 before saving.");
+      return;
+    }
     const request: ReviewUpdateRequest = {
       id: review.id,
       reviewTitle: values.reviewTitle.trim() || null,
       notes: values.notes.trim() || null,
       consumedAt: values.consumedAt,
-      fields: fields.map((field) => ({
-        templateFieldId: field.id,
-        value: values.fields[field.id] as number,
-      })),
+      fields: scoredFields,
     };
-    if (
-      request.fields.some(
-        (field) =>
-          !Number.isInteger(field.value) || field.value < 1 || field.value > 10,
-      )
-    ) {
-      showError("Score every field from 1 to 10 before saving.");
-      return;
-    }
 
     updateReview(request, {
       onSuccess: (saved) => {
@@ -203,7 +197,7 @@ export function ReviewDetailDrawer({
                 <CoverTile
                   title={review.mediaTitle}
                   src={review.mediaCoverImageUrl}
-                  status={getCoverTileStatus(review.coverStatus)}
+                  status={review.coverStatus}
                   sx={{
                     width: 128,
                     height: 192,
@@ -413,15 +407,7 @@ function ReviewEditForm({
   );
   const canSave =
     fields.length > 0 &&
-    fields.every((field) => {
-      const value = scoreValues?.[field.id];
-      return (
-        typeof value === "number" &&
-        Number.isInteger(value) &&
-        value >= 1 &&
-        value <= 10
-      );
-    });
+    fields.every((field) => isReviewScore(scoreValues?.[field.id]));
 
   return (
     <FormProvider {...methods}>

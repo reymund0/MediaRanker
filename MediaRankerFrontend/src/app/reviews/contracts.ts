@@ -1,3 +1,7 @@
+import type { CoverStatus } from "@/lib/contracts/shared";
+
+export type { CoverStatus } from "@/lib/contracts/shared";
+
 export interface ReviewDto {
   id: number;
   userId: string;
@@ -33,14 +37,6 @@ export interface UnreviewedMediaDto {
   coverImageUrl: string | null;
   coverStatus: CoverStatus;
 }
-
-export type CoverStatus =
-  | "ready"
-  | "pending"
-  | "missing"
-  | "failed"
-  | "disabled"
-  | "unsupported";
 
 export interface ReviewFieldUpsertRequest {
   templateFieldId: number;

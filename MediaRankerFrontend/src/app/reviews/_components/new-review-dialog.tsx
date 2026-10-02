@@ -1,5 +1,7 @@
 "use client";
 
+import { mapReviewScoreFields } from "./review-score-values";
+
 import AddIcon from "@mui/icons-material/Add";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
@@ -22,6 +24,7 @@ import Link from "next/link";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { ReactNode, useState } from "react";
 import { useQuery } from "@/lib/api/use-query";
+import { reviewQueryOptions } from "./review-query";
 import { usePagedQuery } from "@/lib/api/use-paged-query";
 import { useMutation } from "@/lib/api/use-mutation";
 import { usePendingCoverRefresh } from "@/lib/api/use-pending-cover-refresh";
@@ -35,7 +38,6 @@ import { ReviewDto, ReviewInsertRequest } from "../contracts";
 import { MediaDto } from "../../media/contracts";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
 import {
-  getCoverTileStatus,
   getMediaTypeDisplayLabel,
   getOverallPreview,
   getReleaseYear,
@@ -98,8 +100,7 @@ export function NewReviewDialog({
     isLoading: isReviewStatusQueryLoading,
     isError: isReviewStatusError,
   } = useQuery<ReviewDto[]>({
-    route: `/api/reviews/byMediaType/${mediaType}`,
-    queryKey: ["reviews", mediaType],
+    ...reviewQueryOptions(mediaType),
     enabled: authResolved && !!userId,
   });
 
@@ -156,22 +157,13 @@ export function NewReviewDialog({
   const handleCreate = (values: ReviewScoreFormValues) => {
     if (!selectedMedia || !selectedTemplate) return;
 
-    const fields = [...selectedTemplate.fields]
-      .sort((left, right) => left.position - right.position)
-      .map((field) => ({
-        templateFieldId: field.id,
-        value: values.fields[field.id],
-      }));
-    if (
-      fields.some(
-        (field) =>
-          typeof field.value !== "number" ||
-          !Number.isInteger(field.value) ||
-          field.value < 1 ||
-          field.value > 10,
-      )
-    )
-      return;
+    const fields = mapReviewScoreFields(
+      [...selectedTemplate.fields].sort(
+        (left, right) => left.position - right.position,
+      ),
+      values.fields,
+    );
+    if (fields === null) return;
 
     insertReview(
       {
@@ -181,10 +173,7 @@ export function NewReviewDialog({
         reviewTitle: values.reviewTitle.trim() || null,
         notes: values.notes.trim() || null,
         consumedAt: null,
-        fields: fields.map((field) => ({
-          templateFieldId: field.templateFieldId,
-          value: field.value as number,
-        })),
+        fields,
       },
       {
         onSuccess: (saved) => {
@@ -220,7 +209,7 @@ export function NewReviewDialog({
         <CoverTile
           title={selectedMedia.title}
           src={selectedMedia.coverImageUrl}
-          status={getCoverTileStatus(selectedMedia.coverStatus)}
+          status={selectedMedia.coverStatus}
           sx={{
             width: 56,
             height: 84,
@@ -419,7 +408,7 @@ export function NewReviewDialog({
                     <CoverTile
                       title={media.title}
                       src={media.coverImageUrl}
-                      status={getCoverTileStatus(media.coverStatus)}
+                      status={media.coverStatus}
                       sx={{
                         width: 40,
                         height: 60,

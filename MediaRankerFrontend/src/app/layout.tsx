@@ -6,7 +6,6 @@ import { BaseLayout } from "@/lib/components/layout/base-layout";
 import { CssBaseline } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import theme from "./theme";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import {
   Bricolage_Grotesque,
@@ -33,8 +32,6 @@ const monoFont = Geist_Mono({
   display: "swap",
 });
 
-const queryClient = new QueryClient();
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -46,13 +43,11 @@ export default function RootLayout({
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            <QueryClientProvider client={queryClient}>
+            <UserProvider>
               <AlertProvider>
-                <UserProvider>
-                  <BaseLayout>{children}</BaseLayout>
-                </UserProvider>
+                <BaseLayout>{children}</BaseLayout>
               </AlertProvider>
-            </QueryClientProvider>
+            </UserProvider>
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>

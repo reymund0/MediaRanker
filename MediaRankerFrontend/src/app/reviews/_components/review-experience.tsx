@@ -14,6 +14,7 @@ import { MediaDto } from "@/app/media/contracts";
 import { ReviewDto } from "../contracts";
 import { NewReviewDialog } from "./new-review-dialog";
 import { ReviewDetailDrawer } from "./review-detail-drawer";
+import { reviewQueryKey } from "./review-query";
 import { sortReviewsByRank } from "./review-utils";
 
 type ReviewExperienceContextValue = {
@@ -98,7 +99,7 @@ function ReviewExperienceState({
       review: ReviewDto,
       update: (current: ReviewDto[]) => ReviewDto[],
     ) => {
-      const queryKey = ["reviews", review.mediaType];
+      const queryKey = reviewQueryKey(review.mediaType);
       await queryClient.cancelQueries({ queryKey, exact: true });
       queryClient.setQueryData<ReviewDto[]>(queryKey, (current) =>
         sortReviewsByRank(update(current ?? [])),

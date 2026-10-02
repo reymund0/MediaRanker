@@ -1,5 +1,7 @@
 "use client";
 
+import { reviewQueryOptions, REVIEW_QUERY_ROOT } from "../reviews/_components/review-query";
+
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -109,8 +111,7 @@ function Catalog() {
       },
     });
   const { data: reviews = [] } = useQuery<ReviewDto[]>({
-    route: `/api/reviews/byMediaType/${type}`,
-    queryKey: ["reviews", type],
+    ...reviewQueryOptions(type),
     enabled: !!userId,
   });
   const ranked = sortReviewsByRank(reviews);
@@ -436,7 +437,7 @@ function Catalog() {
             remove.mutate(removing.id, {
               onSuccess: () => {
                 refresh();
-                queryClient.invalidateQueries({ queryKey: ["reviews"] });
+                queryClient.invalidateQueries({ queryKey: REVIEW_QUERY_ROOT });
                 setRemoving(undefined);
                 showSuccess("Title removed");
               },

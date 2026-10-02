@@ -24,7 +24,8 @@ This document contains non-always-on frontend details for MediaRanker.
 ## Layout and Navigation
 
 - App composition in `src/app/layout.tsx`:
-  - `AppRouterCacheProvider` -> `ThemeProvider` -> `CssBaseline` -> `QueryClientProvider` -> `AlertProvider` -> `UserProvider` -> `BaseLayout`
+  - `AppRouterCacheProvider` -> `ThemeProvider` -> `CssBaseline` -> `UserProvider` -> identity-keyed `UserQueryProvider` -> `AlertProvider` -> `BaseLayout`
+  - Keep query clients scoped to the resolved user identity. Account changes remount the query provider and its UI subtree, discard the old cache, and isolate late responses. Same-user navigation/token refresh preserves the cache and drafts. Do not restore a module-level singleton query client.
   - Keep the installed MUI Next.js cache provider around the theme to collect streamed server styles consistently during hydration.
 - Navbar visibility:
   - Hide on `/auth/*`

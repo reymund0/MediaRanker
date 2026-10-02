@@ -96,11 +96,3 @@ export function formatReviewDate(
     year: "numeric",
   }).format(parsed);
 }
-
-export function getCoverTileStatus(
-  status: string | null | undefined,
-): "ready" | "pending" | "missing" {
-  if (status === "ready") return "ready";
-  if (status === "pending") return "pending";
-  return "missing";
-}

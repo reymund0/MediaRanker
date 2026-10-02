@@ -13,6 +13,7 @@ import Link from "next/link";
 import { alpha } from "@mui/material/styles";
 import { useState } from "react";
 import { useQuery } from "@/lib/api/use-query";
+import { reviewQueryOptions } from "./review-query";
 import { usePendingCoverRefresh } from "@/lib/api/use-pending-cover-refresh";
 import { useUser } from "@/lib/auth/user-provider";
 import { CoverTile } from "@/lib/components/data-display/cover-tile";
@@ -23,7 +24,6 @@ import { MediaTypeChips } from "@/lib/components/inputs/media-type-chips";
 import { ReviewDto } from "../contracts";
 import { useReviewExperience } from "./review-experience";
 import {
-  getCoverTileStatus,
   getMediaTypeDisplayLabel,
   getMediaTypePluralLabel,
   getReleaseYear,
@@ -37,33 +37,27 @@ export function ReviewLibrary() {
   const [chosenType, setChosenType] = useState<MediaType | null>(null);
 
   const gamesQuery = useQuery<ReviewDto[]>({
-    route: `/api/reviews/byMediaType/${MediaType.VideoGame}`,
-    queryKey: ["reviews", MediaType.VideoGame],
+    ...reviewQueryOptions(MediaType.VideoGame),
     enabled: !!userId,
   });
   const moviesQuery = useQuery<ReviewDto[]>({
-    route: `/api/reviews/byMediaType/${MediaType.Movie}`,
-    queryKey: ["reviews", MediaType.Movie],
+    ...reviewQueryOptions(MediaType.Movie),
     enabled: !!userId,
   });
   const tvQuery = useQuery<ReviewDto[]>({
-    route: `/api/reviews/byMediaType/${MediaType.TvShow}`,
-    queryKey: ["reviews", MediaType.TvShow],
+    ...reviewQueryOptions(MediaType.TvShow),
     enabled: !!userId,
   });
   const booksQuery = useQuery<ReviewDto[]>({
-    route: `/api/reviews/byMediaType/${MediaType.Book}`,
-    queryKey: ["reviews", MediaType.Book],
+    ...reviewQueryOptions(MediaType.Book),
     enabled: !!userId,
   });
   const albumsQuery = useQuery<ReviewDto[]>({
-    route: `/api/reviews/byMediaType/${MediaType.Album}`,
-    queryKey: ["reviews", MediaType.Album],
+    ...reviewQueryOptions(MediaType.Album),
     enabled: !!userId,
   });
   const concertsQuery = useQuery<ReviewDto[]>({
-    route: `/api/reviews/byMediaType/${MediaType.Concert}`,
-    queryKey: ["reviews", MediaType.Concert],
+    ...reviewQueryOptions(MediaType.Concert),
     enabled: !!userId,
   });
 
@@ -283,7 +277,7 @@ function LatestReviewCard({
       <CoverTile
         title={review.mediaTitle}
         src={review.mediaCoverImageUrl}
-        status={getCoverTileStatus(review.coverStatus)}
+        status={review.coverStatus}
         sx={{ width: "100%", height: 300, borderRadius: 1.5 }}
       />
       <Stack spacing={1.25} sx={{ minWidth: 0, py: 0.25 }}>
@@ -473,7 +467,7 @@ function RankedReviewTile({
         <CoverTile
           title={review.mediaTitle}
           src={review.mediaCoverImageUrl}
-          status={getCoverTileStatus(review.coverStatus)}
+          status={review.coverStatus}
           sx={{ width: "100%", height: "100%", borderRadius: 0 }}
         />
         <Box

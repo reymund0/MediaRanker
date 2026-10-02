@@ -17,6 +17,14 @@ export interface PageRequest {
   includeTotalCount?: boolean;
 }
 
+export type CoverStatus =
+  | "ready"
+  | "pending"
+  | "missing"
+  | "failed"
+  | "disabled"
+  | "unsupported";
+
 export enum MediaType {
   VideoGame = "VideoGame",
   Book = "Book",

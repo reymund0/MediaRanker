@@ -1,5 +1,7 @@
 "use client";
 
+import { REVIEW_QUERY_ROOT } from "../reviews/_components/review-query";
+
 import { useState } from "react";
 import {
   Add,
@@ -79,7 +81,7 @@ export default function TemplatesPage() {
         saved,
       ]);
       client.invalidateQueries({ queryKey: ["templates"] });
-      client.invalidateQueries({ queryKey: ["reviews"] });
+      client.invalidateQueries({ queryKey: REVIEW_QUERY_ROOT });
       setPendingSave(undefined);
       setDraft(undefined);
       showSuccess("Template saved");
@@ -283,7 +285,7 @@ export default function TemplatesPage() {
             remove.mutate(removing.id!, {
               onSuccess: () => {
                 client.invalidateQueries({ queryKey: ["templates"] });
-                client.invalidateQueries({ queryKey: ["reviews"] });
+                client.invalidateQueries({ queryKey: REVIEW_QUERY_ROOT });
                 setDraft(undefined);
                 setRemoving(undefined);
                 showSuccess("Template deleted");

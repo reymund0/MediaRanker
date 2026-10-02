@@ -1,18 +1,13 @@
 import { CircularProgress, Box, SxProps, Theme, Typography } from "@mui/material";
+import type { CoverStatus } from "@/lib/contracts/shared";
 import { CoverImage } from "@/lib/components/data-display/cover-image";
 
-export type CoverTileStatus =
-  | "ready"
-  | "pending"
-  | "missing"
-  | "failed"
-  | "disabled"
-  | "unsupported";
+export type CoverTileStatus = CoverStatus;
 
 export type CoverTileProps = {
   title: string;
   src?: string | null;
-  status: CoverTileStatus;
+  status: CoverStatus;
   showTitle?: boolean;
   sx?: SxProps<Theme>;
 };

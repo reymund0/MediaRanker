@@ -6,6 +6,21 @@ Let users see their reviews as best-first rankings and create, read, edit and de
 
 ## Requirements
 
+### Requirement: Account-isolated client state
+The application SHALL isolate query caches and mounted review state by authenticated user identity. Identity changes SHALL discard the previous cache and UI state before rendering the new account's data. Late responses from a previous identity SHALL NOT populate the current identity's cache.
+
+#### Scenario: Switch accounts
+- **WHEN** one user signs out and another signs in without reloading the browser
+- **THEN** previous reviews, templates, counts, drawers and drafts are absent while the new user's data loads
+
+#### Scenario: Previous account response finishes late
+- **WHEN** a previous account's query or mutation finishes after the active identity changes
+- **THEN** its result does not appear in the current account's cache or review UI
+
+#### Scenario: Refresh the same account
+- **WHEN** authentication resolves again for the same user during navigation or token refresh
+- **THEN** that user's query cache and in-progress review state remain available
+
 ### Requirement: Best-first rankings
 The system SHALL return a user's reviews for a media type ordered by overall score descending, then most recently updated, then ID. The Library SHALL show them as a poster grid where each poster shows the cover, its 1-based rank and its overall score, with the first-ranked poster visually highlighted.
 
