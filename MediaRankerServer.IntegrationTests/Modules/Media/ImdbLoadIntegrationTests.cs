@@ -257,7 +257,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
     }
 
     [Fact]
-    public async Task LoadAsync_SeasonNumberMinusOne_TitleIsUnknown()
+    public async Task LoadAsync_SeasonNumberMinusOne_IsNotLoaded()
     {
         using var scope = Factory.Services.CreateScope();
 
@@ -276,9 +276,9 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         await loadService.LoadAsync();
 
         var season = await db.MediaCollections.FirstOrDefaultAsync(mc =>
-            mc.CollectionType == MediaCollectionType.Season && mc.Title == "Unknown");
-
-        season.Should().NotBeNull();
+            mc.CollectionType == MediaCollectionType.Season && mc.ParentMediaCollectionId != null);
+        season.Should().BeNull();
+        (await db.Media.AnyAsync(m => m.ExternalId == "tt1001001")).Should().BeFalse();
     }
 
     [Fact]
@@ -361,7 +361,7 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
     }
 
     [Fact]
-    public async Task LoadEpisodeMediaAsync_SeasonMinusOne_LinksToUnknownSeason()
+    public async Task LoadEpisodeMediaAsync_SeasonMinusOne_IsNotLoaded()
     {
         using var scope = Factory.Services.CreateScope();
 
@@ -379,14 +379,9 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         var loadService = scope.ServiceProvider.GetRequiredService<ImdbLoadService>();
         await loadService.LoadAsync();
 
-        var seriesRow  = await db.MediaCollections.FirstAsync(mc => mc.ExternalId == TconstSeries1);
-        var unknownSeason = await db.MediaCollections.FirstAsync(mc =>
-            mc.CollectionType == MediaCollectionType.Season && mc.ParentMediaCollectionId == seriesRow.Id && mc.Title == "Unknown");
-
         var mediaRow = await db.Media.FirstOrDefaultAsync(m => m.ExternalId == "tt2200001");
-
-        mediaRow.Should().NotBeNull();
-        mediaRow!.MediaCollectionId.Should().Be(unknownSeason.Id);
+        mediaRow.Should().BeNull();
+        (await db.MediaCollections.AnyAsync(mc => mc.CollectionType == MediaCollectionType.Season && mc.Title == "Unknown")).Should().BeFalse();
     }
 
     [Fact]
@@ -472,12 +467,13 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         var afterFirstRun = await db.Media.FirstAsync(m => m.ExternalId == episodeTconst);
         afterFirstRun.MediaCollectionId.Should().Be(season1.Id);
 
-        // Mutate season_number from 1 → 2 in imdb_import_episodes
-        await db.Database.ExecuteSqlRawAsync($"""
-            UPDATE imdb_import_episodes SET season_number = 2 WHERE tconst = '{episodeTconst}'
+        // Corrupt the persisted season number and mutate the feed row; the reload upserts both values.
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            UPDATE media_collections SET season_number = 99 WHERE id = {season2.Id};
+            UPDATE imdb_import_episodes SET season_number = 2, episode_number = 7 WHERE tconst = {episodeTconst}
             """);
 
-        // Second run — upsert should relink to Season 2
+        // Second run — the existing Season 2 and episode rows both receive refreshed numbers.
         await loadService.LoadAsync();
 
         await db.Entry(afterFirstRun).ReloadAsync();
@@ -485,6 +481,8 @@ public class ImdbLoadIntegrationTests(PostgresContainerFixture postgresFixture, 
         var allEpisodeMedia = await db.Media.Where(m => m.ExternalId == episodeTconst).ToListAsync();
         allEpisodeMedia.Should().HaveCount(1, "upsert must not create a duplicate row");
         allEpisodeMedia[0].MediaCollectionId.Should().Be(season2.Id);
+        allEpisodeMedia[0].EpisodeNumber.Should().Be(7);
+        (await db.MediaCollections.AsNoTracking().SingleAsync(mc => mc.Id == season2.Id)).SeasonNumber.Should().Be(2);
     }
 
     // -------------------------------------------------------------------------

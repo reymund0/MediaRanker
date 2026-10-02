@@ -660,7 +660,9 @@ public sealed class BulkCatalogMixedWorkloadTests(
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
         return (await db.Reviews.AsNoTracking().Where(x => x.UserId == "test-user-1")
-            .Select(x => x.MediaId).ToListAsync(ct)).ToHashSet();
+            .Where(x => x.MediaId.HasValue)
+            .Select(x => x.MediaId!.Value)
+            .ToListAsync(ct)).ToHashSet();
     }
 
     private async Task PersistAsync(string outputPath, IReadOnlyList<BulkCatalogMixedWorkloadSample> samples,

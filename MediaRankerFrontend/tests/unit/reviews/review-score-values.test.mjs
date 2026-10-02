@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   isReviewScore,
   mapReviewScoreFields,
-} from "./review-score-values.ts";
+} from "../../../src/app/reviews/_components/review-score-values.ts";
 
 test("isReviewScore accepts finite integer scores from 1 through 10", () => {
   for (let score = 1; score <= 10; score += 1) {

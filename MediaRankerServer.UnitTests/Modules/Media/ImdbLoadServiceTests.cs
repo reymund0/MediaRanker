@@ -82,11 +82,29 @@ public class ImdbLoadServiceTests
         provider.EpisodeCursors.Should().Equal(null, "tt-existing");
     }
 
+    [Fact]
+    public async Task CleanupCancellationAfterCommittedPageCanBeReplayed()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var provider = new FakeLoadProvider { CleanupCancellation = cancellation };
+        var config = new ImdbImportOptions { MaxLoadRowsPerUnit = 2, MaxCleanupRowsPerUnit = 1 };
+        var service = new ImdbLoadService(provider, Options.Create(config), NullLogger<ImdbLoadService>.Instance);
+
+        var interrupted = () => service.LoadEpisodeMediaAsync(cancellation.Token);
+        await interrupted.Should().ThrowAsync<OperationCanceledException>();
+
+        var replay = await service.LoadEpisodeMediaAsync();
+        replay.Affected.Should().Be(1);
+        provider.EpisodeCleanupCalls.Should().BeGreaterThan(1);
+    }
+
     private sealed class FakeLoadProvider : IImdbLoadProvider
     {
         public bool CancelAfterFirstBatch { get; init; }
         public bool EpisodeConflictThenNew { get; init; }
         public bool FailSecondNonSeriesBatch { get; init; }
+        public CancellationTokenSource? CleanupCancellation { get; init; }
+        public int EpisodeCleanupCalls { get; private set; }
         public int EpisodeCalls { get; private set; }
         public List<string?> EpisodeCursors { get; } = [];
         public List<string> Stages { get; } = [];
@@ -103,6 +121,22 @@ public class ImdbLoadServiceTests
             return Task.FromResult(new ImdbSeasonLoadBatchResult(1, "tt0000001", more ? 1 : 2, more));
         }
         public Task<ImdbLoadBatchResult> LoadEpisodeMediaBatchAsync(string? after, int maxRows, CancellationToken ct) => Batch("episodes", 1, after, maxRows, ct);
+        public Task<ImdbUnknownEpisodeCleanupBatchResult> DeleteUnknownSeasonEpisodesBatchAsync(long? afterMediaId, int maxRows, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            EpisodeCleanupCalls++;
+            if (CleanupCancellation is { IsCancellationRequested: false } cancellation && EpisodeCleanupCalls == 1)
+            {
+                cancellation.Cancel();
+                return Task.FromResult(new ImdbUnknownEpisodeCleanupBatchResult(1, 0, 100, true));
+            }
+            return Task.FromResult(new ImdbUnknownEpisodeCleanupBatchResult(0, 0, null, false));
+        }
+        public Task<ImdbUnknownSeasonCleanupBatchResult> DeleteEmptyUnknownSeasonsBatchAsync(long? afterSeasonId, int maxRows, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            return Task.FromResult(new ImdbUnknownSeasonCleanupBatchResult(0, 0, 0, null, false));
+        }
 
         private Task<ImdbLoadBatchResult> Batch(string stage, int affected, string? after, int cap, CancellationToken ct)
         {

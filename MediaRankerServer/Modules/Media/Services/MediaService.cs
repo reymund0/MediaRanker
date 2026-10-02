@@ -25,7 +25,7 @@ public class MediaService(
     private static readonly SemaphoreSlim ShowcaseCacheGate = new(1, 1);
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
-    public async Task<PageResult<MediaDto>> GetAllMediaAsync(string? mediaType, PageRequest request, CancellationToken cancellationToken = default)
+    public async Task<PageResult<MediaDto>> GetAllMediaAsync(string? mediaType, PageRequest request, CancellationToken cancellationToken = default, long? mediaCollectionId = null)
     {
         if (string.IsNullOrEmpty(mediaType))
             throw new DomainException("Media type is required.", "media_validation_error");
@@ -36,7 +36,8 @@ public class MediaService(
         var v = PagingValidator.Validate(request, MediaQueryBuilder.SortFields, MediaQueryBuilder.SearchFields, "title");
 
         var query = MediaQueryBuilder.ApplySearch(
-            MediaQueryBuilder.BaseQuery(dbContext).Where(m => m.MediaType == mediaType), v);
+            MediaQueryBuilder.ApplyVisibility(MediaQueryBuilder.BaseQuery(dbContext).Where(m => m.MediaType == mediaType
+                && (!mediaCollectionId.HasValue || m.MediaCollectionId == mediaCollectionId.Value))), v);
         int? totalCount = null;
         if (request.IncludeTotalCount == true) 
             totalCount = await query.CountAsync(cancellationToken);
@@ -53,7 +54,7 @@ public class MediaService(
 
     public async Task<MediaDto?> GetMediaByIdAsync(long mediaId, CancellationToken cancellationToken, bool requestArtwork = true)
     {
-        var media = await MediaQueryBuilder.BaseQuery(dbContext)
+        var media = await MediaQueryBuilder.ApplyVisibility(MediaQueryBuilder.BaseQuery(dbContext))
             .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
 
         if (media is null) return null;
@@ -87,11 +88,11 @@ public class MediaService(
             var dayNumber = (long)utcDate.DayNumber;
             var multiplier = (dayNumber * 104_729L % (ShowcaseHashModulus - 1)) + 1;
             var offset = dayNumber * 130_363L % ShowcaseHashModulus;
-            var candidates = await dbContext.Media
+            var candidates = await MediaQueryBuilder.ApplyVisibility(dbContext.Media
                 .AsNoTracking()
                 .Where(m => m.Cover != null
                     && m.Cover.Outcome == CoverOutcome.Ready
-                    && m.Cover.ExpiresAt >= nextUtcMidnight)
+                    && m.Cover.ExpiresAt >= nextUtcMidnight))
                 .OrderBy(m => ((m.Id % ShowcaseHashModulus) * multiplier + offset) % ShowcaseHashModulus)
                 .ThenBy(m => m.Id)
                 .Take(20)

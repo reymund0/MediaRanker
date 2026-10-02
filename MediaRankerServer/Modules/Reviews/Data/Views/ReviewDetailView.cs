@@ -14,10 +14,21 @@ public class ReviewDetailView
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     
-    public long MediaId { get; set; }
+    public long? MediaId { get; set; }
+    public long? MediaCollectionId { get; set; }
     public string MediaTitle { get; set; } = null!;
     public long? MediaCoverId { get; set; }
     public string MediaType { get; set; } = null!;
+
+    public string ReviewKind { get; set; } = null!;
+    public long? SeriesId { get; set; }
+    public string? SeriesTitle { get; set; }
+    public int? SeasonNumber { get; set; }
+    public int? EpisodeNumber { get; set; }
+    public int? SeriesStartYear { get; set; }
+    public int? SeriesEndYear { get; set; }
+    public int? SeasonCount { get; set; }
+    public int? EpisodeCount { get; set; }
     
     public long TemplateId { get; set; }
     public string TemplateName { get; set; } = null!;

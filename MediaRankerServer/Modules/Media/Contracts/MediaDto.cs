@@ -12,6 +12,10 @@ public class MediaDto
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public string MediaType { get; set; } = string.Empty;
+    public int? EpisodeNumber { get; set; }
+    public int? SeasonNumber { get; set; }
+    public long? SeriesId { get; set; }
+    public string? SeriesTitle { get; set; }
     public string? CoverImageUrl { get; set; }
     public string CoverStatus { get; set; } = "unsupported";
 }
@@ -27,6 +31,14 @@ public static class MediaDtoMapper
             Id = media.Id,
             Title = media.Title,
             MediaType = media.MediaType,
+            EpisodeNumber = media.EpisodeNumber,
+            SeasonNumber = media.MediaCollection?.CollectionType == MediaCollectionType.Season ? media.MediaCollection.SeasonNumber : null,
+            SeriesId = media.MediaCollection?.CollectionType == MediaCollectionType.Season
+                ? media.MediaCollection.ParentMediaCollectionId
+                : media.MediaCollection?.CollectionType == MediaCollectionType.Series ? media.MediaCollection.Id : null,
+            SeriesTitle = media.MediaCollection?.CollectionType == MediaCollectionType.Season
+                ? media.MediaCollection.ParentMediaCollection?.Title
+                : media.MediaCollection?.CollectionType == MediaCollectionType.Series ? media.MediaCollection.Title : null,
             ReleaseDate = media.ReleaseDate,
             CreatedAt = media.CreatedAt,
             UpdatedAt = media.UpdatedAt,

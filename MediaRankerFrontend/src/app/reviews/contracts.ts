@@ -14,12 +14,22 @@ export interface ReviewDto {
   fields: ReviewFieldDto[];
   templateId: number;
   templateName: string;
-  mediaId: number;
+  mediaId: number | null;
   mediaTitle: string;
   mediaType: string;
   mediaReleaseDate?: string | null;
   mediaCoverImageUrl: string | null;
   coverStatus: CoverStatus;
+  kind: "Title" | "Series" | "Episode" | string;
+  mediaCollectionId: number | null;
+  seriesId: number | null;
+  seriesTitle: string | null;
+  seasonNumber: number | null;
+  episodeNumber: number | null;
+  seriesStartYear: number | null;
+  seriesEndYear: number | null;
+  seasonCount: number | null;
+  episodeCount: number | null;
 }
 
 export interface ReviewFieldDto {
@@ -44,8 +54,8 @@ export interface ReviewFieldUpsertRequest {
 }
 
 export interface ReviewInsertRequest {
-  mediaId: number;
-  mediaType: string;
+  mediaId: number | null;
+  mediaCollectionId: number | null;
   templateId: number;
   reviewTitle: string | null;
   notes: string | null;

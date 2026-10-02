@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import { alpha } from "@mui/material/styles";
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { useQuery } from "@/lib/api/use-query";
 import { reviewQueryOptions } from "./review-query";
 import { usePendingCoverRefresh } from "@/lib/api/use-pending-cover-refresh";
@@ -26,6 +27,10 @@ import { useReviewExperience } from "./review-experience";
 import {
   getMediaTypeDisplayLabel,
   getMediaTypePluralLabel,
+  getRankLabel,
+  getEpisodeContextLine,
+  formatSeriesYearRange,
+  getReviewGroup,
   getReleaseYear,
   REVIEW_MEDIA_TYPES,
   sortReviewsByRank,
@@ -98,16 +103,20 @@ export function ReviewLibrary() {
     chosenType ??
     REVIEW_MEDIA_TYPES.find((type) => reviewsByType[type].length > 0) ??
     MediaType.VideoGame;
-  const rankedReviews = sortReviewsByRank(reviewsByType[activeType]);
+  const activeReviews = reviewsByType[activeType];
+  const tvSeriesReviews = sortReviewsByRank(activeReviews.filter((review) => review.kind === "Series"));
+  const tvEpisodeReviews = sortReviewsByRank(activeReviews.filter((review) => review.kind === "Episode"));
+  const rankedReviews = activeType === MediaType.TvShow
+    ? [...tvSeriesReviews, ...tvEpisodeReviews]
+    : sortReviewsByRank(activeReviews);
   const latestReview = [...allReviews].sort(
     (left, right) =>
       new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
   )[0];
-  const latestRank = latestReview
-    ? sortReviewsByRank(
-        reviewsByType[latestReview.mediaType as MediaType],
-      ).findIndex((review) => review.id === latestReview.id) + 1
-    : 0;
+  const latestReviewGroup = latestReview
+    ? getReviewGroup(reviewsByType[latestReview.mediaType as MediaType], latestReview)
+    : [];
+  const latestRank = latestReviewGroup.findIndex((review) => review.id === latestReview?.id) + 1;
   const latestMediaType = latestReview?.mediaType as MediaType | undefined;
 
   usePendingCoverRefresh({
@@ -183,63 +192,89 @@ export function ReviewLibrary() {
               <LatestReviewCard
                 review={latestReview}
                 rank={latestRank}
-                totalCount={
-                  reviewsByType[latestReview.mediaType as MediaType].length
-                }
+                totalCount={latestReviewGroup.length}
                 onOpen={() => openReview(latestReview)}
                 onEdit={() => openReview(latestReview, true)}
               />
             ) : null}
 
-            <Stack spacing={1.5}>
-              <Stack direction="row" alignItems="baseline" spacing={1.25}>
-                <Typography variant="h4" component="h2">
-                  {getMediaTypePluralLabel(activeType)}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ fontFamily: "var(--font-mono), monospace" }}
-                >
-                  {rankedReviews.length} ranked
-                </Typography>
+            {activeType === MediaType.TvShow ? (
+              <Stack spacing={4}>
+                <PosterRankingSection title="Series" reviews={tvSeriesReviews} onOpen={openReview} emptyContent={<Typography color="text.secondary">No series reviews yet.</Typography>} />
+                <TvEpisodeRankingSection reviews={tvEpisodeReviews} onOpen={openReview} />
               </Stack>
-
-              {rankedReviews.length === 0 ? (
-                <EmptyTypePrompt
-                  mediaType={activeType}
-                  browseHref={`/media?mediaType=${activeType}`}
-                />
-              ) : (
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
-                    gap: 2.5,
-                    "@media (max-width: 1050px)": {
-                      gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                    },
-                    "@media (max-width: 680px)": {
-                      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                    },
-                  }}
-                >
-                  {rankedReviews.map((review, index) => (
-                    <RankedReviewTile
-                      key={review.id}
-                      review={review}
-                      rank={index + 1}
-                      highlighted={index === 0}
-                      onClick={() => openReview(review)}
-                    />
-                  ))}
-                </Box>
-              )}
-            </Stack>
+            ) : <PosterRankingSection
+              title={getMediaTypePluralLabel(activeType)}
+              reviews={rankedReviews}
+              onOpen={openReview}
+              emptyContent={<EmptyTypePrompt mediaType={activeType} browseHref={`/media?mediaType=${activeType}`} />}
+              monospacedCount
+            />}
           </>
         )}
       </Stack>
     </PageContainer>
+  );
+}
+
+function PosterRankingSection({
+  title,
+  reviews,
+  onOpen,
+  emptyContent,
+  monospacedCount = false,
+}: {
+  title: string;
+  reviews: ReviewDto[];
+  onOpen: (review: ReviewDto) => void;
+  emptyContent: ReactNode;
+  monospacedCount?: boolean;
+}) {
+  return (
+    <Stack spacing={1.5}>
+      <Stack direction="row" alignItems="baseline" spacing={1.25}>
+        <Typography variant="h4" component="h2">{title}</Typography>
+        <Typography variant="caption" color="text.secondary" sx={monospacedCount ? { fontFamily: "var(--font-mono), monospace" } : undefined}>{reviews.length} ranked</Typography>
+      </Stack>
+      {reviews.length ? (
+        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: 2.5, "@media (max-width: 1050px)": { gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }, "@media (max-width: 680px)": { gridTemplateColumns: "repeat(2, minmax(0, 1fr))" } }}>
+          {reviews.map((review, index) => <RankedReviewTile key={review.id} review={review} rank={index + 1} totalCount={reviews.length} highlighted={index === 0} onClick={() => onOpen(review)} />)}
+        </Box>
+      ) : emptyContent}
+    </Stack>
+  );
+}
+
+function TvEpisodeRankingSection({
+  reviews,
+  onOpen,
+}: {
+  reviews: ReviewDto[];
+  onOpen: (review: ReviewDto) => void;
+}) {
+  return (
+    <Stack spacing={1.5}>
+      <Stack direction="row" alignItems="baseline" spacing={1.25}>
+        <Typography variant="h4" component="h2">Episodes</Typography>
+        <Typography variant="caption" color="text.secondary">{reviews.length} ranked</Typography>
+      </Stack>
+      {reviews.length ? (
+        <Stack divider={<Box sx={{ borderBottom: "1px solid", borderColor: "divider" }} />} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
+          {reviews.map((review, index) => (
+            <Box key={review.id} component="button" type="button" onClick={() => onOpen(review)} sx={{ display: "grid", gridTemplateColumns: "52px 40px minmax(0, 1fr) auto", alignItems: "center", gap: 1.5, px: 2, py: 1.25, textAlign: "left", color: "text.primary", bgcolor: "background.paper", border: 0, cursor: "pointer", "&:hover": { bgcolor: "action.hover" } }}>
+              <Typography variant="numeric" color="text.secondary">#{index + 1}</Typography>
+              <CoverTile title={review.seriesTitle ?? review.mediaTitle} src={review.mediaCoverImageUrl} status={review.coverStatus} showTitle={false} sx={{ width: 40, height: 60 }} />
+              <Stack sx={{ minWidth: 0 }}>
+                <Typography fontWeight={650} noWrap>{review.mediaTitle}</Typography>
+                <Typography variant="caption" color="text.secondary" noWrap>{review.seriesTitle} · S{review.seasonNumber ?? "—"} E{review.episodeNumber ?? "—"} · {getReleaseYear(review.mediaReleaseDate) ?? "Year unknown"}</Typography>
+                <Typography variant="caption" color="text.secondary">{getRankLabel(review, index + 1, reviews.length)}</Typography>
+              </Stack>
+              <Typography variant="numeric" color="primary.light">{review.overallScore}</Typography>
+            </Box>
+          ))}
+        </Stack>
+      ) : <Typography color="text.secondary">No episode reviews yet.</Typography>}
+    </Stack>
   );
 }
 
@@ -274,12 +309,15 @@ function LatestReviewCard({
         },
       }}
     >
+      <Box sx={{ position: "relative" }}>
       <CoverTile
-        title={review.mediaTitle}
+        title={review.kind === "Episode" ? review.seriesTitle ?? review.mediaTitle : review.mediaTitle}
         src={review.mediaCoverImageUrl}
         status={review.coverStatus}
         sx={{ width: "100%", height: 300, borderRadius: 1.5 }}
       />
+      {review.kind === "Episode" ? <Typography variant="numeric" sx={{ position: "absolute", top: 12, left: 12, px: 1, py: 0.5, borderRadius: 1, fontSize: 12, bgcolor: (theme) => alpha(theme.palette.background.default, 0.85) }}>S{review.seasonNumber ?? "—"} · E{review.episodeNumber ?? "—"}</Typography> : null}
+      </Box>
       <Stack spacing={1.25} sx={{ minWidth: 0, py: 0.25 }}>
         <Stack direction="row" spacing={1} alignItems="baseline">
           <Typography
@@ -300,6 +338,7 @@ function LatestReviewCard({
             }).format(new Date(review.updatedAt))}
           </Typography>
         </Stack>
+        {getEpisodeContextLine(review) ? <Typography variant="body2" color="text.secondary">{getEpisodeContextLine(review)}</Typography> : null}
         <Typography
           variant="h3"
           component="h2"
@@ -315,13 +354,8 @@ function LatestReviewCard({
           {review.mediaTitle}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {[
-            getReleaseYear(review.mediaReleaseDate),
-            getMediaTypeDisplayLabel(review.mediaType),
-            `#${rank} of ${totalCount}`,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
+          {review.kind === "Series" && review.seriesStartYear ? `${formatSeriesYearRange(review.seriesStartYear, review.seriesEndYear)} · TV series` : [getReleaseYear(review.mediaReleaseDate), review.kind === "Episode" ? "TV episode" : getMediaTypeDisplayLabel(review.mediaType)].filter(Boolean).join(" · ")}
+          {` · ${getRankLabel(review, rank, totalCount)}`}
         </Typography>
         {review.reviewTitle ? (
           <Typography variant="h6" sx={{ mt: 0.5 }}>
@@ -424,11 +458,13 @@ function LatestReviewCard({
 function RankedReviewTile({
   review,
   rank,
+  totalCount,
   highlighted,
   onClick,
 }: {
   review: ReviewDto;
   rank: number;
+  totalCount: number;
   highlighted: boolean;
   onClick: () => void;
 }) {
@@ -485,8 +521,9 @@ function RankedReviewTile({
             fontWeight: 700,
           }}
         >
-          #{rank}
+          {review.mediaType === MediaType.TvShow ? getRankLabel(review, rank, totalCount) : `#${rank}`}
         </Box>
+        {review.kind === "Episode" ? <Box sx={{ position: "absolute", top: 9, right: 9, px: 0.75, py: 0.3, borderRadius: 0.75, bgcolor: "background.default", color: "text.primary", fontFamily: "var(--font-mono), monospace", fontSize: 11, fontWeight: 700 }}>S{review.seasonNumber ?? "—"} · E{review.episodeNumber ?? "—"}</Box> : null}
         {year && !hasReadyCover(review) ? (
           <Typography
             variant="caption"
@@ -546,7 +583,9 @@ function RankedReviewTile({
           color="text.secondary"
           sx={{ mt: "-4px !important" }}
         >
-          {year}
+          {review.kind === "Series"
+            ? `${formatSeriesYearRange(review.seriesStartYear ?? Number(year), review.seriesEndYear)} · ${review.seasonCount ?? 0} seasons`
+            : year}
         </Typography>
       ) : null}
     </Stack>

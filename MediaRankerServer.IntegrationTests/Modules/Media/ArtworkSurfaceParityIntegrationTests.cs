@@ -113,6 +113,7 @@ public class ArtworkSurfaceParityIntegrationTests(
         var season = new MediaCollection
         {
             Title = "Parity TV season",
+            SeasonNumber = 1,
             CollectionType = MediaCollectionType.Season,
             MediaType = "TvShow",
             ParentMediaCollection = series
@@ -120,6 +121,7 @@ public class ArtworkSurfaceParityIntegrationTests(
         var reviewedEpisode = new MediaEntity
         {
             Title = "Parity reviewed episode",
+            EpisodeNumber = 1,
             MediaType = "TvShow",
             MediaCollection = season,
             ExternalSource = MediaExternalSource.Imdb,
@@ -129,6 +131,7 @@ public class ArtworkSurfaceParityIntegrationTests(
         var unreviewedEpisode = new MediaEntity
         {
             Title = "Parity unreviewed episode",
+            EpisodeNumber = 2,
             MediaType = "TvShow",
             MediaCollection = season,
             ExternalSource = MediaExternalSource.Imdb,

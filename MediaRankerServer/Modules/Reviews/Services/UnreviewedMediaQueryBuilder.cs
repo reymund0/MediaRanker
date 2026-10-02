@@ -18,6 +18,9 @@ internal static class UnreviewedMediaQueryBuilder
         => db.Media
             .AsNoTracking()
             .Where(m => m.MediaType == mediaType && !reviewedMediaIds.Contains(m.Id))
+            .Where(m => mediaType != "TvShow" || m.MediaCollection == null
+                || m.MediaCollection.CollectionType != MediaCollectionType.Season
+                || m.MediaCollection.SeasonNumber.HasValue)
             .Include(m => m.Cover);
 
     internal static IQueryable<MediaEntity> ApplySearch(

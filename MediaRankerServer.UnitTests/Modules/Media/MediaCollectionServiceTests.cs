@@ -1,5 +1,6 @@
 using FluentAssertions;
 using FluentValidation;
+using MediatR;
 using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Data.Entities;
 using MediaRankerServer.Modules.Media.Services;
@@ -40,7 +41,8 @@ public class MediaCollectionServiceTests : IDisposable
         _service = new MediaCollectionService(
             _context,
             _mockArtworkService.Object,
-            _mockValidator.Object
+            _mockValidator.Object,
+            new Mock<IPublisher>().Object
         );
     }
 

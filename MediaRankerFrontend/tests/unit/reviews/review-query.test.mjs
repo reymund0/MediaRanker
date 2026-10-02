@@ -5,7 +5,7 @@ import {
   REVIEW_QUERY_ROOT,
   reviewQueryKey,
   reviewQueryOptions,
-} from "./review-query.ts";
+} from "../../../src/app/reviews/_components/review-query.ts";
 
 test("review options retain the existing route and cache identity", () => {
   const client = new QueryClient();

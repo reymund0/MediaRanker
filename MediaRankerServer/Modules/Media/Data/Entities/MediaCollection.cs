@@ -18,6 +18,7 @@ public class MediaCollection : ITimestampedEntity
     public MediaCollectionType CollectionType { get; set; }
     public long? ParentMediaCollectionId { get; set; }
     public DateOnly? ReleaseDate { get; set; }
+    public int? SeasonNumber { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public string? ExternalId { get; set; }
@@ -59,6 +60,8 @@ public class MediaCollection : ITimestampedEntity
             builder.Property(mc => mc.ReleaseDate)
                 .HasColumnType("date");
 
+            builder.Property(mc => mc.SeasonNumber);
+
             builder.Property(mc => mc.CoverId);
             
             builder.Property(mc => mc.ExternalId);
@@ -82,6 +85,9 @@ public class MediaCollection : ITimestampedEntity
 
             builder.HasIndex(mc => mc.ParentMediaCollectionId)
                 .HasDatabaseName("ix_media_collections_parent_id");
+
+            builder.HasIndex(mc => new { mc.ParentMediaCollectionId, mc.SeasonNumber })
+                .HasDatabaseName("ix_media_collections_parent_season_number");
 
             builder.HasIndex(mc => mc.ExternalId)
                 .HasDatabaseName("ix_media_collections_external_id");

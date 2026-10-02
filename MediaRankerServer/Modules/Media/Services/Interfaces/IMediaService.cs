@@ -5,7 +5,7 @@ namespace MediaRankerServer.Modules.Media.Services.Interfaces;
 
 public interface IMediaService
 {
-    Task<PageResult<MediaDto>> GetAllMediaAsync(string? mediaType, PageRequest request, CancellationToken cancellationToken = default);
+    Task<PageResult<MediaDto>> GetAllMediaAsync(string? mediaType, PageRequest request, CancellationToken cancellationToken = default, long? mediaCollectionId = null);
     Task<MediaDto?> GetMediaByIdAsync(long id, CancellationToken cancellationToken = default, bool requestArtwork = true);
     Task<List<ShowcaseMediaDto>> GetShowcaseAsync(CancellationToken cancellationToken = default);
     Task<MediaDto> CreateMediaAsync(string userId, MediaUpsertRequest request, CancellationToken cancellationToken = default);

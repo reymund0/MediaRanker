@@ -13,6 +13,11 @@ public class MediaCollectionDto
     public long? ParentMediaCollectionId { get; set; }
     public string? ParentMediaCollectionTitle { get; set; }
     public DateOnly? ReleaseDate { get; set; }
+    public int? SeasonNumber { get; set; }
+    public int? SeasonCount { get; set; }
+    public int? EpisodeCount { get; set; }
+    public int? StartYear { get; set; }
+    public int? EndYear { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public string? CoverImageUrl { get; set; }
@@ -34,10 +39,18 @@ public static class MediaCollectionDtoMapper
             ParentMediaCollectionId = collection.ParentMediaCollectionId,
             ParentMediaCollectionTitle = collection.ParentMediaCollection?.Title,
             ReleaseDate = collection.ReleaseDate,
+            SeasonNumber = collection.SeasonNumber,
+            StartYear = collection.ReleaseDate?.Year,
             CreatedAt = collection.CreatedAt,
             UpdatedAt = collection.UpdatedAt,
             CoverImageUrl = cover.Url,
             CoverStatus = cover.Status
         };
     }
+}
+
+public sealed class SeriesRemovalCountsDto
+{
+    public int EpisodeCount { get; init; }
+    public int ReviewCount { get; init; }
 }
