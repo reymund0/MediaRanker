@@ -13,7 +13,7 @@ import { MediaTypeChips } from "@/lib/components/inputs/media-type-chips";
 import { MediaType, PageResult } from "@/lib/contracts/shared";
 import { MediaCollectionDto, MediaDto } from "../../media/contracts";
 import { ReviewDto } from "../contracts";
-import { mergeEpisodePages, TV_EPISODE_PAGE_SIZE } from "../../media/_components/tv-episode-utils.mjs";
+import { mergeEpisodePages, TV_EPISODE_PAGE_SIZE } from "../../media/media-utils";
 
 export function TvSeriesPicker({
   search,

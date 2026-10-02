@@ -69,9 +69,9 @@ This document contains non-always-on frontend details for MediaRanker.
 - `usePendingCoverRefresh` polls pending displayed artwork every two seconds for at most 30 seconds per active view; hidden, terminal, and unmounted views stop polling.
 - Review mutations cancel the exact in-flight review query before reconciling its cache. `ReviewExperienceProvider` coordinates creation and detail/edit drawers; drawers read the current cached review. Keep cover polling keys based on visible IDs so status updates do not restart the bounded window. Library polling pauses while the modal review drawer owns refresh.
 - TV Catalog uses route-local `media/_components/tv-series-list.tsx`: ten series per page, all numbered seasons, and episodes appended in batches of 25. TV Add creates a series; collection upsert requests use the numeric collection enum even though response labels are strings.
-- The new-review TV hierarchy lives in `reviews/_components/tv-series-picker.tsx`; target and scoring state stays in `NewReviewDialog`. Catalog and picker share only the pure merge and 25-row batch constant in `media/_components/tv-episode-utils.mjs`, retaining their own query keys and paging state.
+- The new-review TV hierarchy lives in `reviews/_components/tv-series-picker.tsx`; target and scoring state stays in `NewReviewDialog`. Catalog and picker share only the pure merge and 25-row batch constant in `media/media-utils.ts`, retaining their own query keys and paging state.
 - Use `buildReviewRankLookups` to derive full ranking groups before rendering related-review subsets, and `formatSeriesYearRange` for the shared year-range decision. Keep each surface's missing-year fallback local.
-- Review targets are nullable and exclusive. Use `review-tv-utils.mjs` for target payloads, TV context and ranking groups; rank series and episodes separately by `(mediaType, kind)`. `ReviewExperienceProvider` distinguishes episode series context from a series review target. Both kinds share TV templates and the existing writing form.
+- Review targets are nullable and exclusive. Use `review-utils.ts` for target payloads, TV context and ranking groups; rank series and episodes separately by `(mediaType, kind)`. `ReviewExperienceProvider` distinguishes episode series context from a series review target. Both kinds share TV templates and the existing writing form.
 - TV Library displays series cards and a ranked episode list. Related drawer links remain available without optional headline/notes. Catalog deep links use `?series={id}`; seed search once per linked ID so later search and collapse actions remain usable.
 
 ## Automatic cover display
@@ -93,3 +93,9 @@ This document contains non-always-on frontend details for MediaRanker.
 
 - For drag-and-drop ordering in form-managed arrays, use `FormDnDList` (`react-hook-form` + `useFieldArray` + `dnd-kit`).
 - Persist ordering using array index mapped to backend `position` on submit.
+
+### Frontend tests and helpers
+
+- Keep frontend tests under `MediaRankerFrontend/tests/unit/`, grouped by feature (`media`, `reviews`, `auth`), outside application source directories.
+- Prefer TypeScript for application helpers. Keep small single-use logic with its owner and consolidate related reusable functions in existing feature utilities; do not extract a file solely to make a function testable.
+- Run the existing Node tests from `MediaRankerFrontend` with `node --test tests/unit/*/*.test.mjs`. Tests use the installed TypeScript compiler where runtime enums or application aliases require transpilation; no additional test package is required.

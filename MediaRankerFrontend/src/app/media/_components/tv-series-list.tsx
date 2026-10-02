@@ -41,8 +41,7 @@ import type {
 } from "../contracts";
 import type { ReviewDto } from "../../reviews/contracts";
 import { buildReviewRankLookups, formatSeriesYearRange, getRankLabel, getReleaseYear, rankableGroup } from "../../reviews/_components/review-utils";
-import { buildSeriesUpsertRequest } from "./tv-series-form.mjs";
-import { mergeEpisodePages, TV_EPISODE_PAGE_SIZE } from "./tv-episode-utils.mjs";
+import { buildSeriesUpsertRequest, mergeEpisodePages, TV_EPISODE_PAGE_SIZE } from "../media-utils";
 
 type Props = {
   search: string;

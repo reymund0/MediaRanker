@@ -7,7 +7,7 @@ import {
   getResetConfirmationError,
   getSignInDestination,
   saveResetIdentifier,
-} from "./password-decisions.ts";
+} from "../../../src/lib/auth/password-decisions.ts";
 
 function makeStorage() {
   const entries = new Map();

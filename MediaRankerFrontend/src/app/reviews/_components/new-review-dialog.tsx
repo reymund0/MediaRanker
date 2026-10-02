@@ -1,9 +1,8 @@
 "use client";
 
 import { mapReviewScoreFields } from "./review-score-values";
-import { buildReviewTarget } from "./review-tv-utils.mjs";
+import { buildReviewTarget, getEpisodeContextLine } from "./review-utils";
 import { TvSeriesPicker } from "./tv-series-picker";
-import { getEpisodeContextLine } from "./review-utils";
 
 import AddIcon from "@mui/icons-material/Add";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";

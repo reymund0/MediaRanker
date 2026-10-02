@@ -10,12 +10,12 @@ import {
   getResetConfirmationError,
   getSignInDestination,
   saveResetIdentifier,
-} from "./password-decisions.ts";
+} from "../../../src/lib/auth/password-decisions.ts";
 
 const require = createRequire(import.meta.url);
 const ts = require("typescript");
 const helperSource = readFileSync(
-  new URL("../../app/auth/helpers.tsx", import.meta.url),
+  new URL("../../../src/app/auth/helpers.tsx", import.meta.url),
   "utf8",
 );
 const helperCode = ts.transpileModule(helperSource, {
