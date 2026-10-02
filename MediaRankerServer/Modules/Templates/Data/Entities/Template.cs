@@ -62,6 +62,7 @@ public class Template : ITimestampedEntity
                 .HasDatabaseName("ix_templates_media_type");
 
             // Seed system template for Video Games
+            builder.HasData(Seeds.EssentialsTemplateSeeds.Templates);
             builder.HasData(
                 new Template
                 {

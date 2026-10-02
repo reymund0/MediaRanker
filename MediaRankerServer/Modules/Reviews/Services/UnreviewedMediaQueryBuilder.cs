@@ -30,7 +30,18 @@ internal static class UnreviewedMediaQueryBuilder
 
     internal static IQueryable<MediaEntity> ApplySort(
         IQueryable<MediaEntity> query, PagingValidationResult v)
-        => v.SortField switch
+    {
+        if (v.SearchPattern is { Length: >= 2 } searchPattern)
+        {
+            var searchTerm = searchPattern[1..^1];
+            // Keep prefix hits first while avoiding the full multi-key sort cost on TV search.
+            return query
+                .OrderByDescending(m => EF.Functions.ILike(m.Title, $"{searchTerm}%", "\\"))
+                .ThenBy(m => m.Title)
+                .ThenBy(m => m.Id);
+        }
+
+        return v.SortField switch
         {
             "releaseDate" => v.Descending
                 ? query.OrderBy(m => m.ReleaseDate == null).ThenByDescending(m => m.ReleaseDate).ThenBy(m => m.Id)
@@ -42,4 +53,5 @@ internal static class UnreviewedMediaQueryBuilder
                 ? query.OrderByDescending(m => m.Title).ThenBy(m => m.Id)
                 : query.OrderBy(m => m.Title).ThenBy(m => m.Id),
         };
+    }
 }

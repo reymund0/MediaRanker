@@ -1,0 +1,60 @@
+/*
+ * Amethyst design tokens for the ui-redesign change.
+ * Reference only: map these into MediaRankerFrontend/src/app/theme.ts (palette, typography, shape,
+ * component overrides). Do not import this file into the app.
+ */
+:root {
+  /* Surfaces (cool violet-black) */
+  --mr-ground: #0E0D12;          /* page background */
+  --mr-surface: #16151C;         /* cards, panels, drawer, dialog */
+  --mr-raised: #1F1D27;          /* menus, toasts, secondary buttons, chips */
+  --mr-raised-hover: #2A2833;    /* hover on raised / secondary */
+  --mr-row-divider: #23212B;     /* list row separators */
+  --mr-line: #2C2A36;            /* default borders and dividers */
+  --mr-line-strong: #3B3847;     /* input and secondary button borders */
+  --mr-line-hover: #5A566A;      /* hovered borders, dashed "add" outlines */
+
+  /* Text */
+  --mr-text: #F2F0F7;            /* primary text */
+  --mr-text-secondary: #D3CFDE;  /* field labels, notes body */
+  --mr-text-muted: #A29EB1;      /* metadata, captions */
+  --mr-text-placeholder: #7D798C;/* placeholders, disabled text */
+
+  /* Accent (MediaRanker violet) */
+  --mr-accent: #8B5CF6;          /* primary buttons, score badges, filled score segments, logo tile */
+  --mr-accent-hover: #9D74F7;
+  --mr-on-accent: #FFFFFF;       /* text/icons on --mr-accent */
+  --mr-accent-text: #A78BFA;     /* large scores, ranks, links, eyebrows, selected outlines */
+  --mr-accent-text-hover: #C4B5FD;
+  --mr-accent-tint: #231A3D;     /* selected chip / selected card background */
+  --mr-accent-border: #4B3585;   /* subtle accent borders (rank pill, new field) */
+  --mr-focus-ring: rgba(139, 92, 246, 0.24); /* 3px glow around focused inputs */
+  /* Do not use #7C3AED (current theme primary) for text on --mr-ground: below 4.5:1. */
+
+  /* Status */
+  --mr-danger: #C93B40;          /* destructive button fill, white text */
+  --mr-danger-text: #F06B6F;     /* destructive text buttons, error messages, menu item */
+  --mr-danger-input: #E5484D;    /* invalid input border */
+  --mr-danger-hover-bg: #2A1415; /* hover behind red text buttons */
+  --mr-success: #5FD08F;
+
+  /* Overlays */
+  --mr-scrim: rgba(6, 5, 4, 0.72);        /* behind drawer and dialogs */
+  --mr-badge-scrim: rgba(14, 13, 18, 0.8);/* rank chip over covers */
+
+  /* Type */
+  --mr-font-display: "Bricolage Grotesque", sans-serif; /* 800: page titles 56px, display numbers; 700: section 24–26px */
+  --mr-font-body: "Geist", system-ui, sans-serif;       /* 400–600: body 15–16px, controls 14–15px, meta 13px */
+  --mr-font-mono: "Geist Mono", monospace;              /* scores, ranks, counts, eyebrows (12px, 0.12em, uppercase) */
+
+  /* Shape and layout */
+  --mr-radius-control: 10px;     /* buttons, inputs, menus items 8px */
+  --mr-radius-panel: 16px;       /* cards, drawer content blocks 14px */
+  --mr-radius-chip: 999px;
+  --mr-radius-cover: 10px;       /* posters; thumbnails 6px */
+  --mr-content-max: 1280px;      /* shared page width */
+  --mr-gutter: 40px;
+  --mr-header-height: 68px;
+  --mr-control-height: 40px;     /* header buttons; form controls 44px; auth controls 48px */
+  --mr-cover-ratio: 2 / 3;
+}

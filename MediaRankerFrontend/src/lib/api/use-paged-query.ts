@@ -77,6 +77,7 @@ export function usePagedQuery<T>({
   // Filter key: changes only when route, routeParams, or filter criteria change.
   // Page, pageSize, sort do NOT affect this key, so they will not trigger a recount.
   const filterKey = JSON.stringify({
+    queryKey,
     route,
     routeParams,
     searchField: pageRequest?.searchField,
@@ -125,7 +126,9 @@ export function usePagedQuery<T>({
   const queryString = params.toString();
   const fullRoute = queryString ? `${route}?${queryString}` : route;
 
-  const { data, isLoading, error, refetch } = useQuery<PageResult<T>>({
+  const { data, isLoading, isPlaceholderData, error, refetch } = useQuery<
+    PageResult<T>
+  >({
     route: fullRoute,
     queryKey: [
       ...queryKey,
@@ -144,11 +147,11 @@ export function usePagedQuery<T>({
 
   // Capture the returned count whenever the server includes it (i.e. on filter changes).
   useEffect(() => {
-    if (data?.totalCount != null) {
+    if (!isPlaceholderData && data?.totalCount != null) {
       setStoredTotalCount(data.totalCount);
       setLastCountedFilterKey(filterKey);
     }
-  }, [data, filterKey]);
+  }, [data, filterKey, isPlaceholderData]);
 
   // When fetch is disabled, return empty rows instead of potentially cached data.
   return {

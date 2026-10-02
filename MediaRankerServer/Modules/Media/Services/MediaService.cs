@@ -8,6 +8,7 @@ using MediaRankerServer.Shared.Data;
 using MediaRankerServer.Shared.Exceptions;
 using MediaRankerServer.Shared.Paging;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace MediaRankerServer.Modules.Media.Services;
 
@@ -15,9 +16,15 @@ public class MediaService(
     PostgreSQLContext dbContext,
     IArtworkService artworkService,
     IValidator<MediaUpsertRequest> mediaUpsertRequestValidator,
-    IPublisher publisher
+    IPublisher publisher,
+    IMemoryCache? memoryCache = null,
+    TimeProvider? timeProvider = null
 ) : IMediaService
 {
+    private const long ShowcaseHashModulus = 2_147_483_647L;
+    private static readonly SemaphoreSlim ShowcaseCacheGate = new(1, 1);
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
+
     public async Task<PageResult<MediaDto>> GetAllMediaAsync(string? mediaType, PageRequest request, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(mediaType))
@@ -53,6 +60,61 @@ public class MediaService(
         if (!requestArtwork) return MediaDtoMapper.Map(media);
         var covers = await artworkService.GetMediaArtworkAsync([media.Id], cancellationToken);
         return MediaDtoMapper.Map(media, covers?.GetValueOrDefault(media.Id));
+    }
+
+    public async Task<List<ShowcaseMediaDto>> GetShowcaseAsync(CancellationToken cancellationToken = default)
+    {
+        var now = _timeProvider.GetUtcNow();
+        var utcDate = DateOnly.FromDateTime(now.UtcDateTime);
+        var nextUtcMidnight = new DateTimeOffset(utcDate.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc));
+        var cacheKey = $"media-showcase:{utcDate:yyyy-MM-dd}";
+        if (memoryCache?.TryGetValue(cacheKey, out List<ShowcaseMediaDto>? cached) == true && cached is not null)
+            return cached;
+
+        // Service instances are scoped; share creation so every caller gets the first daily result.
+        await ShowcaseCacheGate.WaitAsync(cancellationToken);
+        try
+        {
+            // A waiter may cross midnight while another caller creates the previous day's entry.
+            now = _timeProvider.GetUtcNow();
+            utcDate = DateOnly.FromDateTime(now.UtcDateTime);
+            nextUtcMidnight = new DateTimeOffset(utcDate.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc));
+            cacheKey = $"media-showcase:{utcDate:yyyy-MM-dd}";
+            if (memoryCache?.TryGetValue(cacheKey, out cached) == true && cached is not null)
+                return cached;
+
+            // A date-seeded affine permutation gives each UTC day a stable, bounded SQL ordering.
+            var dayNumber = (long)utcDate.DayNumber;
+            var multiplier = (dayNumber * 104_729L % (ShowcaseHashModulus - 1)) + 1;
+            var offset = dayNumber * 130_363L % ShowcaseHashModulus;
+            var candidates = await dbContext.Media
+                .AsNoTracking()
+                .Where(m => m.Cover != null
+                    && m.Cover.Outcome == CoverOutcome.Ready
+                    && m.Cover.ExpiresAt >= nextUtcMidnight)
+                .OrderBy(m => ((m.Id % ShowcaseHashModulus) * multiplier + offset) % ShowcaseHashModulus)
+                .ThenBy(m => m.Id)
+                .Take(20)
+                .Select(m => new { m.Title, Cover = m.Cover! })
+                .ToListAsync(cancellationToken);
+
+            var result = candidates
+                .Select(m => new { m.Title, Cover = ArtworkPresentation.Map(m.Cover, now) })
+                .Where(m => m.Cover.Status == "ready" && m.Cover.Url is not null)
+                .Select(m => new ShowcaseMediaDto { Title = m.Title, CoverImageUrl = m.Cover.Url! })
+                .ToList();
+
+            if (memoryCache is not null)
+            {
+                memoryCache.Set(cacheKey, result, new MemoryCacheEntryOptions { AbsoluteExpiration = nextUtcMidnight });
+            }
+
+            return result;
+        }
+        finally
+        {
+            ShowcaseCacheGate.Release();
+        }
     }
 
     public async Task<MediaDto> CreateMediaAsync(string userId, MediaUpsertRequest request, CancellationToken cancellationToken = default)

@@ -27,7 +27,9 @@ public class ReviewService(
         var reviewDetails = await dbContext.ReviewDetails
             .AsNoTracking()
             .Where(r => r.MediaType == mediaType && r.UserId == userId)
-            .OrderBy(r => r.OverallScore)
+            .OrderByDescending(r => r.OverallScore)
+            .ThenByDescending(r => r.UpdatedAt)
+            .ThenBy(r => r.Id)
             .ToListAsync(cancellationToken);
 
         if (reviewDetails.Count == 0) return [];
@@ -42,8 +44,18 @@ public class ReviewService(
             select new ReviewDtoMapper.ReviewFieldDetails(rf, tf.Name, tf.Position)
         ).ToListAsync(cancellationToken);
 
+        var mediaIds = reviewDetails.Select(r => r.MediaId).Distinct().ToArray();
+        var mediaReleaseDates = await dbContext.Media
+            .AsNoTracking()
+            .Where(m => mediaIds.Contains(m.Id))
+            .ToDictionaryAsync(m => m.Id, m => m.ReleaseDate, cancellationToken);
+
         var covers = await artworkService.GetMediaArtworkAsync(reviewDetails.Select(r => r.MediaId), cancellationToken);
-        return [.. reviewDetails.Select(r => ReviewDtoMapper.Map(covers?.GetValueOrDefault(r.MediaId), r, fields.Where(f => f.Field.ReviewId == r.Id)))];
+        return [.. reviewDetails.Select(r => ReviewDtoMapper.Map(
+            covers?.GetValueOrDefault(r.MediaId),
+            r,
+            fields.Where(f => f.Field.ReviewId == r.Id),
+            mediaReleaseDates.GetValueOrDefault(r.MediaId)))];
     }
     
     public async Task<PageResult<UnreviewedMediaDto>> GetUnreviewedMediaByTypeAsync(string userId, string mediaType, PageRequest request, CancellationToken cancellationToken = default)
@@ -243,7 +255,13 @@ public class ReviewService(
             select new ReviewDtoMapper.ReviewFieldDetails(rf, tf.Name, tf.Position)
         ).ToListAsync(cancellationToken);
 
+        var mediaReleaseDate = await dbContext.Media
+            .AsNoTracking()
+            .Where(m => m.Id == review.MediaId)
+            .Select(m => m.ReleaseDate)
+            .FirstOrDefaultAsync(cancellationToken);
+
         var covers = await artworkService.GetMediaArtworkAsync([review.MediaId], cancellationToken);
-        return ReviewDtoMapper.Map(covers?.GetValueOrDefault(review.MediaId), review, fields);
+        return ReviewDtoMapper.Map(covers?.GetValueOrDefault(review.MediaId), review, fields, mediaReleaseDate);
     }
 }

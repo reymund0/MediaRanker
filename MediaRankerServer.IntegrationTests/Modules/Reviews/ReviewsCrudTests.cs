@@ -91,6 +91,67 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
         var review = Reviews.Single(r => r.Id == _testReviews.Id);
         review.MediaCoverImageUrl.Should().BeNull();
         review.CoverStatus.Should().Be("unsupported");
+        review.MediaReleaseDate.Should().Be(new DateOnly(2024, 1, 1));
+    }
+
+    [Fact]
+    public async Task GetReviewsByMediaType_OrdersByScoreRecencyThenId()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+        var olderHighScoreMedia = new MediaEntity { Title = "Ranking old high score", MediaType = _testMedia.MediaType };
+        var firstRecentTieMedia = new MediaEntity { Title = "Ranking first recent tie", MediaType = _testMedia.MediaType };
+        var secondRecentTieMedia = new MediaEntity { Title = "Ranking second recent tie", MediaType = _testMedia.MediaType };
+        var olderTieMedia = new MediaEntity { Title = "Ranking older tie", MediaType = _testMedia.MediaType };
+        db.Media.AddRange(olderHighScoreMedia, firstRecentTieMedia, secondRecentTieMedia, olderTieMedia);
+        await db.SaveChangesAsync();
+
+        var tieTimestamp = new DateTimeOffset(2025, 2, 3, 4, 5, 6, TimeSpan.Zero);
+        var olderHighScore = new Review
+        {
+            UserId = TestAuthHandler.DefaultUserId,
+            TemplateId = _testTemplate.Id,
+            MediaId = olderHighScoreMedia.Id,
+            OverallScore = 10,
+            UpdatedAt = tieTimestamp.AddDays(-5)
+        };
+        var firstRecentTie = new Review
+        {
+            UserId = TestAuthHandler.DefaultUserId,
+            TemplateId = _testTemplate.Id,
+            MediaId = firstRecentTieMedia.Id,
+            OverallScore = 8,
+            UpdatedAt = tieTimestamp
+        };
+        var secondRecentTie = new Review
+        {
+            UserId = TestAuthHandler.DefaultUserId,
+            TemplateId = _testTemplate.Id,
+            MediaId = secondRecentTieMedia.Id,
+            OverallScore = 8,
+            UpdatedAt = tieTimestamp
+        };
+        var olderTie = new Review
+        {
+            UserId = TestAuthHandler.DefaultUserId,
+            TemplateId = _testTemplate.Id,
+            MediaId = olderTieMedia.Id,
+            OverallScore = 8,
+            UpdatedAt = tieTimestamp.AddDays(-1)
+        };
+        db.Reviews.AddRange(olderHighScore, firstRecentTie, secondRecentTie, olderTie);
+        await db.SaveChangesAsync();
+
+        var response = await Client.GetAsync($"{basePath}/byMediaType/{_testMedia.MediaType}");
+        TestUtils.AssertSuccessResponse(response);
+        var result = await response.Content.ReadFromJsonAsync<List<ReviewDto>>();
+
+        result!.Select(review => review.Id).Should().ContainInOrder(
+            olderHighScore.Id,
+            firstRecentTie.Id,
+            secondRecentTie.Id,
+            olderTie.Id,
+            _testReviews.Id);
     }
 
     [Fact]
@@ -126,7 +187,34 @@ public class ReviewsCrudTests(PostgresContainerFixture postgresFixture, LocalSta
 
         result!.Items.Should().HaveCount(1);
         result.TotalCount.Should().Be(2);
-        result.Items.First().Title.Should().Be("PagingTestBeta");
+        result.Items.First().Title.Should().Be("PagingTestAlpha");
+    }
+
+    [Fact]
+    public async Task GetUnreviewedMedia_SearchOrdersPrefixMatchesBeforeContainsMatchesThenByTitle()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+        db.Media.AddRange(
+            new MediaEntity { Title = "RankNeedle", MediaType = _testMedia.MediaType },
+            new MediaEntity { Title = "RankNeedle 0 Long Prefix", MediaType = _testMedia.MediaType },
+            new MediaEntity { Title = "RankNeedle A", MediaType = _testMedia.MediaType },
+            new MediaEntity { Title = "RankNeedle Longer Title", MediaType = _testMedia.MediaType },
+            new MediaEntity { Title = "A RankNeedle Match", MediaType = _testMedia.MediaType }
+        );
+        await db.SaveChangesAsync();
+
+        var response = await Client.GetAsync(
+            $"{basePath}/unreviewedByType?mediaType={_testMedia.MediaType}&searchField=title&searchTerm=rankneedle&sortField=releaseDate&sortDirection=desc&pageSize=10");
+        TestUtils.AssertSuccessResponse(response);
+        var result = await response.Content.ReadFromJsonAsync<PageResult<UnreviewedMediaDto>>();
+
+        result!.Items.Select(item => item.Title).Should().Equal(
+            "RankNeedle",
+            "RankNeedle 0 Long Prefix",
+            "RankNeedle A",
+            "RankNeedle Longer Title",
+            "A RankNeedle Match");
     }
 
     [Fact]

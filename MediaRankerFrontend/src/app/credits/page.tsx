@@ -1,14 +1,14 @@
 "use client";
 
 import { Box, Link, Stack, Typography } from "@mui/material";
-import { PageCard } from "@/lib/components/layout/page-card";
+import { PageContainer } from "@/lib/components/layout/page-container";
 
 const TMDB_LOGO_URL =
   "https://www.themoviedb.org/assets/v4/logos/v2/blue_square_2-d537fb228cf3ded904ef09b136fe3fec72548ebc1fea3fbbd1ad9e36364db38b.svg";
 
 export default function CreditsPage() {
   return (
-    <PageCard sx={{ maxWidth: "760px" }}>
+    <PageContainer>
       <Stack spacing={3}>
         <Box>
           <Typography variant="h4" component="h1">
@@ -50,6 +50,6 @@ export default function CreditsPage() {
           </Link>
         </Stack>
       </Stack>
-    </PageCard>
+    </PageContainer>
   );
 }

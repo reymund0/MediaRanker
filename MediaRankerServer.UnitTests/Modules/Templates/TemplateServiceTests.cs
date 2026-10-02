@@ -112,19 +112,8 @@ public class TemplateServiceTests
     [Fact]
     public async Task DeleteTemplateAsync_WhenSystemTemplate_DoesNotPublishEvent()
     {
-        // Arrange
-        var systemTemplate = new Template
-        {
-            Id = -2,
-            Name = "System",
-            UserId = "system",
-            MediaType = "Movie"
-        };
-        _context.Templates.Add(systemTemplate);
-        await _context.SaveChangesAsync();
-
-        // Act
-        var act = () => _service.DeleteTemplateAsync("system", -2);
+        // Act: use the system template populated by the shared test context.
+        var act = () => _service.DeleteTemplateAsync("system", -1);
         await act.Should().ThrowAsync<DomainException>();
 
         // Assert

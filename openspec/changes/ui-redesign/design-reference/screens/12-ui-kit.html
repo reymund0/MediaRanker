@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amethyst UI kit — MediaRanker design reference</title>
+<!-- Static design reference exported from the ui-redesign canvas (System.dc.html).
+     Visual source of truth for Codex. Not app code: rebuild with MUI theme tokens and shared components. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Geist:wght@400..700&amp;family=Geist+Mono:wght@400..600&amp;display=swap">
+<style>
+body{margin:0;background:#0E0D12}
+a{color:#A78BFA}
+button{font:inherit;cursor:pointer}
+input{font:inherit}
+</style>
+</head>
+<body>
+<div style="width: 1440px; height: 1440px; box-sizing: border-box; padding: 56px 64px; background: #0E0D12; color: #F2F0F7; font-family: Geist, system-ui, sans-serif; display: flex; flex-direction: column; gap: 36px">
+
+<div style="display: flex; align-items: flex-end; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #A78BFA">Design system</span>
+<h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 56px; line-height: 1; letter-spacing: -0.035em">Amethyst</h1>
+</div>
+<p style="margin: 0; max-width: 520px; font-size: 15px; line-height: 1.55; color: #A29EB1; text-align: right">Cool charcoal, one violet accent reserved for scores and the primary action, covers carry the color.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+
+<section style="grid-column: span 2; padding: 24px; border-radius: 16px; border: 1px solid #2C2A36; background: #16151C; display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #A29EB1">Color</h2>
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="height: 64px; border-radius: 10px; background: #0E0D12; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08)"></div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 13px; font-weight: 600">Ground</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #A29EB1">#0E0D12 · page</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="height: 64px; border-radius: 10px; background: #16151C; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08)"></div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 13px; font-weight: 600">Surface</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #A29EB1">#16151C · cards</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="height: 64px; border-radius: 10px; background: #1F1D27; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08)"></div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 13px; font-weight: 600">Raised</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #A29EB1">#1F1D27 · menus</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="height: 64px; border-radius: 10px; background: #2C2A36; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08)"></div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 13px; font-weight: 600">Line</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #A29EB1">#2C2A36 · borders</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="height: 64px; border-radius: 10px; background: #A29EB1; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08)"></div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 13px; font-weight: 600">Muted</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #A29EB1">#A29EB1 · meta</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="height: 64px; border-radius: 10px; background: #F2F0F7; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08)"></div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 13px; font-weight: 600">Text</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #A29EB1">#F2F0F7 · body</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="height: 64px; border-radius: 10px; background: #8B5CF6; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08)"></div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 13px; font-weight: 600">Violet</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #A29EB1">#8B5CF6 · score</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="height: 64px; border-radius: 10px; background: #FFFFFF; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08)"></div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 13px; font-weight: 600">On violet</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #A29EB1">#FFFFFF · on violet</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="height: 64px; border-radius: 10px; background: #C93B40; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08)"></div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 13px; font-weight: 600">Danger</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #A29EB1">#C93B40 · delete</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="height: 64px; border-radius: 10px; background: #5FD08F; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08)"></div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 13px; font-weight: 600">Success</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #A29EB1">#5FD08F · saved</span>
+</div>
+</div>
+
+</div>
+</section>
+
+<section style="padding: 24px; border-radius: 16px; border: 1px solid #2C2A36; background: #16151C; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #A29EB1">Type</h2>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 44px; line-height: 1; letter-spacing: -0.035em">Display</span><span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #A29EB1">Bricolage 800 · 56/40</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 24px; letter-spacing: -0.02em">Section heading</span><span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #A29EB1">Bricolage 700 · 24</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><span style="font-size: 16px">Body text for notes and forms</span><span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #A29EB1">Geist 400 · 16/15</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><span style="font-size: 13px; color: #A29EB1">Secondary · metadata</span><span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #A29EB1">Geist 400 · 13</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><span style="font-family: 'Geist Mono', monospace; font-size: 15px; font-weight: 600; color: #A78BFA">9 · #2 · 228,582</span><span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #A29EB1">Geist Mono · numbers</span></div>
+</section>
+
+<section style="padding: 24px; border-radius: 16px; border: 1px solid #2C2A36; background: #16151C; display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #A29EB1">Buttons</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<button type="button" style="height: 44px; padding: 0 20px; border-radius: 10px; border: 0; background: #8B5CF6; color: #FFFFFF; font-size: 15px; font-weight: 600">Primary</button>
+<button type="button" style="height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid #3B3847; background: #1F1D27; color: #F2F0F7; font-size: 15px; font-weight: 600">Secondary</button>
+<button type="button" style="height: 44px; padding: 0 16px; border-radius: 10px; border: 0; background: transparent; color: #F2F0F7; font-size: 15px; font-weight: 600">Ghost</button>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<button type="button" style="height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: #C93B40; color: #FFFFFF; font-size: 15px; font-weight: 600">Delete</button>
+<button type="button" style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: 10px; border: 0; background: transparent; color: #F06B6F; font-size: 15px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path></svg>Delete review</button>
+<button type="button" disabled style="height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: #2A2833; color: #7D798C; font-size: 15px; font-weight: 600">Disabled</button>
+</div>
+<p style="margin: 0; font-size: 13px; line-height: 1.5; color: #A29EB1">Violet is for the one main action on a screen. Destructive actions are always red, never violet.</p>
+</section>
+
+<section style="padding: 24px; border-radius: 16px; border: 1px solid #2C2A36; background: #16151C; display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #A29EB1">Fields</h2>
+<label style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; font-weight: 600; color: #D3CFDE">Headline</span>
+<input type="text" placeholder="Your one-line verdict" style="height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid #A78BFA; box-shadow: 0 0 0 3px rgba(139,92,246,0.24); background: #0E0D12; color: #F2F0F7; font-size: 15px; outline: none">
+</label>
+<label style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; font-weight: 600; color: #D3CFDE">Password</span>
+<input type="password" style="height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid #E5484D; background: #0E0D12; color: #F2F0F7; font-size: 15px; outline: none">
+<span style="font-size: 13px; color: #F06B6F">Password is required</span>
+</label>
+</section>
+
+<section style="padding: 24px; border-radius: 16px; border: 1px solid #2C2A36; background: #16151C; display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #A29EB1">Scores</h2>
+<div style="display: flex; align-items: center; gap: 16px">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 56px; line-height: 0.9; letter-spacing: -0.05em; color: #A78BFA">8</span>
+<span style="padding: 4px 9px; border-radius: 6px; background: #8B5CF6; color: #FFFFFF; font-family: 'Geist Mono', monospace; font-weight: 600; font-size: 14px">9</span>
+<span style="padding: 3px 8px; border-radius: 6px; background: rgba(14,13,18,0.8); border: 1px solid #3B3847; font-family: 'Geist Mono', monospace; font-weight: 600; font-size: 12px">#2</span>
+</div>
+<div style="display: flex; gap: 4px">
+<span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #2C2A36"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #2C2A36"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #2C2A36"></span>
+</div>
+<div style="display: flex; gap: 4px">
+<span style="flex-grow: 1; height: 34px; border-radius: 7px; border: 1px solid #8B5CF6; background: #8B5CF6; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600">1</span><span style="flex-grow: 1; height: 34px; border-radius: 7px; border: 1px solid #8B5CF6; background: #8B5CF6; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600">2</span><span style="flex-grow: 1; height: 34px; border-radius: 7px; border: 1px solid #8B5CF6; background: #8B5CF6; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600">3</span><span style="flex-grow: 1; height: 34px; border-radius: 7px; border: 1px solid #8B5CF6; background: #8B5CF6; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600">4</span><span style="flex-grow: 1; height: 34px; border-radius: 7px; border: 1px solid #8B5CF6; background: #8B5CF6; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600">5</span><span style="flex-grow: 1; height: 34px; border-radius: 7px; border: 1px solid #8B5CF6; background: #8B5CF6; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600">6</span><span style="flex-grow: 1; height: 34px; border-radius: 7px; border: 1px solid #8B5CF6; background: #8B5CF6; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600">7</span><span style="flex-grow: 1; height: 34px; border-radius: 7px; border: 1px solid #8B5CF6; background: #8B5CF6; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600">8</span><span style="flex-grow: 1; height: 34px; border-radius: 7px; border: 1px solid #3B3847; background: #0E0D12; color: #A29EB1; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600">9</span><span style="flex-grow: 1; height: 34px; border-radius: 7px; border: 1px solid #3B3847; background: #0E0D12; color: #A29EB1; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600">10</span>
+</div>
+<p style="margin: 0; font-size: 13px; line-height: 1.5; color: #A29EB1">Whole numbers 1–10 replace half-stars. Unscored reads “Not rated”, never a default 5.</p>
+</section>
+
+<section style="padding: 24px; border-radius: 16px; border: 1px solid #2C2A36; background: #16151C; display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #A29EB1">Covers</h2>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="aspect-ratio: 2 / 3; border-radius: 10px; background: #1C2736; position: relative; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06)"><span style="position: absolute; left: 10px; right: 10px; bottom: 10px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 17px; line-height: 0.95; color: #CFE0F2">Hollow Knight</span></div>
+<span style="font-size: 13px; font-weight: 600">Ready</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="aspect-ratio: 2 / 3; border-radius: 10px; background: #1F1D27; border: 1px dashed #3B3847; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: #A78BFA"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.56"></path></svg><span style="font-size: 11px; color: #A29EB1">Finding art…</span></div>
+<span style="font-size: 13px; font-weight: 600">Pending</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="aspect-ratio: 2 / 3; border-radius: 10px; background: #1F1D27; box-shadow: inset 0 0 0 1px #2C2A36; position: relative"><span style="position: absolute; top: 50%; left: 0; right: 0; transform: translateY(-50%); text-align: center; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; color: #5A566A">H</span><span style="position: absolute; left: 10px; right: 10px; bottom: 10px; font-size: 12px; font-weight: 600; color: #A29EB1">Hades</span></div>
+<span style="font-size: 13px; font-weight: 600">Missing</span>
+</div>
+</div>
+</section>
+
+<section style="padding: 24px; border-radius: 16px; border: 1px solid #2C2A36; background: #16151C; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #A29EB1">Toasts</h2>
+<div role="status" style="display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 16px; border-radius: 12px; background: #1F1D27; border: 1px solid #3B3847; box-shadow: 0 12px 30px rgba(0,0,0,0.4)">
+<span style="width: 24px; height: 24px; border-radius: 50%; background: #1C3326; color: #5FD08F; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg></span>
+<span style="flex-grow: 1; font-size: 14px">Review saved · Stellar Blade is now #4</span>
+<button type="button" style="height: 32px; padding: 0 10px; border-radius: 8px; border: 0; background: transparent; color: #A78BFA; font-size: 14px; font-weight: 600">View</button>
+</div>
+<div role="alert" style="display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 16px; border-radius: 12px; background: #1F1D27; border: 1px solid #5A2A2C; box-shadow: 0 12px 30px rgba(0,0,0,0.4)">
+<span style="width: 24px; height: 24px; border-radius: 50%; background: #3A1A1C; color: #F06B6F; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 800; font-size: 14px">!</span>
+<span style="flex-grow: 1; font-size: 14px">Couldn’t save the review. Try again.</span>
+<button type="button" aria-label="Dismiss" style="width: 32px; height: 32px; border-radius: 8px; border: 0; background: transparent; color: #A29EB1; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+</div>
+<p style="margin: 0; font-size: 13px; line-height: 1.5; color: #A29EB1">Bottom-right, stacked, never covering the main action.</p>
+</section>
+
+<section style="grid-column: span 2; padding: 24px; border-radius: 16px; border: 1px solid #2C2A36; background: #16151C; display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 24px; align-items: start">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #A29EB1">Confirm dialog</h2>
+<div role="dialog" aria-labelledby="del-h" style="max-width: 460px; padding: 24px; border-radius: 16px; background: #1F1D27; border: 1px solid #3B3847; box-shadow: 0 30px 80px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 12px">
+<h3 id="del-h" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: -0.015em">Delete this review?</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #D3CFDE">Your scores and notes for <strong style="color: #F2F0F7">Stellar Blade</strong> will be removed. This can’t be undone.</p>
+<div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px">
+<button type="button" style="height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid #3B3847; background: transparent; color: #F2F0F7; font-size: 15px; font-weight: 600">Keep review</button>
+<button type="button" style="height: 42px; padding: 0 16px; border-radius: 10px; border: 0; background: #C93B40; color: #FFFFFF; font-size: 15px; font-weight: 600">Delete review</button>
+</div>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #A29EB1">Account menu</h2>
+<div role="menu" style="padding: 6px; border-radius: 12px; background: #1F1D27; border: 1px solid #3B3847; box-shadow: 0 18px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column">
+<div style="padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 2px; border-bottom: 1px solid #2C2A36; margin-bottom: 6px">
+<span style="font-size: 12px; color: #A29EB1">Signed in as</span>
+<span style="font-size: 14px; font-weight: 600">Local test user</span>
+</div>
+<button role="menuitem" type="button" style="display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #F2F0F7; font-size: 14px; text-align: left">Change password</button>
+<button role="menuitem" type="button" style="display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 12px; border: 0; border-radius: 8px; background: #2A2833; color: #F2F0F7; font-size: 14px; text-align: left">Credits &amp; data sources</button>
+<button role="menuitem" type="button" style="display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #F2F0F7; font-size: 14px; text-align: left">Sign out</button>
+</div>
+</div>
+</section>
+
+</div>
+</div>
+</body>
+</html>

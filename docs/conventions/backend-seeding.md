@@ -6,7 +6,8 @@ This document contains non-always-on details for how MediaRanker handles system 
 
 - Seed artifacts are module-owned and live under `MediaRankerServer/Modules/<Module>/Data/Seeds`.
 - Current seed artifacts:
-  - `MediaRankerServer/Modules/Templates/Data/Seeds/SeedSystemTemplates.sql`
+  - `MediaRankerServer/Modules/Templates/Data/Seeds/EssentialsTemplateSeeds.cs` supplies the five additional category templates and their ordered fields to EF configuration and `AddEssentialsTemplates`.
+  - The original game template and fields remain in their historical migrations/configuration with unchanged IDs.
 - Media types are canonical strings defined by `MediaRankerServer/Shared/Data/MediaTypes.cs`; they are no longer database seed rows. `SeedSystemMediaTypes.sql` is retained for historical migrations.
 
 ## Seed Identity Rules
@@ -26,6 +27,7 @@ This document contains non-always-on details for how MediaRanker handles system 
 - When simplifying `Down`, verify FK behavior (cascade/restrict) first.
 - If deleting by system user scope, ensure this aligns with current domain rules.
 - Prefer explicit, predictable delete behavior for seeded rows.
+- `AddEssentialsTemplates.Down` refuses rollback while reviews reference its templates, then removes only its own fields and templates.
 
 ## Change Policy
 

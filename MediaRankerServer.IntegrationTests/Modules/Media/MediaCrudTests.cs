@@ -72,7 +72,34 @@ public class MediaCrudTests(PostgresContainerFixture postgresFixture, LocalStack
 
         result!.Items.Should().HaveCount(1);
         result.TotalCount.Should().Be(2);
-        result.Items[0].Title.Should().Be("PagingTestBeta");
+        result.Items[0].Title.Should().Be("PagingTestAlpha");
+    }
+
+    [Fact]
+    public async Task GetMedia_SearchOrdersPrefixMatchesBeforeContainsMatchesThenByTitle()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PostgreSQLContext>();
+        db.Media.AddRange(
+            new MediaEntity { Title = "RankNeedle", MediaType = MovieMediaType },
+            new MediaEntity { Title = "RankNeedle 0 Long Prefix", MediaType = MovieMediaType },
+            new MediaEntity { Title = "RankNeedle A", MediaType = MovieMediaType },
+            new MediaEntity { Title = "RankNeedle Longer Title", MediaType = MovieMediaType },
+            new MediaEntity { Title = "A RankNeedle Match", MediaType = MovieMediaType }
+        );
+        await db.SaveChangesAsync();
+
+        var response = await Client.GetAsync(
+            "/api/media?mediaType=Movie&searchField=title&searchTerm=rankneedle&sortField=releaseDate&sortDirection=desc&pageSize=10");
+        TestUtils.AssertSuccessResponse(response);
+        var result = await response.Content.ReadFromJsonAsync<PageResult<MediaDto>>();
+
+        result!.Items.Select(item => item.Title).Should().Equal(
+            "RankNeedle",
+            "RankNeedle 0 Long Prefix",
+            "RankNeedle A",
+            "RankNeedle Longer Title",
+            "A RankNeedle Match");
     }
 
 

@@ -142,12 +142,15 @@ export function AlertProvider({
         {...baseAlertProps}
         sx={{
           position: "fixed",
-          bottom: 16,
-          left: "50%",
-          transform: "translateX(-50%)",
+          right: 24,
+          bottom: 24,
           zIndex: 1400,
-          minWidth: 420,
-          maxWidth: "min(640px, calc(100% - 32px))",
+          width: "min(480px, calc(100vw - 32px))",
+          boxSizing: "border-box",
+          "@media (max-width: 600px)": {
+            right: 16,
+            bottom: 16,
+          },
         }}
       >
         {alertMessage}

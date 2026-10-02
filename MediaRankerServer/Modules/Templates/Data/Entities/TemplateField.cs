@@ -46,6 +46,7 @@ public class TemplateField : ITimestampedEntity
                 .HasDatabaseName("ix_template_fields_template_id");
 
             // Seed system template fields
+            builder.HasData(Seeds.EssentialsTemplateSeeds.Fields);
             builder.HasData(
                 new TemplateField { Id = -11, TemplateId = -1, Name = "Gameplay", Position = 0 },
                 new TemplateField { Id = -12, TemplateId = -1, Name = "Graphics", Position = 1 },

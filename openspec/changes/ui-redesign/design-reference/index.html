@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MediaRanker redesign — design reference</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Geist:wght@400..700&amp;family=Geist+Mono:wght@400..600&amp;display=swap">
+<link rel="stylesheet" href="tokens.css">
+<style>
+body{margin:0;background:var(--mr-ground);color:var(--mr-text);font-family:var(--mr-font-body)}
+a{color:var(--mr-accent-text)}a:hover{color:var(--mr-accent-text-hover)}
+main{max-width:var(--mr-content-max);margin:0 auto;padding:56px var(--mr-gutter) 80px;display:flex;flex-direction:column;gap:40px}
+.eyebrow{font-family:var(--mr-font-mono);font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--mr-accent-text)}
+h1{margin:8px 0 12px;font-family:var(--mr-font-display);font-weight:800;font-size:52px;line-height:1;letter-spacing:-.035em}
+h2{margin:0 0 16px;font-family:var(--mr-font-display);font-weight:700;font-size:24px;letter-spacing:-.02em}
+p{margin:0;color:var(--mr-text-muted);line-height:1.6;max-width:760px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.card{display:flex;flex-direction:column;gap:10px;text-decoration:none;color:var(--mr-text)}
+.card img{width:100%;aspect-ratio:16/10;object-fit:cover;object-position:top;border-radius:12px;border:1px solid var(--mr-line);background:var(--mr-surface);transition:border-color 120ms ease}
+.card:hover img{border-color:var(--mr-accent)}
+.card strong{font-size:15px}
+.card span{font-size:13px;color:var(--mr-text-muted)}
+.links{display:flex;gap:20px;flex-wrap:wrap;font-size:14px}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div class="eyebrow">OpenSpec change · ui-redesign</div>
+<h1>MediaRanker redesign</h1>
+<p>Static references for every redesigned screen and state, exported from the design canvas. Behaviour lives in the specs; these show what it should look like. Start with the README.</p>
+</header>
+<div class="links">
+<a href="README.md">README — how to use these files</a>
+<a href="tokens.css">tokens.css</a>
+<a href="../design.md">design.md</a>
+<a href="../tasks.md">tasks.md</a>
+</div>
+
+<section>
+<h2>Library and reviewing</h2>
+<div class="grid">
+<a class="card" href="screens/01-library.html"><img src="screenshots/01-library.png" alt="Library screen"><strong>01 · Library</strong><span>Ranked posters, latest review, type chips</span></a>
+<a class="card" href="screens/02-review-drawer.html"><img src="screenshots/02-review-drawer.png" alt="Review drawer"><strong>02 · Review drawer</strong><span>Detail with ordered score bars</span></a>
+<a class="card" href="screens/03-new-review-search.html"><img src="screenshots/03-new-review-search.png" alt="New review search step"><strong>03 · New review: search</strong><span>Relevance results, reviewed titles dimmed</span></a>
+<a class="card" href="screens/04-new-review-scoring.html"><img src="screenshots/04-new-review-scoring.png" alt="New review partly scored"><strong>04 · New review: scoring</strong><span>Not rated by default, Save disabled</span></a>
+<a class="card" href="screens/05-new-review-ready.html"><img src="screenshots/05-new-review-ready.png" alt="New review ready to save"><strong>05 · New review: ready</strong><span>8.5 rounds half to even → 8</span></a>
+<a class="card" href="screens/06-new-review-no-results.html"><img src="screenshots/06-new-review-no-results.png" alt="New review with no results"><strong>06 · New review: no results</strong><span>Empty search state</span></a>
+</div>
+</section>
+
+<section>
+<h2>Catalog, templates and sign-in</h2>
+<div class="grid">
+<a class="card" href="screens/07-catalog-search.html"><img src="screenshots/07-catalog-search.png" alt="Catalog search"><strong>07 · Catalog: search</strong><span>Row status, pending cover, open menu</span></a>
+<a class="card" href="screens/08-catalog-browse.html"><img src="screenshots/08-catalog-browse.png" alt="Catalog browse"><strong>08 · Catalog: browse</strong><span>Ready, pending and missing covers</span></a>
+<a class="card" href="screens/09-catalog-no-results.html"><img src="screenshots/09-catalog-no-results.png" alt="Catalog with no results"><strong>09 · Catalog: no results</strong><span>Empty search state</span></a>
+<a class="card" href="screens/10-templates.html"><img src="screenshots/10-templates.png" alt="Templates"><strong>10 · Templates</strong><span>Built-in card, side editor</span></a>
+<a class="card" href="screens/11-sign-in.html"><img src="screenshots/11-sign-in.png" alt="Sign in"><strong>11 · Sign in</strong><span>Cover wall from the showcase endpoint</span></a>
+<a class="card" href="screens/12-ui-kit.html"><img src="screenshots/12-ui-kit.png" alt="Amethyst UI kit"><strong>12 · Amethyst UI kit</strong><span>Tokens and components</span></a>
+</div>
+</section>
+</main>
+</body>
+</html>

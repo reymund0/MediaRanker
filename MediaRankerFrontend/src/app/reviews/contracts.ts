@@ -13,6 +13,7 @@ export interface ReviewDto {
   mediaId: number;
   mediaTitle: string;
   mediaType: string;
+  mediaReleaseDate?: string | null;
   mediaCoverImageUrl: string | null;
   coverStatus: CoverStatus;
 }

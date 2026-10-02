@@ -19,6 +19,7 @@ public static class MediaModule
         IConfiguration configuration,
         IHostEnvironment environment)
     {
+        services.AddMemoryCache();
         services.AddSingleton(CatalogBootstrapOptions.Read(configuration));
         services.AddSingleton<CatalogScheduleGate>();
         services.AddOptions<ImdbImportOptions>().Bind(configuration.GetSection(ImdbImportOptions.SectionPath))

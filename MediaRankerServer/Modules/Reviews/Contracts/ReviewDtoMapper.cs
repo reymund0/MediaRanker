@@ -8,7 +8,11 @@ namespace MediaRankerServer.Modules.Reviews.Contracts;
 
 public static class ReviewDtoMapper
 {
-  public static ReviewDto Map(CoverPresentation? cover, ReviewDetailView review, IEnumerable<ReviewFieldDetails> fields)
+  public static ReviewDto Map(
+    CoverPresentation? cover,
+    ReviewDetailView review,
+    IEnumerable<ReviewFieldDetails> fields,
+    DateOnly? mediaReleaseDate = null)
   {
     cover ??= CoverPresentation.Unsupported;
     
@@ -28,6 +32,7 @@ public static class ReviewDtoMapper
       MediaId = review.MediaId,
       MediaTitle = review.MediaTitle,
       MediaType = review.MediaType,
+      MediaReleaseDate = mediaReleaseDate,
       MediaCoverImageUrl = cover.Url,
       CoverStatus = cover.Status
     };

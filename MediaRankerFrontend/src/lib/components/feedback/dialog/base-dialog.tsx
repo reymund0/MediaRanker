@@ -16,6 +16,7 @@ export interface BaseDialogProps extends Omit<DialogProps, "onClose"> {
   confirmDisabled?: boolean;
   confirmLabel?: string;
   confirmLoading?: boolean;
+  danger?: boolean;
   onConfirm: () => void;
 }
 
@@ -28,6 +29,7 @@ export function BaseDialog({
   confirmDisabled,
   confirmLabel,
   confirmLoading,
+  danger = false,
   onConfirm,
   children,
   ...dialogProps
@@ -48,6 +50,7 @@ export function BaseDialog({
         </Button>
         <Button
           variant="contained"
+          color={danger ? "error" : "primary"}
           onClick={onConfirm}
           disabled={confirmDisabled}
           loading={confirmLoading}

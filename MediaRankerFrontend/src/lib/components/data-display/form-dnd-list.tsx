@@ -14,10 +14,10 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { IconButton, List, ListItem } from "@mui/material";
+import { IconButton, List, ListItem, Typography } from "@mui/material";
 import { useFieldArray, useFormContext } from "react-hook-form";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import CloseIcon from "@mui/icons-material/Close";
 
 export interface FormDnDListProps {
   name: string;
@@ -114,16 +114,28 @@ function SortableItem(props: SortableItemProps) {
         props.onRemove ? (
           <IconButton
             size="small"
-            color="error"
+            aria-label={`Remove score ${props.index + 1}`}
             onClick={() => props.onRemove?.(props.index)}
+            sx={{
+              color: "error.light",
+              "&:hover": {
+                color: "error.main",
+                backgroundColor: "action.hover",
+              },
+            }}
           >
-            <DeleteOutlineIcon fontSize="small" />
+            <CloseIcon fontSize="small" />
           </IconButton>
         ) : null
       }
       sx={{
         borderBottom: "1px solid",
         borderColor: "divider",
+        minHeight: 52,
+        px: 1,
+        py: 0.75,
+        gap: 1,
+        alignItems: "center",
         "&:last-child": {
           borderBottom: 0,
         },
@@ -131,9 +143,27 @@ function SortableItem(props: SortableItemProps) {
         transition,
       }}
     >
-      <IconButton size="small" {...attributes} {...listeners}>
+      <IconButton
+        size="small"
+        aria-label={`Reorder score ${props.index + 1}`}
+        {...attributes}
+        {...listeners}
+      >
         <DragIndicatorIcon color="action" fontSize="small" />
       </IconButton>
+      <Typography
+        component="span"
+        variant="numeric"
+        aria-hidden="true"
+        sx={{
+          minWidth: 16,
+          textAlign: "center",
+          fontSize: 12,
+          color: "text.muted",
+        }}
+      >
+        {props.index + 1}
+      </Typography>
       {props.itemContent(props.index)}
     </ListItem>
   );
