@@ -2,6 +2,7 @@ using MediaRankerServer.Modules.Media.Contracts;
 using MediaRankerServer.Modules.Media.Services.Interfaces;
 using MediaRankerServer.Shared.Extensions;
 using MediaRankerServer.Shared.Paging;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MediaRankerServer.Modules.Media.Controllers;
@@ -15,6 +16,14 @@ public class MediaController(IMediaService mediaService) : ControllerBase
     {
         var media = await mediaService.GetAllMediaAsync(mediaType, request, cancellationToken);
         return Ok(media);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("showcase")]
+    public async Task<IActionResult> GetShowcase(CancellationToken cancellationToken)
+    {
+        var items = await mediaService.GetShowcaseAsync(cancellationToken);
+        return Ok(items);
     }
 
     [HttpPost]

@@ -1,11 +1,21 @@
 "use client";
+import { AuthShell } from "../auth-shell";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Card, CardContent, Typography, Link, NoSsr } from "@mui/material";
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Link,
+  NoSsr,
+  Divider,
+} from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { handleLogin } from "../helpers";
+import { SecondaryButton } from "@/lib/components/inputs/button/secondary-button";
 import { PrimaryButton } from "@/lib/components/inputs/button/primary-button";
 import { FormTextField } from "@/lib/components/inputs/text-field/form-text-field";
 import { useAlert } from "@/lib/components/feedback/alert/alert-provider";
@@ -97,14 +107,7 @@ export default function Login() {
 
   return (
     <FormProvider {...methods}>
-      <Box
-        sx={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
+      <AuthShell>
         <Card sx={{ width: "100%", maxWidth: 400 }}>
           <CardContent
             component="form"
@@ -112,25 +115,34 @@ export default function Login() {
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
             <Typography variant="h4" component="h1" gutterBottom align="center">
-              Login
+              Welcome back
+            </Typography>
+            <Typography color="text.secondary" sx={{ mb: 1 }}>
+              Sign in to your library.
             </Typography>
 
             <FormTextField<LoginFormData>
+              labelAbove
               name="usernameOrEmail"
-              label="Username or Email"
+              label="Username or email"
               autoComplete="username"
             />
 
-            <FormTextField<LoginFormData>
-              name="password"
-              label="Password"
-              type="password"
-              autoComplete="current-password"
-            />
-
-            <Typography variant="body2" align="right">
-              <Link href="/auth/reset-password">Forgot password?</Link>
-            </Typography>
+            <Box sx={{ position: "relative" }}>
+              <FormTextField<LoginFormData>
+                labelAbove
+                name="password"
+                label="Password"
+                type="password"
+                autoComplete="current-password"
+              />
+              <Link
+                href="/auth/reset-password"
+                sx={{ position: "absolute", top: 0, right: 0, fontSize: 13 }}
+              >
+                Forgot password?
+              </Link>
+            </Box>
 
             {confirmSignupNeeded && (
               <Typography variant="body2" align="center">
@@ -142,16 +154,25 @@ export default function Login() {
               type="submit"
               fullWidth
               disabled={loading}
-              sx={{ mt: 3, mb: 2 }}
+              sx={{ mt: 0.5, mb: 0 }}
             >
-              {loading ? "Logging in..." : "Login"}
+              {loading ? "Signing in..." : "Sign in"}
             </PrimaryButton>
 
             <NoSsr>
               {localTestAuthAvailable && (
-                <PrimaryButton type="button" fullWidth onClick={useLocalTestUser}>
-                  Use local test user
-                </PrimaryButton>
+                <>
+                  <Divider sx={{ my: 1, color: "text.disabled", fontSize: 12 }}>
+                    development only
+                  </Divider>
+                  <SecondaryButton
+                    type="button"
+                    fullWidth
+                    onClick={useLocalTestUser}
+                  >
+                    Use local test user
+                  </SecondaryButton>
+                </>
               )}
             </NoSsr>
 
@@ -161,7 +182,7 @@ export default function Login() {
             </Typography>
           </CardContent>
         </Card>
-      </Box>
+      </AuthShell>
     </FormProvider>
   );
 }

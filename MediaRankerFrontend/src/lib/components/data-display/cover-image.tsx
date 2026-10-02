@@ -2,6 +2,7 @@
 
 import ImageNotSupportedIcon from "@mui/icons-material/ImageNotSupported";
 import { Box, SxProps, Theme } from "@mui/material";
+import { ReactNode } from "react";
 import { useState } from "react";
 
 type CoverImageProps = {
@@ -9,10 +10,17 @@ type CoverImageProps = {
   alt: string;
   sx?: SxProps<Theme>;
   placeholderSx?: SxProps<Theme>;
+  placeholder?: ReactNode;
 };
 
 /** Displays a lazy provider image or a stable accessible fallback after an image error. */
-export function CoverImage({ src, alt, sx, placeholderSx }: CoverImageProps) {
+export function CoverImage({
+  src,
+  alt,
+  sx,
+  placeholderSx,
+  placeholder,
+}: CoverImageProps) {
   return (
     <CoverImageContent
       key={src ?? "placeholder"}
@@ -20,11 +28,18 @@ export function CoverImage({ src, alt, sx, placeholderSx }: CoverImageProps) {
       alt={alt}
       sx={sx}
       placeholderSx={placeholderSx}
+      placeholder={placeholder}
     />
   );
 }
 
-function CoverImageContent({ src, alt, sx, placeholderSx }: CoverImageProps) {
+function CoverImageContent({
+  src,
+  alt,
+  sx,
+  placeholderSx,
+  placeholder,
+}: CoverImageProps) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
 
   if (!src || failedUrl === src) {
@@ -40,7 +55,11 @@ function CoverImageContent({ src, alt, sx, placeholderSx }: CoverImageProps) {
           ...placeholderSx,
         }}
       >
-        <ImageNotSupportedIcon aria-hidden="true" />
+        {placeholder === undefined ? (
+          <ImageNotSupportedIcon aria-hidden="true" />
+        ) : (
+          placeholder
+        )}
       </Box>
     );
   }

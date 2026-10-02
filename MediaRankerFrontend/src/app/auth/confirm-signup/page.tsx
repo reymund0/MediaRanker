@@ -1,8 +1,9 @@
 "use client";
+import { AuthShell } from "../auth-shell";
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Box, Card, CardContent, Typography, Link } from "@mui/material";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { handleConfirmSignup, handleResendCode } from "../helpers";
@@ -40,6 +41,8 @@ function ConfirmSignupForm() {
     }
   }, [searchParams, methods]);
 
+  const username = useWatch({ control: methods.control, name: "username" });
+
   const onSubmit = async (data: ConfirmSignupFormData) => {
     closeAlert();
     setLoading(true);
@@ -75,14 +78,7 @@ function ConfirmSignupForm() {
 
   return (
     <FormProvider {...methods}>
-      <Box
-        sx={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
+      <AuthShell>
         <Card sx={{ width: "100%", maxWidth: 400 }}>
           <CardContent
             component="form"
@@ -90,7 +86,7 @@ function ConfirmSignupForm() {
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
             <Typography variant="h4" component="h1" gutterBottom align="center">
-              Confirm Signup
+              Confirm signup
             </Typography>
 
             <Typography
@@ -103,14 +99,16 @@ function ConfirmSignupForm() {
             </Typography>
 
             <FormTextField<ConfirmSignupFormData>
+              labelAbove
               name="username"
               label="Username"
               autoComplete="username"
             />
 
             <FormTextField<ConfirmSignupFormData>
+              labelAbove
               name="code"
-              label="Confirmation Code"
+              label="Confirmation code"
               autoComplete="off"
             />
 
@@ -126,9 +124,9 @@ function ConfirmSignupForm() {
             <SecondaryButton
               fullWidth
               onClick={onResendCode}
-              disabled={resending || !methods.getValues("username")}
+              disabled={resending || !username}
             >
-              {resending ? "Resending..." : "Resend Code"}
+              {resending ? "Resending..." : "Resend code"}
             </SecondaryButton>
 
             <Typography variant="body2" align="center">
@@ -136,7 +134,7 @@ function ConfirmSignupForm() {
             </Typography>
           </CardContent>
         </Card>
-      </Box>
+      </AuthShell>
     </FormProvider>
   );
 }

@@ -1,15 +1,10 @@
 "use client";
+import { BaseTextField } from "@/lib/components/inputs/text-field/base-text-field";
+import { AuthShell } from "../auth-shell";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Box,
-  Card,
-  CardContent,
-  Link,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Box, Card, CardContent, Link, Typography } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -184,14 +179,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
+    <AuthShell>
       <Card sx={{ width: "100%", maxWidth: 400 }}>
         {step === "request" && (
           <FormProvider {...requestMethods}>
@@ -212,6 +200,7 @@ export default function ResetPassword() {
                 Enter your username or email address to start password recovery.
               </Typography>
               <FormTextField<RequestFormData>
+                labelAbove
                 name="identifier"
                 label="Username or email"
                 autoComplete="username"
@@ -248,23 +237,27 @@ export default function ResetPassword() {
                 {neutralCodeMessage}
               </Typography>
               <FormTextField<ConfirmFormData>
+                labelAbove
                 name="code"
                 label="Recovery code"
                 autoComplete="one-time-code"
               />
               <FormTextField<ConfirmFormData>
+                labelAbove
                 name="newPassword"
                 label="New password"
                 type="password"
                 autoComplete="new-password"
               />
               <FormTextField<ConfirmFormData>
+                labelAbove
                 name="confirmPassword"
                 label="Confirm new password"
                 type="password"
                 autoComplete="new-password"
               />
-              <TextField
+              <BaseTextField
+                labelAbove
                 label="Username or email"
                 value={identifier}
                 fullWidth
@@ -308,15 +301,12 @@ export default function ResetPassword() {
             <Typography variant="body2" color="text.secondary" align="center">
               Return to login to sign in with your password.
             </Typography>
-            <PrimaryButton
-              href="/auth/login"
-              fullWidth
-            >
+            <PrimaryButton href="/auth/login" fullWidth>
               Return to login
             </PrimaryButton>
           </CardContent>
         )}
       </Card>
-    </Box>
+    </AuthShell>
   );
 }

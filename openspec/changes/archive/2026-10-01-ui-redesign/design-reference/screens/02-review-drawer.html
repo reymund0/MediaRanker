@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review drawer — MediaRanker design reference</title>
+<!-- Static design reference exported from the ui-redesign canvas (ReviewDetail.dc.html).
+     Visual source of truth for Codex. Not app code: rebuild with MUI theme tokens and shared components. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Geist:wght@400..700&amp;family=Geist+Mono:wght@400..600&amp;display=swap">
+<style>
+body{margin:0;background:#0E0D12}
+a{color:#A78BFA}a:hover{color:#C4B5FD}
+button{font:inherit;cursor:pointer}
+a:focus-visible,button:focus-visible{outline:2px solid #A78BFA;outline-offset:2px}
+.btn-primary:hover{background:#9D74F7 !important}
+.btn-danger:hover{background:#2A1415 !important}
+.icon-btn:hover{background:#2A2833 !important}
+</style>
+</head>
+<body>
+<div style="width: 1440px; height: 900px; position: relative; overflow: hidden; background: #0E0D12; color: #F2F0F7; font-family: Geist, system-ui, sans-serif">
+
+<div aria-hidden="true" style="position: absolute; inset: 0; display: flex; flex-direction: column">
+<div style="height: 68px; border-bottom: 1px solid #2C2A36; display: flex; align-items: center; gap: 36px; padding: 0 80px">
+<span style="width: 30px; height: 30px; border-radius: 8px; background: #8B5CF6"></span>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 20px">MediaRanker</span>
+</div>
+<div style="padding: 48px 80px; display: flex; flex-direction: column; gap: 24px">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 56px; letter-spacing: -0.035em">Your rankings</span>
+<div style="height: 364px; border-radius: 16px; background: #16151C; border: 1px solid #2C2A36"></div>
+<div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 24px">
+<div style="height: 300px; border-radius: 10px; background: #26342A"></div>
+<div style="height: 300px; border-radius: 10px; background: #3B3020"></div>
+<div style="height: 300px; border-radius: 10px; background: #1C2736"></div>
+<div style="height: 300px; border-radius: 10px; background: #2A2342"></div>
+<div style="height: 300px; border-radius: 10px; background: #3A2131"></div>
+<div style="height: 300px; border-radius: 10px; background: #2B2A28"></div>
+</div>
+</div>
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(6,5,4,0.72)"></div>
+
+<aside role="dialog" aria-modal="true" aria-labelledby="drawer-title" style="position: absolute; top: 0; right: 0; bottom: 0; width: 600px; background: #16151C; border-left: 1px solid #2C2A36; box-shadow: -24px 0 60px rgba(0,0,0,0.5); display: flex; flex-direction: column">
+
+<div style="height: 64px; flex-shrink: 0; padding: 0 20px 0 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2C2A36">
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #A29EB1">Review</span>
+<a class="icon-btn" href="Main.dc.html" aria-label="Close review" style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #F2F0F7">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+</a>
+</div>
+
+<div style="flex-grow: 1; overflow: auto; padding: 32px; display: flex; flex-direction: column; gap: 32px">
+
+<div style="display: flex; gap: 24px; align-items: flex-end">
+<div style="width: 128px; height: 192px; flex-shrink: 0; border-radius: 10px; background: #2A2342; position: relative; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06)">
+<span style="position: absolute; left: 12px; right: 12px; bottom: 12px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px; line-height: 0.92; letter-spacing: -0.03em; color: #DCD3FF">Stellar Blade</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; min-width: 0">
+<span style="align-self: flex-start; padding: 4px 10px; border-radius: 999px; background: #231A3D; border: 1px solid #4B3585; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 600; color: #A78BFA">#4 in Video games</span>
+<h2 id="drawer-title" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 40px; line-height: 1; letter-spacing: -0.03em">Stellar Blade</h2>
+<span style="font-size: 14px; color: #A29EB1">2024 · Video game</span>
+</div>
+</div>
+
+<div style="display: flex; align-items: center; gap: 24px; padding: 20px 24px; border-radius: 14px; background: #1F1D27; border: 1px solid #2C2A36">
+<div style="display: flex; align-items: baseline; gap: 6px">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 72px; line-height: 0.9; letter-spacing: -0.05em; color: #A78BFA">8</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 14px; color: #A29EB1">/10</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid #2C2A36; padding-left: 24px">
+<span style="font-size: 14px; font-weight: 600">Overall score</span>
+<span style="font-size: 13px; color: #A29EB1">Average of 4 scores, rounded · Video Games template</span>
+</div>
+</div>
+
+<section aria-labelledby="scores-h" style="display: flex; flex-direction: column; gap: 14px">
+<h3 id="scores-h" style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #A29EB1">Scores</h3>
+
+<div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 32px; align-items: center; gap: 16px">
+<span style="font-size: 15px; font-weight: 500">Gameplay</span>
+<div style="display: flex; gap: 4px">
+<span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span>
+</div>
+<span style="font-family: 'Geist Mono', monospace; font-size: 15px; font-weight: 600; text-align: right">10</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 32px; align-items: center; gap: 16px">
+<span style="font-size: 15px; font-weight: 500">Graphics</span>
+<div style="display: flex; gap: 4px">
+<span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #2C2A36"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #2C2A36"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #2C2A36"></span>
+</div>
+<span style="font-family: 'Geist Mono', monospace; font-size: 15px; font-weight: 600; text-align: right">7</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 32px; align-items: center; gap: 16px">
+<span style="font-size: 15px; font-weight: 500">Story</span>
+<div style="display: flex; gap: 4px">
+<span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #2C2A36"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #2C2A36"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #2C2A36"></span>
+</div>
+<span style="font-family: 'Geist Mono', monospace; font-size: 15px; font-weight: 600; text-align: right">7</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 32px; align-items: center; gap: 16px">
+<span style="font-size: 15px; font-weight: 500">Sound</span>
+<div style="display: flex; gap: 4px">
+<span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #8B5CF6"></span><span style="flex-grow: 1; height: 10px; border-radius: 3px; background: #2C2A36"></span>
+</div>
+<span style="font-family: 'Geist Mono', monospace; font-size: 15px; font-weight: 600; text-align: right">9</span>
+</div>
+
+</section>
+
+<section aria-labelledby="review-h" style="display: flex; flex-direction: column; gap: 12px; padding-top: 28px; border-top: 1px solid #2C2A36">
+<h3 id="review-h" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 24px; line-height: 1.25; letter-spacing: -0.015em">“Killer Anime Babes from Space”</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.7; color: #D3CFDE">Seriously the combat system is so much more in depth than this game had any right to be. Worth accepting goonerhood just to play this. Also fabulous music!</p>
+<p style="margin: 4px 0 0; font-size: 13px; color: #A29EB1">Reviewed Sep 26, 2026 · Edited Sep 30, 2026</p>
+</section>
+
+</div>
+
+<div style="height: 80px; flex-shrink: 0; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #2C2A36">
+<button class="btn-danger" type="button" style="display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid transparent; background: transparent; color: #F06B6F; font-size: 14px; font-weight: 600">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path></svg>Delete review</button>
+<a class="btn-primary" href="NewReview.dc.html" style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 20px; border-radius: 10px; background: #8B5CF6; color: #FFFFFF; text-decoration: none; font-size: 15px; font-weight: 600">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>Edit review</a>
+</div>
+
+</aside>
+</div>
+</body>
+</html>

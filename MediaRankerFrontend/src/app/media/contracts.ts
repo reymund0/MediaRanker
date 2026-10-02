@@ -1,3 +1,7 @@
+import type { CoverStatus } from "@/lib/contracts/shared";
+
+export type { CoverStatus } from "@/lib/contracts/shared";
+
 export interface MediaDto {
   id: number;
   title: string;
@@ -8,14 +12,6 @@ export interface MediaDto {
   coverImageUrl?: string | null;
   coverStatus: CoverStatus;
 }
-
-export type CoverStatus =
-  | "ready"
-  | "pending"
-  | "missing"
-  | "failed"
-  | "disabled"
-  | "unsupported";
 
 export interface MediaUpsertRequest {
   id: number | null;

@@ -26,7 +26,7 @@ Use optional docs under `docs/conventions/` for deeper details.
     - Each module keeps persistence concerns under `Data/`:
       - `Data/Entities/` — EF entities + configurations
       - `Data/Views/` — keyless read-model/view entities + SQL view artifacts
-      - `Data/Seeds/` — module-owned seed SQL artifacts
+      - `Data/Seeds/` — module-owned seed artifacts
   - `Shared/` — Cross-cutting concerns (Exceptions, Extensions, Events)
   - `Data/` — Data access (shared PostgreSQLContext)
   - `Migrations/` — EF Core Migrations (kept migration-compatible)
@@ -91,7 +91,7 @@ Do not edit build artifacts:
 
 ### Seed + Migration Conventions
 
-- Seed artifacts live under module `Data/Seeds` folders (e.g., `MediaRankerServer/Modules/Templates/Data/Seeds/SeedSystemTemplates.sql`).
+- Seed artifacts live under module `Data/Seeds` folders (e.g., `MediaRankerServer/Modules/Templates/Data/Seeds/EssentialsTemplateSeeds.cs`).
 - Seed IDs are static and negative to indicate system-seeded rows.
 - Keep system-owned identity values centralized in seed artifacts/migrations instead of scattering literals across services/controllers.
 - Migrations should reference seed artifacts/constants instead of duplicating literals.

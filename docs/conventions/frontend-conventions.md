@@ -5,7 +5,7 @@ This document contains non-always-on frontend details for MediaRanker.
 ## Theme and Styling
 
 - Theme is centralized in `MediaRankerFrontend/src/app/theme.ts`.
-- Current mode is dark.
+- Current mode is dark. Amethyst uses Bricolage Grotesque for display headings, Geist for body/controls, and Geist Mono for numeric scores/ranks/counts. Load fonts through `next/font/google`; keep colors and shared control styling in `theme.ts`.
 - Prefer theme tokens over one-off hardcoded values.
 - **Desktop scope**: The application is designed primarily for desktop. The approved automatic-cover-art change includes narrow-screen checks for media cover controls, review cards, and Credits; keep those adjustments local to the affected flows.
 - **Grid/Layout Props**: Avoid broad responsive redesigns. Use breakpoints only where an approved flow requires them; media controls stack on narrow screens and the grid scrolls horizontally instead of compressing its columns.
@@ -24,19 +24,16 @@ This document contains non-always-on frontend details for MediaRanker.
 ## Layout and Navigation
 
 - App composition in `src/app/layout.tsx`:
-  - `AppRouterCacheProvider` -> `ThemeProvider` -> `CssBaseline` -> `QueryClientProvider` -> `AlertProvider` -> `UserProvider` -> `BaseLayout`
+  - `AppRouterCacheProvider` -> `ThemeProvider` -> `CssBaseline` -> `UserProvider` -> identity-keyed `UserQueryProvider` -> `AlertProvider` -> `BaseLayout`
+  - Keep query clients scoped to the resolved user identity. Account changes remount the query provider and its UI subtree, discard the old cache, and isolate late responses. Same-user navigation/token refresh preserves the cache and drafts. Do not restore a module-level singleton query client.
   - Keep the installed MUI Next.js cache provider around the theme to collect streamed server styles consistently during hydration.
 - Navbar visibility:
   - Hide on `/auth/*`
   - Show on non-auth routes
-- Current top-level nav links:
-  - `/media`
-  - `/templates`
-  - `/reviews`
-  - `/credits` (TMDB branding/disclaimer and IGDB attribution)
-- User menu includes:
-  - Change password for signed-in Cognito users
-  - logout action
+- Library (`/reviews`), Catalog (`/media`), and Templates (`/templates`) are the primary navigation. Credits (`/credits`) is available from the account menu and attribution footer.
+- The account menu shows the signed-in name, Cognito-only Change password, and Sign out.
+- Ctrl+K focuses Catalog search.
+- Use `PageContainer` for the shared 1280px maximum width including 40px desktop gutters; `PageCard` remains a compatibility wrapper.
 
 ## Password management
 
@@ -47,7 +44,7 @@ This document contains non-always-on frontend details for MediaRanker.
 ## Alerts
 
 - Use `useAlert()` from `src/lib/components/feedback/alert/alert-provider.tsx`.
-- Alert rendering is app-level and single-active-alert.
+- App-level alerts render as bottom-right toasts. Preserve the existing single-active-alert behavior and durations.
 - `BaseAlert` defaults:
   - success: `3000ms`
   - info/warning: `5000ms`
@@ -70,16 +67,19 @@ This document contains non-always-on frontend details for MediaRanker.
 - When `usePagedQuery` disables fetching because search input is below `minSearchChars`, callers should expect empty items rather than stale cached results.
 - Keep request/response contracts explicit at hook callsites to preserve strong typing for mutation data and callbacks.
 - `usePendingCoverRefresh` polls pending displayed artwork every two seconds for at most 30 seconds per active view; hidden, terminal, and unmounted views stop polling.
-- Review mutations cancel the exact in-flight review query before reconciling both the query cache and local card state, so an older artwork refresh cannot overwrite a successful save/delete.
+- Review mutations cancel the exact in-flight review query before reconciling its cache. `ReviewExperienceProvider` coordinates creation and detail/edit drawers; drawers read the current cached review. Keep cover polling keys based on visible IDs so status updates do not restart the bounded window. Library polling pauses while the modal review drawer owns refresh.
 
 ## Automatic cover display
 
 - Use the shared `CoverImage` for provider images: lazy loading, descriptive alt text, and an accessible placeholder after failure. A changed URL resets the failed-image state.
+- `CoverTile` wraps `CoverImage` with pending and monogram fallbacks. Use `showTitle={false}` for compact thumbnails. `AuthShell` uses the anonymous ready-cover showcase and a typographic fallback when empty or unavailable.
 - Treat nullable cover URLs and terminal cover statuses as placeholders. Manual media creation/editing does not request file uploads.
 - The local development test login requires explicit frontend/backend opt-in and loopback access; startup and security boundaries are documented in `dev-commands.md`.
 
 ## Dialog and form pattern
 
+- Use nullable `BaseScoreInput`/`FormScoreInput` for 1–10 scores and `ScoreBar` for read-only display. New reviews begin unrated; overall previews match server midpoint-to-even rounding.
+- Creation and drawer edit share `ReviewWritingFields`: ordered two-column scores, a two-row multiline display headline, and full-width Notes starting at eight rows with no maximum and a word count. Keep action footers outside the scrolling form body.
 - Use `BaseDialog` for non-form confirmation flows (e.g., delete confirmations).
 - Use `FormDialog<T>` for modal forms that need `react-hook-form` context and built-in submit state handling.
 - `FormDialog` confirm state should remain tied to form validity/dirty state to prevent accidental empty submissions.

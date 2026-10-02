@@ -1,5 +1,6 @@
 "use client";
 
+import { PageContainer } from "@/lib/components/layout/page-container";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Box, Card, CardContent, Link, Typography } from "@mui/material";
@@ -70,15 +71,8 @@ function ChangePasswordForm({ username }: { username: string }) {
 
   return (
     <FormProvider {...methods}>
-      <Box
-        sx={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Card sx={{ width: "100%", maxWidth: 400 }}>
+      <PageContainer>
+        <Card sx={{ width: "100%", maxWidth: 560, p: 3 }}>
           <CardContent
             component="form"
             onSubmit={methods.handleSubmit(onSubmit)}
@@ -88,24 +82,28 @@ function ChangePasswordForm({ username }: { username: string }) {
               Change password
             </Typography>
             <FormTextField<ChangePasswordFormData>
+              labelAbove
               name="username"
               label="Username"
               autoComplete="username"
               InputProps={{ readOnly: true }}
             />
             <FormTextField<ChangePasswordFormData>
+              labelAbove
               name="currentPassword"
               label="Current password"
               type="password"
               autoComplete="current-password"
             />
             <FormTextField<ChangePasswordFormData>
+              labelAbove
               name="newPassword"
               label="New password"
               type="password"
               autoComplete="new-password"
             />
             <FormTextField<ChangePasswordFormData>
+              labelAbove
               name="confirmPassword"
               label="Confirm new password"
               type="password"
@@ -119,7 +117,7 @@ function ChangePasswordForm({ username }: { username: string }) {
             </Typography>
           </CardContent>
         </Card>
-      </Box>
+      </PageContainer>
     </FormProvider>
   );
 }

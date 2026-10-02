@@ -28,7 +28,20 @@ internal static class MediaQueryBuilder
 
     internal static IQueryable<MediaEntity> ApplySort(
         IQueryable<MediaEntity> query, PagingValidationResult v)
-        => v.SortField switch
+    {
+        if (v.SearchPattern is { Length: >= 2 } searchPattern)
+        {
+            // SearchPattern contains the escaped term wrapped in '%' wildcards.
+            // The clone TV catalog made the full exact/prefix/length sort spill to disk;
+            // this prefix-only relevance keeps the prefix grouping and a stable title order.
+            var searchTerm = searchPattern[1..^1];
+            return query
+                .OrderByDescending(m => EF.Functions.ILike(m.Title, $"{searchTerm}%", "\\"))
+                .ThenBy(m => m.Title)
+                .ThenBy(m => m.Id);
+        }
+
+        return v.SortField switch
         {
             "releaseDate" => v.Descending
                 ? query.OrderBy(m => m.ReleaseDate == null).ThenByDescending(m => m.ReleaseDate).ThenBy(m => m.Id)
@@ -43,4 +56,5 @@ internal static class MediaQueryBuilder
                 ? query.OrderByDescending(m => m.Title).ThenBy(m => m.Id)
                 : query.OrderBy(m => m.Title).ThenBy(m => m.Id),
         };
+    }
 }

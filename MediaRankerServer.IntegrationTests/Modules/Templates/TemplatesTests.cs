@@ -18,6 +18,29 @@ public class TemplatesTests(PostgresContainerFixture postgresFixture, LocalStack
 {
     private const string VideoGameMediaType = "VideoGame";
 
+    [Theory]
+    [InlineData("VideoGame", "Video Games", "Gameplay|Graphics|Story|Sound")]
+    [InlineData("Movie", "Movie essentials", "Story|Performances|Visuals|Sound")]
+    [InlineData("TvShow", "TV essentials", "Story|Characters|Pacing|Production")]
+    [InlineData("Book", "Book essentials", "Writing|Ideas & themes|Structure|Engagement")]
+    [InlineData("Album", "Album essentials", "Composition|Performance|Production|Cohesion")]
+    [InlineData("Concert", "Concert essentials", "Performance|Setlist|Live sound|Atmosphere")]
+    public async Task EveryCategoryHasBuiltInTemplateWithOrderedScores(string mediaType, string name, string fields)
+    {
+        var response = await Client.GetAsync($"/api/templates/{mediaType}");
+        response.EnsureSuccessStatusCode();
+        var templates = await response.Content.ReadFromJsonAsync<List<TemplateDto>>();
+        var template = templates!.Should().ContainSingle(t => t.IsSystem).Subject;
+        template.Name.Should().Be(name);
+        template.UserId.Should().Be("system");
+        template.MediaType.Should().Be(mediaType);
+        template.Fields.OrderBy(field => field.Position).Select(field => field.Name)
+            .Should().Equal(fields.Split('|'));
+        template.Fields.Select(field => field.Position).OrderBy(position => position)
+            .Should().Equal(0, 1, 2, 3);
+        template.Fields.Should().OnlyContain(field => field.Id < 0);
+    }
+
   [Fact]
     public async Task GetTemplates_ReturnsSystemTemplatesAndUserTemplatesOnly()
     {

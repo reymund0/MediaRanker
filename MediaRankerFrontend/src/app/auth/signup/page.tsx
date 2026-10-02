@@ -1,7 +1,8 @@
 "use client";
+import { AuthShell } from "../auth-shell";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Card, CardContent, Typography, Link } from "@mui/material";
+import { Card, CardContent, Typography, Link } from "@mui/material";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -64,14 +65,7 @@ export default function Signup() {
 
   return (
     <FormProvider {...methods}>
-      <Box
-        sx={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
+      <AuthShell>
         <Card sx={{ width: "100%", maxWidth: 400 }}>
           <CardContent
             component="form"
@@ -83,12 +77,14 @@ export default function Signup() {
             </Typography>
 
             <FormTextField<SignupFormData>
+              labelAbove
               name="username"
               label="Username"
               autoComplete="username"
             />
 
             <FormTextField<SignupFormData>
+              labelAbove
               name="email"
               label="Email"
               type="email"
@@ -96,6 +92,7 @@ export default function Signup() {
             />
 
             <FormTextField<SignupFormData>
+              labelAbove
               name="password"
               label="Password"
               type="password"
@@ -103,6 +100,7 @@ export default function Signup() {
             />
 
             <FormTextField<SignupFormData>
+              labelAbove
               name="confirmPassword"
               label="Confirm Password"
               type="password"
@@ -123,7 +121,7 @@ export default function Signup() {
             </Typography>
           </CardContent>
         </Card>
-      </Box>
+      </AuthShell>
     </FormProvider>
   );
 }

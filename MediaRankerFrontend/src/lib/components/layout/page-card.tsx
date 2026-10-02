@@ -7,7 +7,13 @@ export interface PageCardProps extends CardProps {
 export function PageCard({ children, sx, ...props }: PageCardProps) {
   return (
     <Card
-      sx={{ my: 3, maxWidth: "1400px", width: "100%", mx: "auto", ...sx }}
+      sx={{
+        my: 3,
+        maxWidth: 1200,
+        width: "calc(100% - 48px)",
+        mx: "auto",
+        ...sx,
+      }}
       {...props}
     >
       <CardContent sx={{ p: 3 }}>{children}</CardContent>
