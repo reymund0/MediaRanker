@@ -86,7 +86,15 @@ pnpm test:e2e --grep "real review lifecycle persists create edit rank and delete
 pnpm exec playwright show-report scripts/browser-tests/runs/<run-id>/playwright-report
 ```
 
-To watch a journey in a visible Chromium window with Playwright Inspector, run this in PowerShell from `MediaRankerFrontend`. Use **Resume** to run or **Step over** to advance through actions:
+To watch the E2E suite run automatically in a visible Chromium window, use:
+
+```powershell
+pnpm test:e2e:headed
+```
+
+Append `--grep "real review lifecycle"` to watch only that journey. For mocked scenarios, use `pnpm test:browser --headed`. These commands retain the normal harness and cleanup.
+
+For interactive debugging with Playwright Inspector, run this in PowerShell from `MediaRankerFrontend`. Use **Resume** to run or **Step over** to advance through actions:
 
 ```powershell
 $env:PWDEBUG = '1'

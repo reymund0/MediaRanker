@@ -364,7 +364,7 @@ async function invokePlaywright(project, env) {
   const requested = process.argv.slice(3).filter((arg) => arg !== "--");
   for (let index = 0; index < requested.length; index += 1) {
     const arg = requested[index];
-    if (arg === "--list") {
+    if (arg === "--list" || arg === "--headed") {
       passThrough.push(arg);
       continue;
     }

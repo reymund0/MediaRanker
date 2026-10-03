@@ -9,6 +9,7 @@
     "lint": "eslint",
     "format": "prettier --write .",
     "test:e2e": "node scripts/browser-tests/run.mjs e2e",
+    "test:e2e:headed": "node scripts/browser-tests/run.mjs e2e --headed",
     "test:browser": "node scripts/browser-tests/run.mjs browser"
   },
   "dependencies": {
