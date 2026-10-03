@@ -119,6 +119,8 @@ Do not edit build artifacts:
 
 ### Testing Conventions
 
+- **Frontend Tests**: Prefer real Docker-backed E2E journeys when deterministic data is straightforward to arrange; use browser mocks for difficult failure/timing states and Node unit tests for pure logic. See `docs/conventions/frontend-testing.md` and `MediaRankerFrontend/tests/e2e/CLAUDE.md`.
+
 - **Unit Tests**: Use xUnit + FluentAssertions + Moq. Focus on pure logic, mapping, and extensions.
 - **Integration Tests**: Use Testcontainers (PostgreSQL + LocalStack for AWS-backed flows) + Respawn.
   - Inherit from `IntegrationTestBase`.
@@ -138,4 +140,5 @@ Use these when a task needs deeper context:
 - `docs/conventions/backend-seeding.md`
 - `docs/conventions/backend-conventions.md`
 - `docs/conventions/frontend-conventions.md`
+- `docs/conventions/frontend-testing.md`
 - `docs/conventions/dev-commands.md`

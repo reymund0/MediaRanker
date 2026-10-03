@@ -96,6 +96,6 @@ This document contains non-always-on frontend details for MediaRanker.
 
 ### Frontend tests and helpers
 
-- Keep frontend tests under `MediaRankerFrontend/tests/unit/`, grouped by feature (`media`, `reviews`, `auth`), outside application source directories.
+- Keep frontend tests outside application source directories, grouped by domain under `MediaRankerFrontend/tests/unit/`, `tests/e2e/`, or `tests/browser/`. See [frontend testing](frontend-testing.md) for when to use real Docker-backed journeys, controlled browser mocks, or unit tests.
 - Prefer TypeScript for application helpers. Keep small single-use logic with its owner and consolidate related reusable functions in existing feature utilities; do not extract a file solely to make a function testable.
 - Run the existing Node tests from `MediaRankerFrontend` with `node --test tests/unit/*/*.test.mjs`. Tests use the installed TypeScript compiler where runtime enums or application aliases require transpilation; no additional test package is required.

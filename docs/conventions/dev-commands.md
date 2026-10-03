@@ -11,6 +11,8 @@ This document captures common local commands for MediaRanker.
 
 ## Local Development Test User
 
+Browser automation using this identity is described in **Local browser tests** below.
+
 Use the fixed `local-test-user` identity without a Cognito account. It is opt-in and available only in a Development backend with direct loopback requests and a localhost frontend. It is not a password or a production account; do not expose this development process through a public proxy.
 
 Start the database from the repository root: `docker compose up -d postgres`. Apply migrations to the verified disposable local target with `dotnet ef database update --project MediaRankerServer/MediaRankerServer.csproj --startup-project MediaRankerServer/MediaRankerServer.csproj` (set the connection explicitly if your normal configuration targets something else).
@@ -32,6 +34,84 @@ pnpm run dev
 ```
 
 Open `http://localhost:3000/auth/login` and select **Use local test user**. Refresh keeps this identity within the tab; Logout clears it. Reviews belong to the fixed local identity through the normal APIs. Real provider credentials are still required for live artwork discovery; this mode does not fabricate artwork. The local scheme is absent in Production and with its flag off. Normal Cognito login remains available. Keep both flags disabled for deployments and remove the terminal environment overrides to return to ordinary local login.
+
+## Local browser tests
+
+See [frontend testing](frontend-testing.md) for choosing real Docker-backed E2E coverage versus controlled browser mocks, and for test organization.
+
+Use Node 20.9 or newer with pnpm available; this suite was verified with Node 24.20 and pnpm 12.6. From `MediaRankerFrontend`, install the frontend dependencies and Playwright Chromium:
+
+```powershell
+pnpm install
+pnpm exec playwright install chromium
+```
+
+Run the real application journeys with Docker running, the .NET 9 SDK and `dotnet ef` available, and your developer API and Next.js processes stopped:
+
+```powershell
+pnpm test:e2e
+```
+
+The runner creates its own PostgreSQL 16 Compose project and ephemeral loopback database port, applies the existing migrations, and starts the API and Next.js on loopback. It does not use the ordinary Compose `pgdata` database. Tests run as the fixed local development identity, one at a time without retries. API fixtures and a post-test sweep clean up records, including records created through the UI. Failed cleanup prevents later journeys from running against contaminated state.
+
+Run controlled frontend states without Docker or the API:
+
+```powershell
+pnpm test:browser
+```
+
+This starts Next.js and stubs application API responses and cover images. The cases cover failed-save retry, delayed stale responses, empty states, and artwork transitions/fallbacks. Unexpected API calls and external browser requests fail checks. Mocked responses provide frontend evidence, not evidence of server persistence or provider availability; keep payloads aligned with the DTOs and existing integration contracts.
+
+Real journeys cover review persistence/ranking/deletion, scoring and cancellation, catalog search/pagination, and template duplication/reordering. Reload assertions exercise the real API and database.
+
+Tests follow the application's domain layout. `tests/e2e/` contains `reviews/`, `media/`, and `templates/`; `tests/browser/` contains `reviews/` and `media/`. Each suite keeps cross-domain fixtures in `shared/`. Domain-specific helpers live beside their scenarios, while the Docker/process harness stays in `scripts/browser-tests/`. Add new scenarios under their owning domain; keep real-API fixtures separate from browser API mocks.
+
+| Project / test name | Coverage |
+| --- | --- |
+| E2E: `real review lifecycle persists create edit rank and delete` | Create, reload, edit, ranking, cancelled and confirmed deletion |
+| E2E: `chooser validation midpoint cancellation and local session` | Title chooser, query retention, reviewed-title exclusion, sole template, validation/rounding, cancellation, keyboard focus, narrow notes, reload and logout |
+| E2E: `catalog search keeps the query and resets pagination on category change` | Search, no matches, category query retention and pagination reset |
+| E2E: `built-in template duplicates reorders persists and drives review field order` | System template restrictions, duplicate, keyboard reorder, reload and saved review field order |
+| Browser: `empty library and catalog offer their next actions without creating rows` | Empty states |
+| Browser: `mock pagination slices a multi-page result and reports totals only when requested` | Fixture pagination and optional total-count contract |
+| Browser: `failed review save keeps the draft and a successful retry creates one review` | Error, draft retention and retry |
+| Browser: `an acknowledged review edit survives a delayed stale library read` | Delayed response after edit |
+| Browser: `pending artwork refreshes to a fulfilled local image and missing artwork has a fallback` | Pending, ready and missing covers |
+| Browser: `failed image loads and failed artwork status both retain a usable fallback` | Image and provider failures |
+
+Run the first journey alone, or open a retained report (replace `<run-id>` with the printed directory name):
+
+```powershell
+pnpm test:e2e --grep "real review lifecycle persists create edit rank and delete"
+pnpm exec playwright show-report scripts/browser-tests/runs/<run-id>/playwright-report
+```
+
+To watch a journey in a visible Chromium window with Playwright Inspector, run this in PowerShell from `MediaRankerFrontend`. Use **Resume** to run or **Step over** to advance through actions:
+
+```powershell
+$env:PWDEBUG = '1'
+try {
+  pnpm test:e2e --grep "real review lifecycle persists create edit rank and delete"
+} finally {
+  Remove-Item Env:PWDEBUG -ErrorAction SilentlyContinue
+}
+```
+
+This keeps the isolated Docker stack and cleanup harness. The runner's twenty-minute Playwright deadline still applies while paused in Inspector. Omit `--grep` to watch all E2E journeys, or use `pnpm test:browser` inside the same block for mocked scenarios.
+
+Run existing unit tests separately using Node 24 (these tests import TypeScript directly):
+
+```powershell
+node --test tests/unit/**/*.test.mjs
+```
+
+Each browser run prints its artifact directory under `scripts/browser-tests/runs/`. It retains runner/application logs, bounded PostgreSQL logs (`postgres.log`), the HTML report, and failure traces/screenshots after teardown. Owned child PIDs and the exact Docker project cleanup command are logged at startup. Compose startup and migration commands have five-minute deadlines; Playwright has a twenty-minute deadline. E2E fixture cleanup evidence is recorded in `fixture-cleanup.jsonl`; `fixture-cleanup-failed.json` records a failed cleanup. Generated run artifacts are ignored by Git.
+
+The runner refuses an existing `.next/dev/lock` and an active developer API from this checkout. On Windows it also conservatively refuses ambiguous `dotnet run`/`dotnet watch` and IIS Express processes; stop those hosts before running E2E. Do not delete a lock belonging to a running server. Tests share the generated Next cache; restart your ordinary developer server with its normal environment after testing. API file logs belong to the run directory. Test child processes explicitly disable imports, upstream artwork providers, bootstrap, and Files cleanup; the existing artwork worker still performs database housekeeping against the disposable database. The Test module registers services, not another background job.
+
+On normal completion or handled interruption, the runner stops its processes and removes only its own Compose project and volumes. After an uncatchable termination, inspect the run log for its exact project name and verify that its owned processes have stopped before removing that project with `docker compose -f scripts/browser-tests/compose.e2e.yml -p <exact-run-project> down --volumes`. Never substitute the development Compose project or use a broad Docker prune. Diagnose a reported leftover process by its run log and PID; do not stop an unrelated developer process.
+
+These are Chromium tests of `next dev --webpack` and the localhost-only development identity. The test runner selects Webpack because repeated Turbopack launches encountered a Google-font query compilation error; ordinary development scripts and application assets are unchanged. They do not certify production builds, Cognito login, account isolation, live media providers, Turbopack behavior, or other browsers. Package/browser installation and the app's existing Google font compilation may require network access; a font/startup failure must be diagnosed rather than reported as a passing browser check.
 
 ## Docker Compose
 
